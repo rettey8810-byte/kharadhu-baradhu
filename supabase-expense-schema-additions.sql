@@ -178,6 +178,103 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Grocery bill (structured receipt data)
+CREATE TABLE IF NOT EXISTS public.grocery_bills (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  transaction_id uuid REFERENCES public.transactions(id) ON DELETE CASCADE NOT NULL,
+  shop_name text,
+  bill_date date,
+  subtotal numeric(12,2),
+  gst_amount numeric(12,2),
+  total numeric(12,2),
+  raw_text text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.grocery_bill_items (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  grocery_bill_id uuid REFERENCES public.grocery_bills(id) ON DELETE CASCADE NOT NULL,
+  item_name text NOT NULL,
+  qty numeric(12,3),
+  unit_price numeric(12,2),
+  line_total numeric(12,2)
+);
+
+CREATE INDEX IF NOT EXISTS idx_grocery_bills_transaction_id ON public.grocery_bills(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_grocery_bill_items_bill_id ON public.grocery_bill_items(grocery_bill_id);
+
+ALTER TABLE public.grocery_bills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.grocery_bill_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their grocery bills" ON public.grocery_bills;
+CREATE POLICY "Users can view their grocery bills" ON public.grocery_bills FOR SELECT USING (
+  EXISTS (
+    SELECT 1
+    FROM public.transactions t
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE t.id = grocery_bills.transaction_id
+    AND p.user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Users can insert their grocery bills" ON public.grocery_bills;
+CREATE POLICY "Users can insert their grocery bills" ON public.grocery_bills FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM public.transactions t
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE t.id = grocery_bills.transaction_id
+    AND p.user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Users can delete their grocery bills" ON public.grocery_bills;
+CREATE POLICY "Users can delete their grocery bills" ON public.grocery_bills FOR DELETE USING (
+  EXISTS (
+    SELECT 1
+    FROM public.transactions t
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE t.id = grocery_bills.transaction_id
+    AND p.user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Users can view their grocery bill items" ON public.grocery_bill_items;
+CREATE POLICY "Users can view their grocery bill items" ON public.grocery_bill_items FOR SELECT USING (
+  EXISTS (
+    SELECT 1
+    FROM public.grocery_bills gb
+    JOIN public.transactions t ON gb.transaction_id = t.id
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE gb.id = grocery_bill_items.grocery_bill_id
+    AND p.user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Users can insert their grocery bill items" ON public.grocery_bill_items;
+CREATE POLICY "Users can insert their grocery bill items" ON public.grocery_bill_items FOR INSERT WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM public.grocery_bills gb
+    JOIN public.transactions t ON gb.transaction_id = t.id
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE gb.id = grocery_bill_items.grocery_bill_id
+    AND p.user_id = auth.uid()
+  )
+);
+
+DROP POLICY IF EXISTS "Users can delete their grocery bill items" ON public.grocery_bill_items;
+CREATE POLICY "Users can delete their grocery bill items" ON public.grocery_bill_items FOR DELETE USING (
+  EXISTS (
+    SELECT 1
+    FROM public.grocery_bills gb
+    JOIN public.transactions t ON gb.transaction_id = t.id
+    JOIN public.expense_profiles p ON t.profile_id = p.id
+    WHERE gb.id = grocery_bill_items.grocery_bill_id
+    AND p.user_id = auth.uid()
+  )
+);
+
 -- Function to process recurring expenses and create transactions
 CREATE OR REPLACE FUNCTION public.process_recurring_expenses()
 RETURNS void AS $$

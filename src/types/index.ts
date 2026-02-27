@@ -123,6 +123,28 @@ export interface Receipt {
   url?: string
 }
 
+export interface GroceryBill {
+  id: string
+  transaction_id: string
+  shop_name: string | null
+  bill_date: string | null
+  subtotal: number | null
+  gst_amount: number | null
+  total: number | null
+  raw_text: string | null
+  created_at: string
+  items?: GroceryBillItem[]
+}
+
+export interface GroceryBillItem {
+  id: string
+  grocery_bill_id: string
+  item_name: string
+  qty: number | null
+  unit_price: number | null
+  line_total: number | null
+}
+
 export interface BillReminder {
   id: string
   profile_id: string
