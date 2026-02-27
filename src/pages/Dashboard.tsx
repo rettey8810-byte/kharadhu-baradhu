@@ -36,7 +36,7 @@ export default function Dashboard() {
       // Load all transactions from all profiles
       const { data: tx } = await supabase
         .from('transactions')
-        .select('*, profile:profile_id(name)')
+        .select('*, profile:profile_id(name), category:category_id(name), income_source:income_source_id(name)')
         .in('profile_id', profileIds)
         .gte('transaction_date', start.toISOString().slice(0, 10))
         .lte('transaction_date', end.toISOString().slice(0, 10))
@@ -223,7 +223,9 @@ export default function Dashboard() {
                       {t.description || (t.type === 'income' ? 'Income' : 'Expense')}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {t.transaction_date} • {(t.profile as any)?.name || 'Unknown'}
+                      {t.transaction_date} • {t.type === 'income' 
+                        ? ((t.income_source as any)?.name || 'Income') 
+                        : ((t.category as any)?.name || 'Expense')}
                     </p>
                   </div>
                 </div>
