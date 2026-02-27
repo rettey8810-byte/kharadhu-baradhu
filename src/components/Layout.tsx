@@ -8,21 +8,10 @@ function NavItem({ to, label, icon: Icon, onClick }: { to?: string; label: strin
   const location = useLocation()
   const active = to && location.pathname === to
   
-  if (onClick) {
-    return (
-      <button
-        onClick={onClick}
-        className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 w-full"
-      >
-        <Icon size={20} />
-        <span>{label}</span>
-      </button>
-    )
-  }
-  
   return (
     <Link
-      to={to!}
+      to={to || '#'}
+      onClick={onClick}
       className={`flex items-center gap-3 px-4 py-3 ${active ? 'bg-emerald-50 text-emerald-600' : 'text-gray-600 hover:bg-gray-50'}`}
     >
       <Icon size={20} />
