@@ -4,9 +4,11 @@ import { useProfile } from '../hooks/useProfile'
 import type { ExpenseCategory, IncomeSource } from '../types'
 import { Camera, X, FileText, Hash } from 'lucide-react'
 import { recognize } from 'tesseract.js'
+import { useNavigate } from 'react-router-dom'
 
 export default function AddTransaction() {
   const { currentProfile } = useProfile()
+  const navigate = useNavigate()
   const [type, setType] = useState<'expense' | 'income'>('expense')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -20,6 +22,7 @@ export default function AddTransaction() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,6 +57,7 @@ export default function AddTransaction() {
       setIncomeSources(sources ?? [])
       if ((cats?.length ?? 0) > 0) setCategoryId(cats![0].id)
       if ((sources?.length ?? 0) > 0) setIncomeSourceId(sources![0].id)
+      else setIncomeSourceId('')
     }
 
     load()
@@ -208,6 +212,7 @@ export default function AddTransaction() {
     if (!currentProfile) return
 
     setError(null)
+    setSuccess(null)
     setLoading(true)
 
     try {
@@ -315,6 +320,9 @@ export default function AddTransaction() {
       setBillSubtotal('')
       setBillTotal('')
       setBillItems([])
+
+      setSuccess('Transaction saved')
+      window.setTimeout(() => setSuccess(null), 3000)
     } catch (err: any) {
       setError(err?.message ?? 'Failed to add transaction')
     } finally {
@@ -387,10 +395,25 @@ export default function AddTransaction() {
               value={incomeSourceId}
               onChange={(e) => setIncomeSourceId(e.target.value)}
             >
+              {incomeSources.length === 0 && (
+                <option value="" disabled>
+                  No income sources (add one)
+                </option>
+              )}
               {incomeSources.map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
+
+            {incomeSources.length === 0 && (
+              <button
+                type="button"
+                onClick={() => navigate('/income-sources')}
+                className="mt-2 text-sm text-emerald-700 font-semibold"
+              >
+                Go to Income Sources
+              </button>
+            )}
           </div>
         )}
 
@@ -457,7 +480,9 @@ export default function AddTransaction() {
 
         {/* Receipt Upload */}
         <div>
-          <label className="text-sm text-gray-600">Receipt Photo</label>
+          <label className="text-sm text-gray-600">
+            Receipt Photo {isGroceries ? <span className="text-red-500">*</span> : <span className="text-gray-400">(optional)</span>}
+          </label>
           <input
             ref={fileInputRef}
             type="file"
@@ -637,6 +662,8 @@ export default function AddTransaction() {
             </div>
           </div>
         )}
+
+        {success && <div className="text-sm text-emerald-700 bg-emerald-50 p-2 rounded-lg">{success}</div>}
 
         {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{error}</div>}
 

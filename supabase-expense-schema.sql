@@ -89,6 +89,8 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   income_source_id uuid REFERENCES public.income_sources(id),
   
   description text,
+  notes text,
+  tags text[],
   transaction_date date NOT NULL,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
@@ -260,6 +262,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Default income sources function
+CREATE OR REPLACE FUNCTION public.create_default_income_sources(profile_uuid uuid)
+RETURNS void AS $$
+BEGIN
+  INSERT INTO public.income_sources (profile_id, name, color, icon, is_archived) VALUES
+  (profile_uuid, 'Salary', '#3b82f6', 'Banknote', false),
+  (profile_uuid, 'Food allowance', '#10b981', 'Utensils', false),
+  (profile_uuid, 'Bonus', '#f59e0b', 'Gift', false),
+  (profile_uuid, 'Other income', '#6b7280', 'Wallet', false);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Trigger to create default profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -273,6 +287,9 @@ BEGIN
   
   -- Create default categories for the profile
   PERFORM public.create_default_categories(new_profile_id);
+
+  -- Create default income sources for the profile
+  PERFORM public.create_default_income_sources(new_profile_id);
   
   -- Set as default profile
   INSERT INTO public.user_settings (user_id, default_profile_id)
@@ -293,6 +310,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_profile()
 RETURNS TRIGGER AS $$
 BEGIN
   PERFORM public.create_default_categories(NEW.id);
+  PERFORM public.create_default_income_sources(NEW.id);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
