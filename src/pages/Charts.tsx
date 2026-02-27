@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import type { Transaction } from '../types'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)

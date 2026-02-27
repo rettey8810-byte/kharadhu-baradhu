@@ -54,7 +54,6 @@ export default function RecurringExpenses() {
     e.preventDefault()
     if (!currentProfile) return
 
-    const startDate = new Date(formData.start_date)
     const { error } = await supabase.from('recurring_expenses').insert({
       profile_id: currentProfile.id,
       name: formData.name,
