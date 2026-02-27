@@ -100,7 +100,7 @@ export interface RecurringExpense {
   profile_id: string
   category_id: string | null
   name: string
-  amount: number
+  amount: number | null
   is_variable_amount: boolean
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
   start_date: string
@@ -113,6 +113,7 @@ export interface RecurringExpense {
   bill_type: string | null
   provider: string | null
   account_number: string | null
+  meter_number: string | null
   created_at: string
   updated_at: string
   category?: ExpenseCategory

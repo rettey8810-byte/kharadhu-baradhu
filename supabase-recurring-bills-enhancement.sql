@@ -8,7 +8,12 @@ ALTER TABLE public.recurring_expenses
   ADD COLUMN IF NOT EXISTS grace_period_days integer DEFAULT 0,
   ADD COLUMN IF NOT EXISTS bill_type text,
   ADD COLUMN IF NOT EXISTS provider text,
-  ADD COLUMN IF NOT EXISTS account_number text;
+  ADD COLUMN IF NOT EXISTS account_number text,
+  ADD COLUMN IF NOT EXISTS meter_number text;
+
+-- Allow variable bills to store no amount until the bill arrives
+ALTER TABLE public.recurring_expenses
+  ALTER COLUMN amount DROP NOT NULL;
 
 -- Bill type enum/check values
 COMMENT ON COLUMN public.recurring_expenses.bill_type IS 'Type: electricity, water, phone, internet, streaming, education, rent, other';

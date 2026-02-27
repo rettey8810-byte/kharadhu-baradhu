@@ -48,7 +48,8 @@ export default function RecurringExpenses() {
     grace_period_days: '5',
     bill_type: '',
     provider: '',
-    account_number: ''
+    account_number: '',
+    meter_number: ''
   })
 
   useEffect(() => {
@@ -82,10 +83,13 @@ export default function RecurringExpenses() {
     e.preventDefault()
     if (!currentProfile) return
     
+    const amountNum = Number(formData.amount)
+    const amountValue = Number.isFinite(amountNum) ? amountNum : null
+
     const insertData: any = {
       profile_id: currentProfile.id,
       name: formData.name,
-      amount: formData.is_variable_amount ? null : parseFloat(formData.amount),
+      amount: formData.is_variable_amount ? amountValue : amountValue,
       is_variable_amount: formData.is_variable_amount,
       category_id: formData.category_id || null,
       frequency: formData.frequency,
@@ -96,7 +100,8 @@ export default function RecurringExpenses() {
       grace_period_days: parseInt(formData.grace_period_days),
       bill_type: formData.bill_type,
       provider: formData.provider,
-      account_number: formData.account_number
+      account_number: formData.account_number || null,
+      meter_number: formData.meter_number || null
     }
 
     const { error } = await supabase.from('recurring_expenses').insert(insertData)
@@ -108,7 +113,7 @@ export default function RecurringExpenses() {
       setFormData({
         name: '', amount: '', is_variable_amount: false, category_id: '', frequency: 'monthly',
         start_date: new Date().toISOString().slice(0, 10), due_day_of_month: '', reminder_days: '3',
-        grace_period_days: '5', bill_type: '', provider: '', account_number: ''
+        grace_period_days: '5', bill_type: '', provider: '', account_number: '', meter_number: ''
       })
       loadData()
     }
@@ -376,8 +381,8 @@ export default function RecurringExpenses() {
                   <input
                     className="border border-gray-200 rounded-lg px-3 py-2"
                     placeholder="Meter number"
-                    value={formData.account_number}
-                    onChange={e => setFormData({...formData, account_number: e.target.value})}
+                    value={formData.meter_number}
+                    onChange={e => setFormData({...formData, meter_number: e.target.value})}
                   />
                 </div>
               </div>
