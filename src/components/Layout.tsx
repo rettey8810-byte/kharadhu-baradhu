@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 
@@ -142,6 +142,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/reminders" label="Reminders" icon={Bell} onClick={() => setMenuOpen(false)} />
               <NavItem to="/search" label="Search" icon={Search} onClick={() => setMenuOpen(false)} />
               <NavItem to="/categories" label="Categories" icon={PieChart} onClick={() => setMenuOpen(false)} />
+              <NavItem to="/income-sources" label="Income Sources" icon={Wallet} onClick={() => setMenuOpen(false)} />
               <NavItem to="/yearly" label="Yearly View" icon={BarChart3} onClick={() => setMenuOpen(false)} />
               <NavItem to="/compare" label="Monthly Compare" icon={Calendar} onClick={() => setMenuOpen(false)} />
               <NavItem to="/profiles" label="Profiles" icon={Users} onClick={() => setMenuOpen(false)} />

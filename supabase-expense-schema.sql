@@ -287,3 +287,17 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
 AFTER INSERT ON auth.users
 FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Trigger to create default categories for ANY new profile (including manual creation)
+CREATE OR REPLACE FUNCTION public.handle_new_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM public.create_default_categories(NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_profile_created ON public.expense_profiles;
+CREATE TRIGGER on_profile_created
+AFTER INSERT ON public.expense_profiles
+FOR EACH ROW EXECUTE PROCEDURE public.handle_new_profile();
