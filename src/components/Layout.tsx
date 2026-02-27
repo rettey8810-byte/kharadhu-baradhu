@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 
@@ -138,6 +138,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/category-budgets" label="Category Budgets" icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring" label="Recurring Bills" icon={Repeat} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/reminders" label="Reminders" icon={Bell} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/transactions" label="All Transactions" icon={List} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/search" label="Search" icon={Search} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/categories" label="Categories" icon={PieChart} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/income-sources" label="Income Sources" icon={Wallet} onMenuClose={() => setMenuOpen(false)} />

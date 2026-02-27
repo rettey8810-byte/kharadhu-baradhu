@@ -17,6 +17,7 @@ import RecurringExpenses from './pages/RecurringExpenses'
 import SearchTransactions from './pages/SearchTransactions'
 import MonthlyComparison from './pages/MonthlyComparison'
 import IncomeSources from './pages/IncomeSources'
+import Transactions from './pages/Transactions'
 
 function App() {
   const { session, loading } = useAuth()
@@ -49,6 +50,7 @@ function App() {
             <Route path="/charts" element={<Charts />} />
             <Route path="/category-budgets" element={<CategoryBudgets />} />
             <Route path="/recurring" element={<RecurringExpenses />} />
+            <Route path="/transactions" element={<Transactions />} />
             <Route path="/search" element={<SearchTransactions />} />
             <Route path="/compare" element={<MonthlyComparison />} />
             <Route path="/income-sources" element={<IncomeSources />} />
