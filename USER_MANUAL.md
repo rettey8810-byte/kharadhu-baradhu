@@ -312,31 +312,50 @@ When you reach your target:
 
 ## Recurring Expenses
 
-Set up automatic tracking for bills that repeat monthly/weekly.
+Set up automatic tracking for bills that repeat monthly/weekly. Perfect for tracking STELCO electricity, MWSC water, phone bills, rent, and subscriptions.
 
-### Add Recurring Expense
+### Add Recurring Bill
 
 1. Go to **Recurring Bills** from side menu
 2. Click **"Add Recurring"**
-3. Enter:
-   - **Bill Name** (e.g., "Electricity", "Internet", "Rent")
-   - **Amount** - Fixed amount
-   - **Category** - Optional
-   - **Frequency** - Daily, Weekly, Monthly, Yearly
-   - **Start Date** - When it begins
-   - **Reminder Days** - How many days before to remind you
-4. Click **"Add"**
+3. **Select Bill Type** (or skip to enter manually):
+   - ⚡ STELCO Electricity
+   - 💧 MWSC Water
+   - 📱 Dhiraagu / Ooredoo Phone
+   - 📺 Medianet TV/Internet
+   - 🎬 Netflix, Disney+, YouTube Premium
+   - 🏠 House Rent
+   - 🎓 Tuition / School Fees
+   - 💳 Other
+4. Choose **Fixed** or **Variable Amount**:
+   - **Fixed** - Same amount every month (e.g., Rent 5000 MVR)
+   - **Variable** - Amount changes (e.g., Electricity, Water)
+5. Enter amount (for fixed bills)
+6. Set **Due Day of Month** (e.g., "5" for 5th of every month)
+7. Set **Grace Period** - Days to pay before marked overdue (e.g., 5 days)
+8. Set **Reminder Days** - How many days before due date to remind you
+9. Add optional **Provider** and **Account/Meter Number**
+10. Click **"Add Bill"**
 
 ### How It Works
 
-- The app tracks when bills are due
-- Creates transactions automatically when due
-- Sends reminders (if reminder days set)
-- Shows next due date on dashboard
+- **Fixed Amount Bills** - Transaction created automatically on due date
+- **Variable Amount Bills** - "Enter This Month's Amount" button appears when due
+- **Smart Reminders** - Get notified X days before due date
+- **Grace Period** - Extra days to pay without being marked overdue
+- **Visual Status**:
+  - 🔴 Red = Overdue (past grace period)
+  - 🟡 Yellow = Due today
+  - 🟠 Orange = In grace period
+  - ⚪ Gray = Normal
 
-### Toggle Active/Inactive
+### Managing Bills
 
-Click the **checkmark icon** to pause/unpause a recurring expense.
+**Pause/Unpause:** Click the checkmark icon to temporarily disable a bill without deleting it.
+
+**Delete:** Click the trash icon to permanently remove a bill.
+
+**View Account Numbers:** Each bill card shows the stored account/meter number for easy reference.
 
 ---
 

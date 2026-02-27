@@ -33,12 +33,17 @@
 **Text:** "Smart Receipt Scanner"
 **Voiceover:** "Just snap your grocery receipt - we automatically read items, prices, and GST!"
 
-**Feature 4 - Budget & Goals (38-45 sec)**
+**Feature 4 - Smart Recurring Bills (38-45 sec)**
+**Visual:** Bill preset selection (STELCO, MWSC), variable amount toggle, due date calendar, grace period setting
+**Text:** "Smart Bill Tracking"
+**Voiceover:** "Set up recurring bills with smart presets for STELCO, MWSC, and more. Handle variable amounts, set due dates, grace periods, and get reminded before bills are due."
+
+**Feature 5 - Budget & Goals (45-52 sec)**
 **Visual:** Budget progress bar, savings goals with colorful cards
 **Text:** "Budgets & Savings Goals"
 **Voiceover:** "Set budgets, track savings goals, and stay on top of your finances."
 
-### SCENE 4: Call to Action (45-60 sec)
+### SCENE 4: Call to Action (52-60 sec)
 **Visual:** App running on phone, "Download Now" button
 **Text:** "Free to Use | Works on All Devices"
 **Voiceover:** "Kharadhu Baradhu - Track family expenses the smart way. Download now, it's free!"

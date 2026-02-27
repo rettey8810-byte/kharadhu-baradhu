@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-02-27
+
+### Added - Enhanced Recurring Bills
+- **Bill Type Presets** - Quick-setup buttons for common Maldives bills:
+  - STELCO Electricity, MWSC Water
+  - Dhiraagu/Ooredoo Phone
+  - Medianet TV/Internet
+  - Netflix, Disney+, YouTube Premium
+  - House Rent, Tuition/School Fees
+- **Variable Amount Bills** - Handle bills that change monthly (electricity, water, phone)
+  - Toggle between fixed and variable amounts
+  - "Enter This Month's Amount" button for variable bills
+- **Due Date Management** - Set exact due day of month with smart calculations
+- **Grace Period** - Days to pay before marked overdue (e.g., 5 days grace period)
+- **Smart Reminders** - Get reminded X days before due date (customizable per bill)
+- **Account/Meter Numbers** - Store reference numbers for each bill
+- **Visual Status Indicators** - Color-coded status:
+  - Red = Overdue (past grace period)
+  - Yellow = Due today
+  - Orange = In grace period
+  - Gray = Normal
+
+### Added - Default Categories Enhancement
+- **Groceries Category** - Added as default category for all new profiles
+- **Income Sources** - Auto-created for new profiles (Salary, Food Allowance, Bonus, Other)
+
+### Fixed
+- **Income Display** - Dashboard now shows income source name instead of profile name
+- **Side Menu Navigation** - Fixed navigation not working when clicking menu items
+- **Income Source Dropdown** - Now shows placeholder when no sources available
+
+### Technical
+- Added new database columns: `is_variable_amount`, `due_day_of_month`, `grace_period_days`, `bill_type`, `provider`, `account_number`
+- Updated `RecurringExpense` TypeScript interface
+- New SQL file: `supabase-recurring-bills-enhancement.sql`
+
+---
+
 ## [1.0.0] - 2025-02-27
 
 ### Added - Major Features

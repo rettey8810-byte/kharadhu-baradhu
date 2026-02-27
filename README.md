@@ -5,7 +5,7 @@
 
 **Track family expenses, manage budgets, and save smarter.**
 
-A modern expense tracking application built for Maldivian families. Track income, monitor spending, set savings goals, and manage grocery receipts with OCR. Built with React, TypeScript, Supabase, and Tailwind CSS.
+A modern expense tracking application built for Maldivian families. Track income, monitor spending, set savings goals, and manage grocery receipts with OCR. Features enhanced recurring bill management with variable amounts, due dates, and smart reminders.
 
 🌐 **Live Site:** https://kharadhu-baradhu.vercel.app  
 📱 **Mobile-friendly** | 🔐 **Secure Auth** | ⚡ **Real-time Sync** | 📊 **Smart Analytics**
@@ -29,17 +29,23 @@ A modern expense tracking application built for Maldivian families. Track income
 - ✅ **Multi-Profile Support** - Separate profiles for Personal, Family, or Business
 - ✅ **Expense Tracking** - Log expenses with categories, notes, and tags
 - ✅ **Income Management** - Track multiple income sources (Salary, Allowances, etc.)
-- ✅ **Smart Categories** - Default categories (Food, Transport, Bills, etc.) auto-created
-- ✅ **Budget Planning** - Set monthly budgets and category limits
-- ✅ **Savings Goals** - Track progress toward financial goals
+- ✅ **Smart Categories** - Default categories auto-created (Food, Transport, Bills, Groceries, etc.)
+- ✅ **Budget Planning** - Set monthly budgets and category limits with alert thresholds
+- ✅ **Savings Goals** - Track progress toward financial goals with visual progress bars
 - ✅ **Visual Analytics** - Charts and reports for spending insights
-- ✅ **Recurring Expenses** - Auto-track bills and subscriptions
-- ✅ **Bill Reminders** - Never miss a payment deadline
-- ✅ **Grocery Receipt OCR** - Scan bills, auto-extract items, prices, GST
 - ✅ **Search & Filter** - Find transactions by keyword, date, or amount
 - ✅ **Monthly Comparison** - Compare current vs previous month spending
+- ✅ **Yearly View** - Browse transactions by year and month
 
-### Technical Features
+### Enhanced Recurring Bills (NEW!)
+- 📅 **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
+- 💰 **Variable Amounts** - Handle bills that change monthly (electricity, water)
+- 📆 **Due Date Management** - Set exact due day of month with grace periods
+- 🔔 **Smart Reminders** - Get reminded X days before due date
+- ⏸️ **Pause/Resume** - Temporarily disable bills without deleting
+- 🔢 **Account Numbers** - Store meter numbers, account IDs for reference
+
+### Grocery Receipt OCR
 - 🔐 **Supabase Auth** - Email/password and OAuth sign-in
 - 🛡️ **Row Level Security** - Your data is private and secure
 - ⚡ **Real-time Updates** - Live sync across devices
@@ -101,9 +107,24 @@ Open http://localhost:5173
 
 Run these SQL files in Supabase SQL Editor:
 
-1. **Schema** - `supabase-expense-schema.sql`
+1. **Main Schema** - `supabase-expense-schema.sql`
 2. **Additional Tables** - `supabase-expense-schema-additions.sql`
-3. **Storage Setup** - `supabase-storage-setup.sql`
+3. **Enhanced Recurring Bills** - `supabase-recurring-bills-enhancement.sql` (NEW!)
+4. **Storage Setup** - `supabase-storage-setup.sql`
+
+### Required SQL Migrations
+
+**For Existing Users - Update Recurring Bills:**
+```sql
+-- Add new columns for enhanced recurring bills
+ALTER TABLE public.recurring_expenses 
+  ADD COLUMN IF NOT EXISTS is_variable_amount boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS due_day_of_month integer,
+  ADD COLUMN IF NOT EXISTS grace_period_days integer DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS bill_type text,
+  ADD COLUMN IF NOT EXISTS provider text,
+  ADD COLUMN IF NOT EXISTS account_number text;
+```
 
 ---
 
@@ -157,12 +178,13 @@ Install Kharadhu Baradhu as a mobile app:
 - [x] Budget management
 - [x] Savings goals
 - [x] Charts and analytics
-- [x] Recurring expenses
-- [x] Bill reminders
+- [x] Enhanced recurring bills (presets, variable amounts, due dates, grace periods)
+- [x] Bill reminders with smart notifications
 - [x] Grocery receipt OCR
 - [x] Search and filter
-- [x] Monthly comparison
-- [ ] Export to Excel/PDF
+- [x] Income source management
+
+### Upcoming 🚧
 - [ ] Multi-currency support
 - [ ] Dark mode
 - [ ] Offline mode enhancement
