@@ -1,0 +1,61 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
+import { ProfileProvider } from './hooks/useProfile'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import AddTransaction from './pages/AddTransaction'
+import Categories from './pages/Categories'
+import Budget from './pages/Budget'
+import YearlyView from './pages/YearlyView'
+import Login from './pages/Login'
+import Profiles from './pages/Profiles'
+import SavingsGoals from './pages/SavingsGoals'
+import BillReminders from './pages/BillReminders'
+import Charts from './pages/Charts'
+import CategoryBudgets from './pages/CategoryBudgets'
+import RecurringExpenses from './pages/RecurringExpenses'
+import SearchTransactions from './pages/SearchTransactions'
+import MonthlyComparison from './pages/MonthlyComparison'
+
+function App() {
+  const { session, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return <Login />
+  }
+
+  return (
+    <ProfileProvider>
+      <BrowserRouter>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/add" element={<AddTransaction />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/budget" element={<Budget />} />
+            <Route path="/yearly" element={<YearlyView />} />
+            <Route path="/profiles" element={<Profiles />} />
+            <Route path="/savings" element={<SavingsGoals />} />
+            <Route path="/reminders" element={<BillReminders />} />
+            <Route path="/charts" element={<Charts />} />
+            <Route path="/category-budgets" element={<CategoryBudgets />} />
+            <Route path="/recurring" element={<RecurringExpenses />} />
+            <Route path="/search" element={<SearchTransactions />} />
+            <Route path="/compare" element={<MonthlyComparison />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      </BrowserRouter>
+    </ProfileProvider>
+  )
+}
+
+export default App
