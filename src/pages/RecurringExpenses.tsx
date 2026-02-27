@@ -81,8 +81,6 @@ export default function RecurringExpenses() {
   const addExpense = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentProfile) return
-
-    const preset = BILL_PRESETS.find(p => p.type === selectedPreset)
     
     const insertData: any = {
       profile_id: currentProfile.id,
