@@ -1,22 +1,31 @@
 import { ReactNode, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 
-function NavItem({ to, label, icon: Icon, onClick }: { to?: string; label: string; icon: any; onClick?: () => void }) {
+function NavItem({ to, label, icon: Icon, onMenuClose }: { to?: string; label: string; icon: any; onMenuClose?: () => void }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const active = to && location.pathname === to
   
+  const handleClick = () => {
+    if (onMenuClose) {
+      onMenuClose()
+    }
+    if (to && to !== location.pathname) {
+      navigate(to)
+    }
+  }
+  
   return (
-    <Link
-      to={to || '#'}
-      onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 ${active ? 'bg-emerald-50 text-emerald-600' : 'text-gray-600 hover:bg-gray-50'}`}
+    <button
+      onClick={handleClick}
+      className={`flex items-center gap-3 px-4 py-3 w-full text-left ${active ? 'bg-emerald-50 text-emerald-600' : 'text-gray-600 hover:bg-gray-50'}`}
     >
       <Icon size={20} />
       <span>{label}</span>
-    </Link>
+    </button>
   )
 }
 
@@ -121,20 +130,20 @@ export default function Layout({ children }: { children: ReactNode }) {
               </button>
             </div>
             <nav className="py-2">
-              <NavItem to="/" label="Dashboard" icon={Home} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/add" label="Add Transaction" icon={PlusCircle} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/charts" label="Analytics" icon={PieChart} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/savings" label="Savings Goals" icon={TrendingUp} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/budget" label="Monthly Budget" icon={Target} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/category-budgets" label="Category Budgets" icon={BarChart3} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/recurring" label="Recurring Bills" icon={Repeat} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/reminders" label="Reminders" icon={Bell} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/search" label="Search" icon={Search} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/categories" label="Categories" icon={PieChart} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/income-sources" label="Income Sources" icon={Wallet} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/yearly" label="Yearly View" icon={BarChart3} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/compare" label="Monthly Compare" icon={Calendar} onClick={() => setMenuOpen(false)} />
-              <NavItem to="/profiles" label="Profiles" icon={Users} onClick={() => setMenuOpen(false)} />
+              <NavItem to="/" label="Dashboard" icon={Home} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/add" label="Add Transaction" icon={PlusCircle} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/charts" label="Analytics" icon={PieChart} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/savings" label="Savings Goals" icon={TrendingUp} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/budget" label="Monthly Budget" icon={Target} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/category-budgets" label="Category Budgets" icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/recurring" label="Recurring Bills" icon={Repeat} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/reminders" label="Reminders" icon={Bell} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/search" label="Search" icon={Search} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/categories" label="Categories" icon={PieChart} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/income-sources" label="Income Sources" icon={Wallet} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/yearly" label="Yearly View" icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/compare" label="Monthly Compare" icon={Calendar} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/profiles" label="Profiles" icon={Users} onMenuClose={() => setMenuOpen(false)} />
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
               <button
