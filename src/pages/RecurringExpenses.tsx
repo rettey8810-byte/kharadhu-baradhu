@@ -188,8 +188,8 @@ export default function RecurringExpenses() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Recurring Expenses</h2>
-          <p className="text-sm text-gray-500">Auto-track bills and subscriptions</p>
+          <h2 className="text-lg font-bold text-gray-900">Recurring Bills</h2>
+          <p className="text-sm text-gray-500">Track bills with due dates & reminders v2</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
