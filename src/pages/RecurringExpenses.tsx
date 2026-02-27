@@ -32,6 +32,8 @@ export default function RecurringExpenses() {
   const [expenses, setExpenses] = useState<(RecurringExpense & { category: ExpenseCategory })[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [loading, setLoading] = useState(true)
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null)
+  const [paidStatus, setPaidStatus] = useState<Record<string, boolean>>({})
   const [showAdd, setShowAdd] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [showPresets, setShowPresets] = useState(true)
@@ -76,7 +78,126 @@ export default function RecurringExpenses() {
       .order('next_due_date')
 
     setExpenses((data || []) as any)
+
+    const ids = (data || []).map((d: any) => d.id)
+    if (ids.length > 0) {
+      const dueDates = Array.from(new Set((data || []).map((d: any) => d.next_due_date)))
+
+      const { data: payments } = await supabase
+        .from('bill_payments')
+        .select('recurring_expense_id, due_date, is_paid')
+        .eq('profile_id', currentProfile.id)
+        .in('recurring_expense_id', ids)
+        .in('due_date', dueDates)
+
+      const map: Record<string, boolean> = {}
+      ;(payments || []).forEach((p: any) => {
+        map[`${p.recurring_expense_id}|${p.due_date}`] = Boolean(p.is_paid)
+      })
+      setPaidStatus(map)
+    } else {
+      setPaidStatus({})
+    }
+
     setLoading(false)
+  }
+
+  const clampDayOfMonth = (year: number, monthIndex0: number, day: number) => {
+    const lastDay = new Date(year, monthIndex0 + 1, 0).getDate()
+    return Math.max(1, Math.min(day, lastDay))
+  }
+
+  const calcNextDueDate = (exp: RecurringExpense) => {
+    const current = new Date(exp.next_due_date)
+
+    if (exp.frequency === 'daily') {
+      current.setDate(current.getDate() + 1)
+      return current.toISOString().slice(0, 10)
+    }
+
+    if (exp.frequency === 'weekly') {
+      current.setDate(current.getDate() + 7)
+      return current.toISOString().slice(0, 10)
+    }
+
+    if (exp.frequency === 'yearly') {
+      current.setFullYear(current.getFullYear() + 1)
+      return current.toISOString().slice(0, 10)
+    }
+
+    // monthly
+    const y = current.getFullYear()
+    const m = current.getMonth()
+    const nextMonthIndex = m + 1
+    const nextYear = y + Math.floor(nextMonthIndex / 12)
+    const nextMonth0 = nextMonthIndex % 12
+    const targetDay = exp.due_day_of_month ?? current.getDate()
+    const day = clampDayOfMonth(nextYear, nextMonth0, targetDay)
+    const next = new Date(nextYear, nextMonth0, day)
+    return next.toISOString().slice(0, 10)
+  }
+
+  const markAsPaid = async (exp: RecurringExpense & { category: ExpenseCategory }) => {
+    if (!currentProfile) return
+    if (markingPaidId) return
+
+    const defaultAmount = exp.amount ?? ''
+    const input = window.prompt('Enter paid amount (MVR)', defaultAmount === null ? '' : String(defaultAmount))
+    if (input === null) return
+    const num = Number(input)
+    if (!Number.isFinite(num) || num <= 0) {
+      window.alert('Please enter a valid amount')
+      return
+    }
+
+    setMarkingPaidId(exp.id)
+    try {
+      // 1) Create transaction
+      const { data: tx, error: txErr } = await supabase
+        .from('transactions')
+        .insert({
+          profile_id: currentProfile.id,
+          category_id: exp.category_id,
+          type: 'expense',
+          amount: num,
+          description: exp.name,
+          transaction_date: exp.next_due_date,
+        })
+        .select('id')
+        .single()
+      if (txErr) throw txErr
+
+      // 2) Upsert bill_payments
+      const { error: payErr } = await supabase
+        .from('bill_payments')
+        .upsert(
+          {
+            recurring_expense_id: exp.id,
+            profile_id: currentProfile.id,
+            transaction_id: tx.id,
+            due_date: exp.next_due_date,
+            paid_date: new Date().toISOString().slice(0, 10),
+            amount: num,
+            is_paid: true,
+          },
+          { onConflict: 'recurring_expense_id,due_date' }
+        )
+      if (payErr) throw payErr
+
+      // 3) Advance next due date
+      const nextDue = calcNextDueDate(exp)
+      const { error: updErr } = await supabase
+        .from('recurring_expenses')
+        .update({ next_due_date: nextDue })
+        .eq('id', exp.id)
+      if (updErr) throw updErr
+
+      await loadData()
+    } catch (e: any) {
+      window.alert(e?.message ?? 'Failed to mark as paid')
+    } finally {
+      setMarkingPaidId(null)
+    }
   }
 
   const addExpense = async (e: React.FormEvent) => {
@@ -423,6 +544,7 @@ export default function RecurringExpenses() {
             const overdue = isOverdue(exp.next_due_date, exp.grace_period_days || 0)
             const inGrace = isInGracePeriod(exp.next_due_date, exp.grace_period_days || 0)
             const todayDue = isToday(exp.next_due_date)
+            const isPaid = paidStatus[`${exp.id}|${exp.next_due_date}`] === true
             
             return (
               <div key={exp.id} className={`bg-white rounded-xl p-4 border-2 ${
@@ -474,6 +596,21 @@ export default function RecurringExpenses() {
                     )}
                     
                     <div className="flex gap-1 mt-2">
+                      {!isPaid && (
+                        <button
+                          onClick={() => markAsPaid(exp as any)}
+                          className="px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                          disabled={markingPaidId === exp.id}
+                          title="Create expense transaction and mark paid"
+                        >
+                          {markingPaidId === exp.id ? 'Saving…' : 'Mark Paid'}
+                        </button>
+                      )}
+                      {isPaid && (
+                        <span className="px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                          Paid
+                        </span>
+                      )}
                       <button 
                         onClick={() => toggleActive(exp.id, exp.is_active)} 
                         className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200"

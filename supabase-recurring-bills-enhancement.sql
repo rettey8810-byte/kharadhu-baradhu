@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS public.bill_payments (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   recurring_expense_id uuid REFERENCES public.recurring_expenses(id) ON DELETE CASCADE NOT NULL,
   profile_id uuid REFERENCES public.expense_profiles(id) ON DELETE CASCADE NOT NULL,
+  transaction_id uuid REFERENCES public.transactions(id) ON DELETE SET NULL,
   due_date date NOT NULL,
   paid_date date,
   amount numeric(12,2),
@@ -87,6 +88,10 @@ CREATE TABLE IF NOT EXISTS public.bill_payments (
   notes text,
   created_at timestamptz DEFAULT now()
 );
+
+-- One payment record per bill per due date
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bill_payments_recurring_due_date
+  ON public.bill_payments(recurring_expense_id, due_date);
 
 ALTER TABLE public.bill_payments ENABLE ROW LEVEL SECURITY;
 
