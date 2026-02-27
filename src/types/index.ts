@@ -101,12 +101,18 @@ export interface RecurringExpense {
   category_id: string | null
   name: string
   amount: number
+  is_variable_amount: boolean
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly'
   start_date: string
   end_date: string | null
   next_due_date: string
+  due_day_of_month: number | null
   reminder_days: number
+  grace_period_days: number
   is_active: boolean
+  bill_type: string | null
+  provider: string | null
+  account_number: string | null
   created_at: string
   updated_at: string
   category?: ExpenseCategory
