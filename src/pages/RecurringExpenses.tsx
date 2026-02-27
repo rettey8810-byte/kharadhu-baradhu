@@ -273,18 +273,16 @@ export default function RecurringExpenses() {
                 </button>
               </div>
 
-              {/* Amount (only for fixed) */}
-              {!formData.is_variable_amount && (
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
-                  placeholder="Amount (MVR)"
-                  value={formData.amount}
-                  onChange={e => setFormData({...formData, amount: e.target.value})}
-                  required={!formData.is_variable_amount}
-                />
-              )}
+              {/* Amount */}
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                placeholder={formData.is_variable_amount ? "Estimated amount (optional)" : "Amount (MVR)"}
+                value={formData.amount}
+                onChange={e => setFormData({...formData, amount: e.target.value})}
+                required={!formData.is_variable_amount}
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <select
@@ -368,12 +366,20 @@ export default function RecurringExpenses() {
                   value={formData.provider}
                   onChange={e => setFormData({...formData, provider: e.target.value})}
                 />
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
-                  placeholder="Account number / Meter number"
-                  value={formData.account_number}
-                  onChange={e => setFormData({...formData, account_number: e.target.value})}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    className="border border-gray-200 rounded-lg px-3 py-2"
+                    placeholder="Account number"
+                    value={formData.account_number}
+                    onChange={e => setFormData({...formData, account_number: e.target.value})}
+                  />
+                  <input
+                    className="border border-gray-200 rounded-lg px-3 py-2"
+                    placeholder="Meter number"
+                    value={formData.account_number}
+                    onChange={e => setFormData({...formData, account_number: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2 pt-2">
