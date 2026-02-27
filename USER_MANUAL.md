@@ -339,8 +339,15 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
 
 ### How It Works
 
-- **Fixed Amount Bills** - Transaction created automatically on due date
-- **Variable Amount Bills** - "Enter This Month's Amount" button appears when due
+- **Manual Mark as Paid** (Recommended):
+  - When bill is due, click **"Mark Paid"** button
+  - Enter the amount you paid (for variable bills)
+  - App creates expense transaction automatically
+  - Next due date advances automatically
+  - Bill shows **"Paid"** badge until next cycle
+  
+- **Fixed Amount Bills** - Can add estimated amount when creating
+- **Variable Amount Bills** - Leave amount empty, enter when paying
 - **Smart Reminders** - Get notified X days before due date
 - **Grace Period** - Extra days to pay without being marked overdue
 - **Visual Status**:
@@ -375,6 +382,37 @@ Go to **Reminders** from the header bell icon or side menu.
 ### Dismiss Reminders
 
 Click the **X** to dismiss a reminder (won't show again for that bill).
+
+---
+
+## All Transactions
+
+Central page to view, edit, and delete all your expenses and income in one place.
+
+### Access
+
+Go to **All Transactions** from the side menu.
+
+### Features
+
+- **View All** - See every transaction (expenses + income) in one list
+- **Search** - Type to search by description, category, or income source
+- **Filter** - Show: All | Expenses only | Income only
+- **Summary Cards** - Total expenses and income at the top
+- **Edit** - Click pencil icon to change amount, date, description, category
+- **Delete** - Click trash icon to remove a transaction
+
+### Editing Transactions
+
+1. Click **pencil icon** on any transaction
+2. Change:
+   - Amount
+   - Date
+   - Description
+   - Category (for expenses)
+   - Income Source (for income)
+3. Click **checkmark** to save
+4. Click **X** to cancel
 
 ---
 

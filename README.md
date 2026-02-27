@@ -36,6 +36,7 @@ A modern expense tracking application built for Maldivian families. Track income
 - ✅ **Search & Filter** - Find transactions by keyword, date, or amount
 - ✅ **Monthly Comparison** - Compare current vs previous month spending
 - ✅ **Yearly View** - Browse transactions by year and month
+- ✅ **All Transactions** - View, edit, and delete all expenses and income in one place
 
 ### Enhanced Recurring Bills (NEW!)
 - 📅 **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
@@ -123,7 +124,12 @@ ALTER TABLE public.recurring_expenses
   ADD COLUMN IF NOT EXISTS grace_period_days integer DEFAULT 0,
   ADD COLUMN IF NOT EXISTS bill_type text,
   ADD COLUMN IF NOT EXISTS provider text,
-  ADD COLUMN IF NOT EXISTS account_number text;
+  ADD COLUMN IF NOT EXISTS account_number text,
+  ADD COLUMN IF NOT EXISTS meter_number text;
+
+-- Make amount nullable for variable bills
+ALTER TABLE public.recurring_expenses
+  ALTER COLUMN amount DROP NOT NULL;
 ```
 
 ---

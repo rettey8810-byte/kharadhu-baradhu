@@ -43,7 +43,12 @@
 **Text:** "Budgets & Savings Goals"
 **Voiceover:** "Set budgets, track savings goals, and stay on top of your finances."
 
-### SCENE 4: Call to Action (52-60 sec)
+**Feature 6 - All Transactions (52-57 sec)**
+**Visual:** Transaction list with edit/delete buttons, search and filter
+**Text:** "Manage All Transactions"
+**Voiceover:** "View, edit, and delete all your expenses and income in one place with powerful search and filters."
+
+### SCENE 4: Call to Action (57-65 sec)
 **Visual:** App running on phone, "Download Now" button
 **Text:** "Free to Use | Works on All Devices"
 **Voiceover:** "Kharadhu Baradhu - Track family expenses the smart way. Download now, it's free!"

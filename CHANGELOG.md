@@ -18,16 +18,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - House Rent, Tuition/School Fees
 - **Variable Amount Bills** - Handle bills that change monthly (electricity, water, phone)
   - Toggle between fixed and variable amounts
-  - "Enter This Month's Amount" button for variable bills
+  - Optional estimated amount for variable bills
+- **Manual Mark as Paid** - Option 2 workflow:
+  - Click "Mark Paid" when bill is due
+  - Enter actual amount paid
+  - Creates expense transaction automatically
+  - Advances next due date automatically
+  - Shows "Paid" badge for paid bills
 - **Due Date Management** - Set exact due day of month with smart calculations
 - **Grace Period** - Days to pay before marked overdue (e.g., 5 days grace period)
 - **Smart Reminders** - Get reminded X days before due date (customizable per bill)
-- **Account/Meter Numbers** - Store reference numbers for each bill
+- **Account/Meter Numbers** - Store reference numbers for each bill (separate fields)
 - **Visual Status Indicators** - Color-coded status:
   - Red = Overdue (past grace period)
   - Yellow = Due today
   - Orange = In grace period
   - Gray = Normal
+
+### Added - All Transactions Page
+- **Central Transaction Management** - View all expenses and income in one place
+- **CRUD Operations** - Edit and delete any transaction
+- **Search & Filter** - Search by description, category, or income source
+- **Type Filter** - Filter by All, Expenses, or Income
+- **Summary Cards** - Total expenses and income displayed at top
 
 ### Added - Default Categories Enhancement
 - **Groceries Category** - Added as default category for all new profiles
@@ -39,7 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Income Source Dropdown** - Now shows placeholder when no sources available
 
 ### Technical
-- Added new database columns: `is_variable_amount`, `due_day_of_month`, `grace_period_days`, `bill_type`, `provider`, `account_number`
+- Added new database columns: `is_variable_amount`, `due_day_of_month`, `grace_period_days`, `bill_type`, `provider`, `account_number`, `meter_number`
+- Made `amount` column nullable for variable bills
+- Added `bill_payments` table with transaction linking
 - Updated `RecurringExpense` TypeScript interface
 - New SQL file: `supabase-recurring-bills-enhancement.sql`
 
