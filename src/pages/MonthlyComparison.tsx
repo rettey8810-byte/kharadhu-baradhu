@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react'
 import type { MonthlyComparison } from '../types'
+import { formatDateLocal } from '../utils/date'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -36,8 +37,8 @@ export default function MonthlyComparison() {
       .from('transactions')
       .select('type, amount')
       .in('profile_id', profileIds)
-      .gte('transaction_date', currStart.toISOString().slice(0, 10))
-      .lte('transaction_date', currEnd.toISOString().slice(0, 10))
+      .gte('transaction_date', formatDateLocal(currStart))
+      .lte('transaction_date', formatDateLocal(currEnd))
 
     // Previous month data
     const prevStart = new Date(prevYear, prevMonth - 1, 1)
@@ -47,8 +48,8 @@ export default function MonthlyComparison() {
       .from('transactions')
       .select('type, amount')
       .in('profile_id', profileIds)
-      .gte('transaction_date', prevStart.toISOString().slice(0, 10))
-      .lte('transaction_date', prevEnd.toISOString().slice(0, 10))
+      .gte('transaction_date', formatDateLocal(prevStart))
+      .lte('transaction_date', formatDateLocal(prevEnd))
 
     const currExpenses = currTransactions?.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0) || 0
     const currIncome = currTransactions?.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0) || 0
