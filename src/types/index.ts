@@ -133,6 +133,7 @@ export interface Receipt {
 export interface GroceryBill {
   id: string
   transaction_id: string
+  profile_id: string
   shop_name: string | null
   bill_date: string | null
   subtotal: number | null

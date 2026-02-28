@@ -406,6 +406,7 @@ export default function AddTransaction() {
           .from('grocery_bills')
           .insert({
             transaction_id: transaction.id,
+            profile_id: currentProfile.id,
             shop_name: billShopName.trim() || null,
             bill_date: billDate || null,
             subtotal: Number.isFinite(subtotalNum as any) ? subtotalNum : null,
