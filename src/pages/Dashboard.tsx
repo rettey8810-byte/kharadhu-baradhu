@@ -19,6 +19,14 @@ interface ProfileSpending {
   transactionCount: number
 }
 
+interface PendingBill {
+  id: string
+  name: string
+  due_date: string
+  amount: number | null
+  source: 'variable' | 'fixed'
+}
+
 export default function Dashboard() {
   const { profiles, currentProfile } = useProfile()
   const { t } = useLanguage()
@@ -26,6 +34,7 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
+  const [pendingBills, setPendingBills] = useState<PendingBill[]>([])
 
   const processedRecurringRef = useRef<string>('')
 
@@ -113,6 +122,53 @@ export default function Dashboard() {
         .in('profile_id', profileIds)
         .eq('year', year)
         .eq('month', month)
+
+      // Pending bills
+      const today = formatDateLocal(new Date())
+      const monthEnd = formatDateLocal(end)
+
+      const { data: unpaidVariable } = await supabase
+        .from('bill_payments')
+        .select('id, due_date, amount, recurring_expense:recurring_expense_id(name)')
+        .in('profile_id', profileIds)
+        .eq('is_paid', false)
+        .gte('due_date', formatDateLocal(start))
+        .lte('due_date', monthEnd)
+        .order('due_date', { ascending: true })
+
+      const { data: upcomingFixed } = await supabase
+        .from('recurring_expenses')
+        .select('id, name, amount, next_due_date, is_variable_amount')
+        .in('profile_id', profileIds)
+        .eq('is_active', true)
+        .eq('is_variable_amount', false)
+        .gte('next_due_date', today)
+        .lte('next_due_date', monthEnd)
+        .order('next_due_date', { ascending: true })
+
+      const pending: PendingBill[] = []
+
+      ;(unpaidVariable ?? []).forEach((row: any) => {
+        pending.push({
+          id: row.id,
+          name: row.recurring_expense?.name ?? 'Bill',
+          due_date: row.due_date,
+          amount: row.amount == null ? null : Number(row.amount),
+          source: 'variable',
+        })
+      })
+
+      ;(upcomingFixed ?? []).forEach((row: any) => {
+        pending.push({
+          id: row.id,
+          name: row.name,
+          due_date: row.next_due_date,
+          amount: row.amount == null ? null : Number(row.amount),
+          source: 'fixed',
+        })
+      })
+
+      setPendingBills(pending)
 
       setTransactions(tx ?? [])
       setBudgets(b ?? [])
@@ -212,6 +268,28 @@ export default function Dashboard() {
               {t('dashboard_daily_safe_spend')}: {formatMVR(stats.dailySafeSpend)}
             </p>
           )}
+        </div>
+      )}
+
+      {pendingBills.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-5 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Pending Bills</h3>
+            <p className="text-xs text-gray-500 mt-1">Bills due this month</p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {pendingBills.slice(0, 8).map((b) => (
+              <div key={`${b.source}-${b.id}-${b.due_date}`} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{b.name}</p>
+                  <p className="text-xs text-gray-500">Due: {b.due_date}{b.source === 'variable' ? ' • Variable' : ''}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900">{b.amount == null ? 'MVR --' : formatMVR(Number(b.amount))}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
