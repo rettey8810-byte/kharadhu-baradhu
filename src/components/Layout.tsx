@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Sparkles, Wallet2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -155,6 +155,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/yearly" label="Yearly View" icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/compare" label="Monthly Compare" icon={Calendar} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/export-reports" label="Export Reports" icon={Download} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/quick-add" label="Quick Add" icon={Zap} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/profile-sharing" label="Profile Sharing" icon={UserPlus} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profiles" label="Profiles" icon={Users} onMenuClose={() => setMenuOpen(false)} />
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">

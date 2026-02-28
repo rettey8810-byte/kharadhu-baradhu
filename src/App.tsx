@@ -21,6 +21,7 @@ import IncomeSources from './pages/IncomeSources'
 import Transactions from './pages/Transactions'
 import ExportReports from './pages/ExportReports'
 import QuickAdd from './pages/QuickAdd'
+import ProfileSharing from './pages/ProfileSharing'
 
 function App() {
   const { session, loading } = useAuth()
@@ -60,6 +61,7 @@ function App() {
             <Route path="/income-sources" element={<IncomeSources />} />
             <Route path="/export-reports" element={<ExportReports />} />
             <Route path="/quick-add" element={<QuickAdd />} />
+            <Route path="/profile-sharing" element={<ProfileSharing />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
