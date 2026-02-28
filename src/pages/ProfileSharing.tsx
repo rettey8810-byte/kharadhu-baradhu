@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle } from 'lucide-react'
 
 interface ProfileMember {
@@ -18,6 +19,7 @@ interface ProfileMember {
 
 export default function ProfileSharing() {
   const { currentProfile } = useProfile()
+  const { t } = useLanguage()
   const [members, setMembers] = useState<ProfileMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -98,7 +100,7 @@ export default function ProfileSharing() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Profile Sharing</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t('page_profile_sharing')}</h2>
       </div>
 
       <p className="text-gray-600 text-sm">

@@ -4,13 +4,16 @@ import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './hooks/useTheme.tsx'
 import { OfflineProvider } from './hooks/useOffline.tsx'
+import { LanguageProvider } from './hooks/useLanguage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      <OfflineProvider>
-        <App />
-      </OfflineProvider>
+      <LanguageProvider>
+        <OfflineProvider>
+          <App />
+        </OfflineProvider>
+      </LanguageProvider>
     </ThemeProvider>
   </StrictMode>,
 )

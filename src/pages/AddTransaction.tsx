@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { ExpenseCategory, IncomeSource } from '../types'
 import { Camera, X, FileText, Hash } from 'lucide-react'
 import VoiceInput from '../components/VoiceInput'
@@ -10,6 +11,7 @@ import { useNavigate } from 'react-router-dom'
 export default function AddTransaction() {
   const { currentProfile } = useProfile()
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [type, setType] = useState<'expense' | 'income'>('expense')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -348,7 +350,7 @@ export default function AddTransaction() {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-4">
-      <div className="text-lg font-semibold">Add transaction</div>
+      <div className="text-lg font-semibold">{t('page_add_transaction')}</div>
 
       <form onSubmit={submit} className="mt-4 space-y-4">
         {/* Type */}

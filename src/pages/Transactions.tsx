@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
 import { Edit2, Trash2, X, Check, ArrowUpCircle, ArrowDownCircle, Search } from 'lucide-react'
 
@@ -10,6 +11,7 @@ function formatMVR(value: number) {
 
 export default function Transactions() {
   const { currentProfile } = useProfile()
+  const { t } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
@@ -131,7 +133,7 @@ export default function Transactions() {
   return (
     <div className="p-4 pb-24">
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-900">All Transactions</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('page_all_transactions')}</h1>
         <p className="text-sm text-gray-500">View, edit and delete expenses & income</p>
       </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { IncomeSource } from '../types'
 import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Wallet, Briefcase, TrendingUp, Gift, CreditCard } from 'lucide-react'
 
@@ -37,6 +38,7 @@ interface RecurringIncome {
 
 export default function RecurringIncome() {
   const { currentProfile } = useProfile()
+  const { t } = useLanguage()
   const [incomes, setIncomes] = useState<(RecurringIncome & { income_source: IncomeSource })[]>([])
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,7 +171,7 @@ export default function RecurringIncome() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Recurring Income</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t('page_recurring_income')}</h2>
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="bg-emerald-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-medium"

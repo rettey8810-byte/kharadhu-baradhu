@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, MonthlyBudget } from '../types'
 import { Download, FileSpreadsheet, FileText, Calendar, TrendingDown, TrendingUp, Wallet, Filter } from 'lucide-react'
 
@@ -14,6 +15,7 @@ function formatDate(dateStr: string) {
 
 export default function ExportReports() {
   const { profiles } = useProfile()
+  const { t } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [year, setYear] = useState(new Date().getFullYear())
@@ -159,7 +161,7 @@ export default function ExportReports() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Export Reports</h2>
+        <h2 className="text-xl font-bold text-gray-900">{t('page_export_reports')}</h2>
       </div>
 
       <p className="text-gray-600 text-sm">
