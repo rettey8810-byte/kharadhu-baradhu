@@ -1,6 +1,6 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -35,6 +35,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const [dhivehiMode, setDhivehiMode] = useState(() => {
+    return localStorage.getItem('dhivehiMode') === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('dhivehiMode', String(dhivehiMode))
+    const root = document.documentElement
+    root.classList.toggle('dhivehi-font', dhivehiMode)
+    root.setAttribute('dir', dhivehiMode ? 'rtl' : 'ltr')
+  }, [dhivehiMode])
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -69,9 +79,18 @@ export default function Layout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setDhivehiMode(v => !v)}
+              className={`p-2 rounded-lg ${dhivehiMode ? 'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              title="Toggle Dhivehi mode"
+              type="button"
+            >
+              <Languages size={20} />
+            </button>
+            <button
               onClick={toggleTheme}
               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
               title="Toggle dark mode"
+              type="button"
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>

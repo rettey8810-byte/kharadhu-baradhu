@@ -11,6 +11,26 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
+@font-face {
+  font-family: 'Dhivehi';
+  src: url('/fonts/Dhivehi.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.dhivehi-font {
+  font-family: 'Dhivehi', 'MV Faseyha', 'Faruma', sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
+/* For better Dhivehi text rendering */
+.dhivehi-text {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
 /* Dark mode base styles */
 .dark {
   color-scheme: dark;
