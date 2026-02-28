@@ -14,10 +14,13 @@ import BillReminders from './pages/BillReminders'
 import Charts from './pages/Charts'
 import CategoryBudgets from './pages/CategoryBudgets'
 import RecurringExpenses from './pages/RecurringExpenses'
+import RecurringIncome from './pages/RecurringIncome'
 import SearchTransactions from './pages/SearchTransactions'
 import MonthlyComparison from './pages/MonthlyComparison'
 import IncomeSources from './pages/IncomeSources'
 import Transactions from './pages/Transactions'
+import ExportReports from './pages/ExportReports'
+import QuickAdd from './pages/QuickAdd'
 
 function App() {
   const { session, loading } = useAuth()
@@ -50,10 +53,13 @@ function App() {
             <Route path="/charts" element={<Charts />} />
             <Route path="/category-budgets" element={<CategoryBudgets />} />
             <Route path="/recurring" element={<RecurringExpenses />} />
+            <Route path="/recurring-income" element={<RecurringIncome />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/search" element={<SearchTransactions />} />
             <Route path="/compare" element={<MonthlyComparison />} />
             <Route path="/income-sources" element={<IncomeSources />} />
+            <Route path="/export-reports" element={<ExportReports />} />
+            <Route path="/quick-add" element={<QuickAdd />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
