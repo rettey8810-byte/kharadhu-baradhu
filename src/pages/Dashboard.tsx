@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
+import { useLanguage } from '../hooks/useLanguage'
 import SmartInsights from '../components/SmartInsights'
 import CashFlowForecast from '../components/CashFlowForecast'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
@@ -20,6 +21,7 @@ interface ProfileSpending {
 
 export default function Dashboard() {
   const { profiles, currentProfile } = useProfile()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
@@ -104,7 +106,7 @@ export default function Dashboard() {
       <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-emerald-100 text-sm">Total Spent This Month (All Profiles)</p>
+            <p className="text-emerald-100 text-sm">{t('dashboard_total_spent_month_all')}</p>
             <p className="text-3xl font-bold mt-1">{formatMVR(stats.totalExpense)}</p>
           </div>
           <div className="bg-white/20 rounded-2xl p-3">
@@ -114,17 +116,17 @@ export default function Dashboard() {
         
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
           <div className="bg-white/10 rounded-xl p-2 sm:p-3">
-            <p className="text-emerald-100 text-[10px] sm:text-xs">Total Budget</p>
+            <p className="text-emerald-100 text-[10px] sm:text-xs">{t('dashboard_total_budget')}</p>
             <p className="text-[11px] sm:text-base font-semibold leading-tight break-words whitespace-normal">{formatMVR(stats.budget)}</p>
           </div>
           <div className="bg-white/10 rounded-xl p-2 sm:p-3">
-            <p className="text-emerald-100 text-[10px] sm:text-xs">Remaining</p>
+            <p className="text-emerald-100 text-[10px] sm:text-xs">{t('dashboard_remaining')}</p>
             <p className={`text-[11px] sm:text-base font-semibold leading-tight break-words whitespace-normal ${stats.remainingBalance < 0 ? 'text-red-200' : ''}`}>
               {formatMVR(stats.remainingBalance)}
             </p>
           </div>
           <div className="bg-white/10 rounded-xl p-2 sm:p-3">
-            <p className="text-emerald-100 text-[10px] sm:text-xs">Days Left</p>
+            <p className="text-emerald-100 text-[10px] sm:text-xs">{t('dashboard_days_left')}</p>
             <p className="text-sm sm:text-base font-semibold">{stats.daysRemaining}</p>
           </div>
         </div>
@@ -133,7 +135,7 @@ export default function Dashboard() {
       {stats.budget > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-600">Overall Budget Usage</span>
+            <span className="text-sm text-gray-600">{t('dashboard_overall_budget_usage')}</span>
             <span className="text-sm font-semibold text-gray-900">{stats.progressPercent.toFixed(0)}%</span>
           </div>
           <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -148,7 +150,7 @@ export default function Dashboard() {
           {stats.remainingBalance > 0 && (
             <p className="mt-3 text-xs text-gray-500 flex items-center gap-1">
               <AlertCircle size={12} />
-              Daily safe spend: {formatMVR(stats.dailySafeSpend)}
+              {t('dashboard_daily_safe_spend')}: {formatMVR(stats.dailySafeSpend)}
             </p>
           )}
         </div>
@@ -163,7 +165,7 @@ export default function Dashboard() {
             <TrendingUp size={20} className="text-blue-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">Total Income This Month (All Profiles)</p>
+            <p className="text-sm text-gray-500">{t('dashboard_total_income_month_all')}</p>
             <p className="text-xl font-semibold text-gray-900">{formatMVR(stats.totalIncome)}</p>
           </div>
         </div>
@@ -174,7 +176,7 @@ export default function Dashboard() {
           <div className="p-5 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <Users size={18} className="text-emerald-600" />
-              <h3 className="font-semibold text-gray-900">Spending by Profile</h3>
+              <h3 className="font-semibold text-gray-900">{t('dashboard_spending_by_profile')}</h3>
             </div>
           </div>
           <div className="divide-y divide-gray-100">
@@ -186,7 +188,7 @@ export default function Dashboard() {
                   }`} />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{ps.profile.name}</p>
-                    <p className="text-xs text-gray-500">{ps.transactionCount} transactions</p>
+                    <p className="text-xs text-gray-500">{ps.transactionCount} {t('dashboard_transactions')}</p>
                   </div>
                 </div>
                 <span className="text-sm font-semibold text-gray-900">
@@ -200,7 +202,7 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-5 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900">Recent Transactions (All Profiles)</h3>
+          <h3 className="font-semibold text-gray-900">{t('dashboard_recent_transactions_all')}</h3>
         </div>
         
         {loading ? (
@@ -212,8 +214,8 @@ export default function Dashboard() {
         ) : transactions.length === 0 ? (
           <div className="p-8 text-center text-gray-400">
             <Wallet size={40} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No transactions yet</p>
-            <p className="text-xs mt-1">Add your first expense!</p>
+            <p className="text-sm">{t('dashboard_no_transactions')}</p>
+            <p className="text-xs mt-1">{t('dashboard_add_first_expense')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

@@ -11,6 +11,18 @@ type TranslationKey =
   | 'nav_charts'
   | 'nav_savings'
   | 'nav_profiles'
+  | 'dashboard_total_spent_month_all'
+  | 'dashboard_total_budget'
+  | 'dashboard_remaining'
+  | 'dashboard_days_left'
+  | 'dashboard_overall_budget_usage'
+  | 'dashboard_daily_safe_spend'
+  | 'dashboard_total_income_month_all'
+  | 'dashboard_spending_by_profile'
+  | 'dashboard_transactions'
+  | 'dashboard_recent_transactions_all'
+  | 'dashboard_no_transactions'
+  | 'dashboard_add_first_expense'
   | 'menu_dashboard'
   | 'menu_add_transaction'
   | 'menu_analytics'
@@ -47,6 +59,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_charts: 'Charts',
     nav_savings: 'Savings',
     nav_profiles: 'Profiles',
+    dashboard_total_spent_month_all: 'Total Spent This Month (All Profiles)',
+    dashboard_total_budget: 'Total Budget',
+    dashboard_remaining: 'Remaining',
+    dashboard_days_left: 'Days Left',
+    dashboard_overall_budget_usage: 'Overall Budget Usage',
+    dashboard_daily_safe_spend: 'Daily safe spend',
+    dashboard_total_income_month_all: 'Total Income This Month (All Profiles)',
+    dashboard_spending_by_profile: 'Spending by Profile',
+    dashboard_transactions: 'transactions',
+    dashboard_recent_transactions_all: 'Recent Transactions (All Profiles)',
+    dashboard_no_transactions: 'No transactions yet',
+    dashboard_add_first_expense: 'Add your first expense!',
     menu_dashboard: 'Dashboard',
     menu_add_transaction: 'Add Transaction',
     menu_analytics: 'Analytics',
@@ -82,6 +106,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_charts: 'ޗާޓްސް',
     nav_savings: 'ސޭވިންގސް',
     nav_profiles: 'ޕްރޮފައިލްސް',
+    dashboard_total_spent_month_all: 'މި މަހުގެ ޖުމްލަ ހޭދަ (ހުރިހާ ޕްރޮފައިލްތަކުން)',
+    dashboard_total_budget: 'ޖުމްލަ ބަޖެޓް',
+    dashboard_remaining: 'ބާކީ',
+    dashboard_days_left: 'ދުވަސް ބާކީ',
+    dashboard_overall_budget_usage: 'ބަޖެޓް ބޭނުންކުރެވޭ ހިސާބު',
+    dashboard_daily_safe_spend: 'ދުވާލުން އާމިނާ ހޭދަ',
+    dashboard_total_income_month_all: 'މި މަހުގެ ޖުމްލަ އިންކަމް (ހުރިހާ ޕްރޮފައިލްތަކުން)',
+    dashboard_spending_by_profile: 'ޕްރޮފައިލް މަތީ ހޭދަ',
+    dashboard_transactions: 'ޓްރާންޒެކްޝަންސް',
+    dashboard_recent_transactions_all: 'އައިރު ޓްރާންޒެކްޝަންސް (ހުރިހާ ޕްރޮފައިލްތަކުން)',
+    dashboard_no_transactions: 'އަދި ޓްރާންޒެކްޝަން ނެތް',
+    dashboard_add_first_expense: 'ފުރަތަމަ ހޭދަ އެޑްކުރޭ!',
     menu_dashboard: 'ޑޭޝްބޯޑް',
     menu_add_transaction: 'ޓްރާންޒެކްޝަން އެޑް',
     menu_analytics: 'އެނަލިޓިކްސް',
