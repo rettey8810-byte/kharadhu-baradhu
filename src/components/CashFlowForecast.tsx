@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import { AlertCircle, TrendingDown, Wallet } from 'lucide-react'
 
 function formatMVR(value: number) {
@@ -20,6 +21,7 @@ interface CashFlowData {
 
 export default function CashFlowForecast() {
   const { profiles } = useProfile()
+  const { t } = useLanguage()
   const [data, setData] = useState<CashFlowData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -134,15 +136,15 @@ export default function CashFlowForecast() {
   const getStatusMessage = () => {
     if (!data) return ''
     if (data.willRunOut) {
-      return `You're spending faster than you earn. At this rate, you'll run out of money around ${data.runOutDate}.`
+      return `${t('cashflow_msg_runout_prefix')} ${data.runOutDate}${t('cashflow_msg_runout_suffix')}`
     }
     if (data.projectedEndBalance < 0) {
-      return 'Your expenses exceed your expected income this month. Consider cutting back or finding additional income.'
+      return t('cashflow_msg_negative')
     }
     if (data.projectedEndBalance < data.currentBalance * 0.2) {
-      return 'You have a small buffer left. Be careful with discretionary spending.'
+      return t('cashflow_msg_small_buffer')
     }
-    return 'Great! You have a healthy balance and are on track to save this month.'
+    return t('cashflow_msg_healthy')
   }
 
   if (loading) {
@@ -172,7 +174,7 @@ export default function CashFlowForecast() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Wallet size={20} className={statusColor === 'green' ? 'text-emerald-600' : 'text-gray-600'} />
-          <h3 className="font-bold text-gray-900">Cash Flow Forecast</h3>
+          <h3 className="font-bold text-gray-900">{t('cashflow_title')}</h3>
         </div>
         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
           statusColor === 'green' ? 'bg-emerald-100 text-emerald-700' :
@@ -180,20 +182,20 @@ export default function CashFlowForecast() {
           statusColor === 'orange' ? 'bg-orange-100 text-orange-700' :
           'bg-yellow-100 text-yellow-700'
         }`}>
-          {data.willRunOut ? '⚠️ At Risk' : data.projectedEndBalance > 0 ? '✓ Healthy' : '⚡ Warning'}
+          {data.willRunOut ? `⚠️ ${t('cashflow_status_at_risk')}` : data.projectedEndBalance > 0 ? `✓ ${t('cashflow_status_healthy')}` : `⚡ ${t('cashflow_status_warning')}`}
         </span>
       </div>
 
       {/* Current Status */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="bg-white/60 rounded-xl p-3">
-          <p className="text-xs text-gray-500 mb-1">Current Balance</p>
+          <p className="text-xs text-gray-500 mb-1">{t('cashflow_current_balance')}</p>
           <p className={`text-xl font-bold ${data.currentBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {formatMVR(data.currentBalance)}
           </p>
         </div>
         <div className="bg-white/60 rounded-xl p-3">
-          <p className="text-xs text-gray-500 mb-1">Projected End</p>
+          <p className="text-xs text-gray-500 mb-1">{t('cashflow_projected_end')}</p>
           <p className={`text-xl font-bold ${data.projectedEndBalance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {formatMVR(data.projectedEndBalance)}
           </p>
@@ -207,7 +209,7 @@ export default function CashFlowForecast() {
             <TrendingDown size={16} className="text-emerald-600 rotate-180" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Upcoming Income</p>
+            <p className="text-xs text-gray-500">{t('cashflow_upcoming_income')}</p>
             <p className="font-semibold text-emerald-600">+{formatMVR(data.upcomingIncome)}</p>
           </div>
         </div>
@@ -216,7 +218,7 @@ export default function CashFlowForecast() {
             <TrendingDown size={16} className="text-red-600" />
           </div>
           <div>
-            <p className="text-xs text-gray-500">Upcoming Bills</p>
+            <p className="text-xs text-gray-500">{t('cashflow_upcoming_bills')}</p>
             <p className="font-semibold text-red-600">-{formatMVR(data.upcomingExpenses)}</p>
           </div>
         </div>
@@ -237,8 +239,8 @@ export default function CashFlowForecast() {
       {/* Daily Rate */}
       <div className="mt-4 pt-4 border-t border-gray-200/50">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Daily spending rate:</span>
-          <span className="font-semibold text-gray-900">{formatMVR(data.dailyBurnRate)}/day</span>
+          <span className="text-gray-500">{t('cashflow_daily_spending_rate')}</span>
+          <span className="font-semibold text-gray-900">{formatMVR(data.dailyBurnRate)}{t('cashflow_per_day')}</span>
         </div>
       </div>
     </div>

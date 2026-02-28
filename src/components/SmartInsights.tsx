@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction } from '../types'
 import { AlertTriangle, TrendingUp, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
 
@@ -18,6 +19,7 @@ interface Insight {
 
 export default function SmartInsights() {
   const { profiles } = useProfile()
+  const { t: tr } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -74,16 +76,16 @@ export default function SmartInsights() {
       insights.push({
         id: 'overspending',
         type: 'alert',
-        title: 'Overspending Alert',
-        message: `You've spent ${formatMVR(totalExpense)} but only earned ${formatMVR(totalIncome)}. You're ${formatMVR(totalExpense - totalIncome)} over budget.`,
-        action: 'review'
+        title: tr('insight_title_overspending'),
+        message: `${tr('insight_msg_overspending_prefix')} ${formatMVR(totalExpense)} ${tr('insight_msg_overspending_suffix')} ${formatMVR(totalIncome)}. ${formatMVR(totalExpense - totalIncome)}.`,
+        action: tr('insight_action_review')
       })
     }
 
     // 2. Category spending comparison
     const categoryTotals: Record<string, number> = {}
     currentMonthExpenses.forEach(t => {
-      const catName = (t.category as any)?.name || 'Other'
+      const catName = (t.category as any)?.name || tr('common_other')
       categoryTotals[catName] = (categoryTotals[catName] || 0) + Number(t.amount)
     })
 
@@ -97,9 +99,9 @@ export default function SmartInsights() {
         insights.push({
           id: 'top-category',
           type: 'warning',
-          title: `High ${topCategory[0]} Spending`,
-          message: `You're spending ${percentage}% of your budget on ${topCategory[0]} (${formatMVR(topCategory[1])}).`,
-          action: 'review'
+          title: `${tr('insight_title_high_category_spending')}: ${topCategory[0]}`,
+          message: `${tr('insight_msg_high_category_prefix')} ${percentage}% ${topCategory[0]} (${formatMVR(topCategory[1])}).`,
+          action: tr('insight_action_review')
         })
       }
     }
@@ -111,9 +113,9 @@ export default function SmartInsights() {
       insights.push({
         id: 'large-expense',
         type: 'info',
-        title: 'Large Expense Detected',
-        message: `You spent ${formatMVR(Number(largest.amount))} on ${largest.description || 'a transaction'}. Make sure this was planned!`,
-        action: 'review'
+        title: tr('insight_title_large_expense'),
+        message: `${tr('insight_msg_large_expense_prefix')} ${formatMVR(Number(largest.amount))} ${largest.description || ''}. ${tr('insight_msg_large_expense_suffix')}`,
+        action: tr('insight_action_review')
       })
     }
 
@@ -127,9 +129,9 @@ export default function SmartInsights() {
       insights.push({
         id: 'projection',
         type: 'warning',
-        title: 'Spending Projection',
-        message: `At your current rate, you'll spend ${formatMVR(projectedTotal)} this month. That's ${formatMVR(projectedTotal - totalIncome)} more than your income.`,
-        action: ' slowdown'
+        title: tr('insight_title_spending_projection'),
+        message: `${tr('insight_msg_spending_projection_prefix')} ${formatMVR(projectedTotal)}. ${formatMVR(projectedTotal - totalIncome)} ${tr('insight_msg_spending_projection_suffix')}`,
+        action: tr('insight_action_slowdown')
       })
     }
 
@@ -138,9 +140,9 @@ export default function SmartInsights() {
       insights.push({
         id: 'no-income',
         type: 'alert',
-        title: 'No Income Logged',
-        message: `You've spent ${formatMVR(totalExpense)} but haven't logged any income this month. Don't forget to track your earnings!`,
-        action: 'add-income'
+        title: tr('insight_title_no_income'),
+        message: `${tr('insight_msg_no_income_prefix')} ${formatMVR(totalExpense)} ${tr('insight_msg_no_income_suffix')}`,
+        action: tr('insight_action_add_income')
       })
     }
 
@@ -150,9 +152,9 @@ export default function SmartInsights() {
       insights.push({
         id: 'savings-opportunity',
         type: 'success',
-        title: 'Great Saving!',
-        message: `You're ${formatMVR(savings)} under budget. Consider adding this to your savings goals!`,
-        action: 'save'
+        title: tr('insight_title_great_saving'),
+        message: `${tr('insight_msg_great_saving_prefix')} ${formatMVR(savings)} ${tr('insight_msg_great_saving_suffix')}`,
+        action: tr('insight_action_save')
       })
     }
 
@@ -182,7 +184,7 @@ export default function SmartInsights() {
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={20} className="text-emerald-500" />
-          <h3 className="font-semibold text-gray-900">Smart Insights</h3>
+          <h3 className="font-semibold text-gray-900">{tr('smart_insights_title')}</h3>
         </div>
         <div className="animate-pulse space-y-2">
           <div className="h-16 bg-gray-100 rounded-xl" />
@@ -197,10 +199,10 @@ export default function SmartInsights() {
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles size={20} className="text-emerald-500" />
-          <h3 className="font-semibold text-gray-900">Smart Insights</h3>
+          <h3 className="font-semibold text-gray-900">{tr('smart_insights_title')}</h3>
         </div>
         <p className="text-gray-500 text-sm">
-          No insights yet. Add more transactions to get personalized spending analysis!
+          {tr('smart_insights_no_insights_title')} {tr('smart_insights_no_insights_desc')}
         </p>
       </div>
     )
@@ -210,9 +212,9 @@ export default function SmartInsights() {
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-center gap-2 mb-4">
         <Sparkles size={20} className="text-emerald-500" />
-        <h3 className="font-semibold text-gray-900">Smart Insights</h3>
+        <h3 className="font-semibold text-gray-900">{tr('smart_insights_title')}</h3>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
-          {insights.length} alerts
+          {insights.length} {tr('smart_insights_alerts')}
         </span>
       </div>
 

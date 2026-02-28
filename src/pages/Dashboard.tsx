@@ -219,29 +219,29 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {transactions.slice(0, 8).map(t => (
-              <div key={t.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+            {transactions.slice(0, 8).map(tx => (
+              <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    t.type === 'income' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    tx.type === 'income' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {t.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                    {tx.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      {t.description || (t.type === 'income' ? 'Income' : 'Expense')}
+                      {tx.description || (tx.type === 'income' ? t('common_income') : t('common_expense'))}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {t.transaction_date} • {t.type === 'income' 
-                        ? ((t.income_source as any)?.name || 'Income') 
-                        : ((t.category as any)?.name || 'Expense')}
+                      {tx.transaction_date} • {tx.type === 'income' 
+                        ? ((tx.income_source as any)?.name || t('common_income')) 
+                        : ((tx.category as any)?.name || t('common_expense'))}
                     </p>
                   </div>
                 </div>
                 <span className={`text-sm font-semibold ${
-                  t.type === 'income' ? 'text-blue-600' : 'text-gray-900'
+                  tx.type === 'income' ? 'text-blue-600' : 'text-gray-900'
                 }`}>
-                  {t.type === 'income' ? '+' : '-'}{formatMVR(Number(t.amount))}
+                  {tx.type === 'income' ? '+' : '-'}{formatMVR(Number(tx.amount))}
                 </span>
               </div>
             ))}

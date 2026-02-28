@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction } from '../types'
 import { Search, X, Filter, TrendingDown, TrendingUp } from 'lucide-react'
 
@@ -10,6 +11,7 @@ function formatMVR(value: number) {
 
 export default function SearchTransactions() {
   const { profiles } = useProfile()
+  const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [filtered, setFiltered] = useState<Transaction[]>([])
@@ -99,8 +101,8 @@ export default function SearchTransactions() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-gray-900">Search Transactions</h2>
-        <p className="text-sm text-gray-500">Find by description, amount, or tags</p>
+        <h2 className="text-lg font-bold text-gray-900">{t('page_search_transactions')}</h2>
+        <p className="text-sm text-gray-500">{t('page_search_transactions_desc')}</p>
       </div>
 
       {/* Search Bar */}
@@ -109,7 +111,7 @@ export default function SearchTransactions() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg"
-            placeholder="Search transactions..."
+            placeholder={t('placeholder_search_transactions')}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
