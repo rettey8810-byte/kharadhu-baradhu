@@ -9,8 +9,16 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!mounted) return
+
+      if (error && /refresh token/i.test(error.message)) {
+        await supabase.auth.signOut()
+        setSession(null)
+        setLoading(false)
+        return
+      }
+
       setSession(data.session)
       setLoading(false)
     })

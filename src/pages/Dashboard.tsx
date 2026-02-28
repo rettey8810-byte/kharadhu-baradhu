@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
@@ -27,6 +27,8 @@ export default function Dashboard() {
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
 
+  const processedRecurringRef = useRef<string>('')
+
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
   // v2 - Show all transactions regardless of profile_id
 
@@ -39,6 +41,59 @@ export default function Dashboard() {
       const start = new Date(year, month - 1, 1)
       const end = new Date(year, month, 0)
 
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`
+      if (processedRecurringRef.current !== monthKey) {
+        processedRecurringRef.current = monthKey
+
+        const today = formatDateLocal(new Date())
+        const maxIterations = 24
+
+        const processExpensesOnce = async () => {
+          const { error } = await supabase.rpc('process_recurring_expenses_v2')
+          if (error) {
+            await supabase.rpc('process_recurring_expenses')
+          }
+        }
+
+        const processIncomeOnce = async () => {
+          await supabase.rpc('process_recurring_income')
+        }
+
+        try {
+          for (let i = 0; i < maxIterations; i++) {
+            const { data: due } = await supabase
+              .from('recurring_expenses')
+              .select('id')
+              .in('profile_id', profileIds)
+              .eq('is_active', true)
+              .lte('next_due_date', today)
+              .limit(1)
+
+            if (!due || due.length === 0) break
+            await processExpensesOnce()
+          }
+        } catch {
+          // ignore
+        }
+
+        try {
+          for (let i = 0; i < maxIterations; i++) {
+            const { data: due } = await supabase
+              .from('recurring_income')
+              .select('id')
+              .in('profile_id', profileIds)
+              .eq('is_active', true)
+              .lte('next_due_date', today)
+              .limit(1)
+
+            if (!due || due.length === 0) break
+            await processIncomeOnce()
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       // Load all transactions for this month (including those with no/mismatched profile)
       const { data: tx, error: txError } = await supabase
         .from('transactions')
@@ -47,15 +102,9 @@ export default function Dashboard() {
         .lte('transaction_date', formatDateLocal(end))
         .order('transaction_date', { ascending: false })
 
-      console.log('Dashboard query:', { 
-        start: formatDateLocal(start), 
-        end: formatDateLocal(end),
-        year, 
-        month,
-        txCount: tx?.length || 0,
-        error: txError?.message,
-        transactions: tx
-      })
+      if (txError) {
+        // no-op
+      }
 
       // Load all budgets from all profiles
       const { data: b } = await supabase

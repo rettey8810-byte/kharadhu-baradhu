@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { IncomeSource } from '../types'
+import { formatDateLocal } from '../utils/date'
 import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Wallet, Briefcase, TrendingUp, Gift, CreditCard } from 'lucide-react'
 
 function formatMVR(value: number | null) {
@@ -49,7 +50,7 @@ export default function RecurringIncome() {
     amount: '',
     income_source_id: '',
     frequency: 'monthly' as const,
-    start_date: new Date().toISOString().slice(0, 10),
+    start_date: formatDateLocal(new Date()),
     due_day_of_month: '',
     reminder_days: '3',
   })
@@ -114,7 +115,7 @@ export default function RecurringIncome() {
       income_source_id: formData.income_source_id,
       frequency: formData.frequency,
       start_date: formData.start_date,
-      next_due_date: nextDueDate.toISOString().slice(0, 10),
+      next_due_date: formatDateLocal(nextDueDate),
       reminder_days: parseInt(formData.reminder_days),
       is_active: true,
     })
@@ -125,7 +126,7 @@ export default function RecurringIncome() {
         amount: '',
         income_source_id: '',
         frequency: 'monthly',
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: formatDateLocal(new Date()),
         due_day_of_month: '',
         reminder_days: '3',
       })

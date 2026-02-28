@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { RecurringExpense, ExpenseCategory } from '../types'
+import { formatDateLocal } from '../utils/date'
 import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Zap, Droplets, Wifi, Tv, GraduationCap, Home, Smartphone, CreditCard, Bell } from 'lucide-react'
 
 function formatMVR(value: number | null) {
@@ -114,17 +115,17 @@ export default function RecurringExpenses() {
 
     if (exp.frequency === 'daily') {
       current.setDate(current.getDate() + 1)
-      return current.toISOString().slice(0, 10)
+      return formatDateLocal(current)
     }
 
     if (exp.frequency === 'weekly') {
       current.setDate(current.getDate() + 7)
-      return current.toISOString().slice(0, 10)
+      return formatDateLocal(current)
     }
 
     if (exp.frequency === 'yearly') {
       current.setFullYear(current.getFullYear() + 1)
-      return current.toISOString().slice(0, 10)
+      return formatDateLocal(current)
     }
 
     // monthly
@@ -136,7 +137,7 @@ export default function RecurringExpenses() {
     const targetDay = exp.due_day_of_month ?? current.getDate()
     const day = clampDayOfMonth(nextYear, nextMonth0, targetDay)
     const next = new Date(nextYear, nextMonth0, day)
-    return next.toISOString().slice(0, 10)
+    return formatDateLocal(next)
   }
 
   const markAsPaid = async (exp: RecurringExpense & { category: ExpenseCategory }) => {
@@ -178,7 +179,7 @@ export default function RecurringExpenses() {
             profile_id: currentProfile.id,
             transaction_id: tx.id,
             due_date: exp.next_due_date,
-            paid_date: new Date().toISOString().slice(0, 10),
+            paid_date: formatDateLocal(new Date()),
             amount: num,
             is_paid: true,
           },
