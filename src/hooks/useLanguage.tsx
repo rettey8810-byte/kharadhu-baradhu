@@ -94,6 +94,99 @@ type TranslationKey =
   | 'page_quick_add'
   | 'page_add_transaction'
   | 'page_all_transactions'
+  | 'form_type'
+  | 'form_expense'
+  | 'form_income'
+  | 'form_amount'
+  | 'form_date'
+  | 'form_category'
+  | 'form_income_source'
+  | 'form_no_income_sources'
+  | 'form_go_to_income_sources'
+  | 'form_description'
+  | 'form_description_placeholder'
+  | 'form_notes'
+  | 'form_notes_placeholder'
+  | 'form_tags'
+  | 'form_tags_placeholder'
+  | 'form_add'
+  | 'form_receipt_photo'
+  | 'form_required'
+  | 'form_optional'
+  | 'form_tap_add_receipt'
+  | 'form_groceries_bill'
+  | 'form_receipt_required_auto'
+  | 'form_reading'
+  | 'form_extract_bill'
+  | 'form_shop_name'
+  | 'form_shop_placeholder'
+  | 'form_bill_date'
+  | 'form_subtotal'
+  | 'form_gst'
+  | 'form_total'
+  | 'form_items'
+  | 'form_extract_bill_hint'
+  | 'form_item_placeholder'
+  | 'form_qty_placeholder'
+  | 'form_price_placeholder'
+  | 'form_line_total_placeholder'
+  | 'form_add_item'
+  | 'form_saving'
+  | 'form_save_transaction'
+  | 'recurring_bills_title'
+  | 'recurring_bills_subtitle'
+  | 'select_bill_type'
+  | 'skip_presets'
+  | 'fixed_amount'
+  | 'varies_each_month'
+  | 'estimated_amount_optional'
+  | 'due_date_settings'
+  | 'due_day_of_month'
+  | 'first_due_date'
+  | 'remind_me_days'
+  | 'grace_period_days'
+  | 'provider_details_optional'
+  | 'provider_name_placeholder'
+  | 'account_number'
+  | 'meter_number'
+  | 'cancel'
+  | 'add_bill'
+  | 'no_recurring_expenses'
+  | 'add_bills_repeat'
+  | 'days_overdue'
+  | 'due_today'
+  | 'days_left'
+  | 'days_until_due'
+  | 'grace_short'
+  | 'account_short'
+  | 'variable'
+  | 'remind_before'
+  | 'mark_paid'
+  | 'paid'
+  | 'enter_this_month_amount'
+  | 'freq_daily'
+  | 'freq_weekly'
+  | 'freq_monthly'
+  | 'freq_yearly'
+  | 'enter_paid_amount'
+  | 'enter_valid_amount'
+  | 'failed_mark_paid'
+  | 'delete_recurring_bill'
+  | 'transactions_subtitle'
+  | 'placeholder_search_tx'
+  | 'filter_all'
+  | 'filter_expenses'
+  | 'filter_income'
+  | 'total_expenses'
+  | 'total_income'
+  | 'no_transactions_found'
+  | 'edit_amount_placeholder'
+  | 'edit_description_placeholder'
+  | 'select_category'
+  | 'select_income_source'
+  | 'edit_title'
+  | 'delete_title'
+  | 'confirm_delete_tx'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -188,6 +281,99 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     page_quick_add: 'Quick Add',
     page_add_transaction: 'Add transaction',
     page_all_transactions: 'All Transactions',
+    form_type: 'Type',
+    form_expense: 'Expense',
+    form_income: 'Income',
+    form_amount: 'Amount (MVR)',
+    form_date: 'Date',
+    form_category: 'Category',
+    form_income_source: 'Income source',
+    form_no_income_sources: 'No income sources (add one)',
+    form_go_to_income_sources: 'Go to Income Sources',
+    form_description: 'Description',
+    form_description_placeholder: 'e.g. Lunch at restaurant',
+    form_notes: 'Notes',
+    form_notes_placeholder: 'Additional details...',
+    form_tags: 'Tags',
+    form_tags_placeholder: 'Add tag and press Enter',
+    form_add: 'Add',
+    form_receipt_photo: 'Receipt Photo',
+    form_required: 'required',
+    form_optional: 'optional',
+    form_tap_add_receipt: 'Tap to add receipt photo',
+    form_groceries_bill: 'Groceries bill',
+    form_receipt_required_auto: 'Receipt is required and will be read automatically',
+    form_reading: 'Reading…',
+    form_extract_bill: 'Extract bill',
+    form_shop_name: 'Shop name',
+    form_shop_placeholder: 'Shop',
+    form_bill_date: 'Bill date',
+    form_subtotal: 'Subtotal',
+    form_gst: 'GST',
+    form_total: 'Total',
+    form_items: 'Items',
+    form_extract_bill_hint: 'Extract the bill to get item list (you can edit).',
+    form_item_placeholder: 'Item',
+    form_qty_placeholder: 'Qty',
+    form_price_placeholder: 'Price',
+    form_line_total_placeholder: 'Total',
+    form_add_item: 'Add item',
+    form_saving: 'Saving…',
+    form_save_transaction: 'Save Transaction',
+    recurring_bills_title: 'Recurring Bills',
+    recurring_bills_subtitle: 'Track bills with due dates & reminders',
+    select_bill_type: 'Select Bill Type',
+    skip_presets: 'Skip presets, enter manually →',
+    fixed_amount: 'Fixed Amount',
+    varies_each_month: 'Varies Each Month',
+    estimated_amount_optional: 'Estimated amount (optional)',
+    due_date_settings: 'Due Date Settings',
+    due_day_of_month: 'Due Day of Month',
+    first_due_date: 'First Due Date',
+    remind_me_days: 'Remind me (days before)',
+    grace_period_days: 'Grace period (days to pay)',
+    provider_details_optional: 'Provider Details (optional)',
+    provider_name_placeholder: 'Provider name (e.g., STELCO, MWSC)',
+    account_number: 'Account number',
+    meter_number: 'Meter number',
+    cancel: 'Cancel',
+    add_bill: 'Add Bill',
+    no_recurring_expenses: 'No recurring expenses',
+    add_bills_repeat: 'Add bills that repeat monthly/weekly',
+    days_overdue: 'days overdue',
+    due_today: 'Due today',
+    days_left: 'days left',
+    days_until_due: 'days until due',
+    grace_short: 'Grace',
+    account_short: 'Acc',
+    variable: 'Variable',
+    remind_before: 'Remind {days}d before',
+    mark_paid: 'Mark Paid',
+    paid: 'Paid',
+    enter_this_month_amount: "Enter This Month's Amount",
+    freq_daily: 'Daily',
+    freq_weekly: 'Weekly',
+    freq_monthly: 'Monthly',
+    freq_yearly: 'Yearly',
+    enter_paid_amount: 'Enter paid amount (MVR)',
+    enter_valid_amount: 'Please enter a valid amount',
+    failed_mark_paid: 'Failed to mark as paid',
+    delete_recurring_bill: 'Delete this recurring bill?',
+    transactions_subtitle: 'View, edit and delete expenses & income',
+    placeholder_search_tx: 'Search transactions...',
+    filter_all: 'All',
+    filter_expenses: 'Expenses',
+    filter_income: 'Income',
+    total_expenses: 'Total Expenses',
+    total_income: 'Total Income',
+    no_transactions_found: 'No transactions found',
+    edit_amount_placeholder: 'Amount',
+    edit_description_placeholder: 'Description',
+    select_category: 'Select Category',
+    select_income_source: 'Select Income Source',
+    edit_title: 'Edit',
+    delete_title: 'Delete',
+    confirm_delete_tx: 'Are you sure you want to delete this transaction?',
   },
   dv: {
     app_name: 'ކަރަދު ބަރަދު',
@@ -281,6 +467,99 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     page_quick_add: 'ކުއިކް އެޑް',
     page_add_transaction: 'ޓްރާންޒެކްޝަން އެޑް',
     page_all_transactions: 'ހުރިހާ ޓްރާންޒެކްޝަންސް',
+    form_type: 'ޓައިޕް',
+    form_expense: 'ހޭދަ',
+    form_income: 'އިންކަމް',
+    form_amount: 'އަދަދު (MVR)',
+    form_date: 'ތާރީޚު',
+    form_category: 'ކެޓަގަރީ',
+    form_income_source: 'އިންކަމް ސޯސް',
+    form_no_income_sources: 'އިންކަމް ސޯސް ނެތް (އެޑްކުރޭ)',
+    form_go_to_income_sources: 'އިންކަމް ސޯސްތަކަށް ދާން',
+    form_description: 'ޑިސްކްރިޕްޝަން',
+    form_description_placeholder: 'މިސާލަ: ރެސްޓޯރެންޓްގައި މަސް',
+    form_notes: 'ނޯޓްސް',
+    form_notes_placeholder: 'އިތުރު ތަފްސީލް...',
+    form_tags: 'ޓެގްސް',
+    form_tags_placeholder: 'ޓެގް އެޑްކުރި އިންޓަރ ފިއްސް',
+    form_add: 'އެޑް',
+    form_receipt_photo: 'ރިސީޕް ފޮޓޯ',
+    form_required: 'މަޖުބޫރު',
+    form_optional: 'އިޚްތިޔާރީ',
+    form_tap_add_receipt: 'ރިސީޕް ފޮޓޯ އެޑްކުރުމަށް ޓެޕް',
+    form_groceries_bill: 'ގުރޫސަރީ ބިލް',
+    form_receipt_required_auto: 'ރިސީޕް މަޖުބޫރު އަދި އޮޓޮމެޓިކްލީ ކިޔާނީ',
+    form_reading: 'ކިޔާ...',
+    form_extract_bill: 'ބިލް އެކްސްޓްރެކްޓް',
+    form_shop_name: 'ޝޮޕު ނަން',
+    form_shop_placeholder: 'ޝޮޕު',
+    form_bill_date: 'ބިލް ތާރީޚު',
+    form_subtotal: 'ސަބް ޓޮޓަލް',
+    form_gst: 'ޖީއެސްޓީ',
+    form_total: 'ޖުމްލަ',
+    form_items: 'އެތަކެއް',
+    form_extract_bill_hint: 'ބިލް އެކްސްޓްރެކްޓް ކުރީ އެތަކެއް ލިސްޓު ލިބޭނެ (އެޑިޓް ކުރެވޭނެ).',
+    form_item_placeholder: 'އެތަކު',
+    form_qty_placeholder: 'އަދަދު',
+    form_price_placeholder: 'ރޭޓު',
+    form_line_total_placeholder: 'ޖުމްލަ',
+    form_add_item: 'އެތަކު އެޑް',
+    form_saving: 'ސޭވް ކުރާ...',
+    form_save_transaction: 'ޓްރާންޒެކްޝަން ސޭވް',
+    recurring_bills_title: 'ރިކަރިންގ ބިލްސް',
+    recurring_bills_subtitle: 'ދުވަސް ބާކީ އަދި ރިމައިންޑަރުން މަތީ ބިލްތައް ޓްރެކް',
+    select_bill_type: 'ބިލް ޓައިޕް ހޮވާ',
+    skip_presets: 'ޕްރީސެޓްސް ދޫކޮށް މެނުއަލް ލިޔާ →',
+    fixed_amount: 'ފިކްސްޓް އަދަދު',
+    varies_each_month: 'ހަމަނުވާ އަދަދު',
+    estimated_amount_optional: 'އެސްޓިމޭޓް އަދަދު (އިޚްތިޔާރީ)',
+    due_date_settings: 'ދުވަސް ސެޓިންގސް',
+    due_day_of_month: 'މަހުގެ ދުވަސް',
+    first_due_date: 'ފުރަތަމަ ދުވަސް',
+    remind_me_days: 'ރިމައިންޑް (ދުވަސް ކުރިން)',
+    grace_period_days: 'ގްރޭސް ޕީރިއަޑް (ދުވަސް ދެއް)',
+    provider_details_optional: 'ޕްރޮވައިޑަރ ޑީޓެއިލްސް (އިޚްތިޔާރީ)',
+    provider_name_placeholder: 'ޕްރޮވައިޑަރ (މިސާލަ: ސްޓެލްކޯ، އެމްވުސްސީ)',
+    account_number: 'އެކައުންޓް ނަންބަރު',
+    meter_number: 'މީޓަރ ނަންބަރު',
+    cancel: 'ކެންސަލް',
+    add_bill: 'ބިލް އެޑް',
+    no_recurring_expenses: 'ރިކަރިންގ ހޭދައެއް ނެތް',
+    add_bills_repeat: 'މަހުން/ހަފަތަކުން ތަކުރާރު ވާ ބިލްތައް އެޑްކުރޭ',
+    days_overdue: 'ދުވަސް ހަލާކު',
+    due_today: 'މިއަދު ދުވަސް',
+    days_left: 'ދުވަސް ބާކީ',
+    days_until_due: 'ދުވަސް ވެރި',
+    grace_short: 'ގްރޭސް',
+    account_short: 'އެކް',
+    variable: 'ބަދަލުވާ',
+    remind_before: '{days}ދުވަސް ކުރިން ރިމައިންޑް',
+    mark_paid: 'ދެއްވިކަމަށް ފާހަގަ',
+    paid: 'ދެއްވި',
+    enter_this_month_amount: 'މި މަހުގެ އަދަދު ލިޔާ',
+    freq_daily: 'ދުވަސުން',
+    freq_weekly: 'ހަފަތަކުން',
+    freq_monthly: 'މަހުން',
+    freq_yearly: 'އަހަރުން',
+    enter_paid_amount: 'ދެއްވި އަދަދު (MVR)',
+    enter_valid_amount: 'ރަނގަޅު އަދަދެއް ލިޔާ',
+    failed_mark_paid: 'ދެއްވިކަމަށް ފާހަގަ ކުރުމުގައި މަސްރަހު',
+    delete_recurring_bill: 'މި ރިކަރިންގ ބިލް ފޮހެލާ؟',
+    transactions_subtitle: 'ހޭދަ އަދި އިންކަމް ފެންވާ، އެޑިޓް އަދި ފޮހައިލާ',
+    placeholder_search_tx: 'ޓްރާންޒެކްޝަންސް ހޯދާ...',
+    filter_all: 'ހުރިހާ',
+    filter_expenses: 'ހޭދަތައް',
+    filter_income: 'އިންކަމް',
+    total_expenses: 'ޖުމްލަ ހޭދަ',
+    total_income: 'ޖުމްލަ އިންކަމް',
+    no_transactions_found: 'ޓްރާންޒެކްޝަން ނެތް',
+    edit_amount_placeholder: 'އަދަދު',
+    edit_description_placeholder: 'ޑިސްކްރިޕްޝަން',
+    select_category: 'ކެޓަގަރީ ހޮވާ',
+    select_income_source: 'އިންކަމް ސޯސް ހޮވާ',
+    edit_title: 'އެޑިޓް',
+    delete_title: 'ފޮހައިލާ',
+    confirm_delete_tx: 'މި ޓްރާންޒެކްޝަން ފޮހެލަން ބޭނުންތަ؟',
   },
 }
 

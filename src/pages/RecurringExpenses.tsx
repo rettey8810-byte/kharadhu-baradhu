@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { useLanguage } from '../hooks/useLanguage'
 import type { RecurringExpense, ExpenseCategory } from '../types'
 import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Zap, Droplets, Wifi, Tv, GraduationCap, Home, Smartphone, CreditCard, Bell } from 'lucide-react'
 
@@ -29,6 +30,7 @@ const BILL_PRESETS = [
 
 export default function RecurringExpenses() {
   const { currentProfile } = useProfile()
+  const { t } = useLanguage()
   const [expenses, setExpenses] = useState<(RecurringExpense & { category: ExpenseCategory })[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [loading, setLoading] = useState(true)
@@ -142,11 +144,11 @@ export default function RecurringExpenses() {
     if (markingPaidId) return
 
     const defaultAmount = exp.amount ?? ''
-    const input = window.prompt('Enter paid amount (MVR)', defaultAmount === null ? '' : String(defaultAmount))
+    const input = window.prompt(t('enter_paid_amount') || 'Enter paid amount (MVR)', defaultAmount === null ? '' : String(defaultAmount))
     if (input === null) return
     const num = Number(input)
     if (!Number.isFinite(num) || num <= 0) {
-      window.alert('Please enter a valid amount')
+      window.alert(t('enter_valid_amount') || 'Please enter a valid amount')
       return
     }
 
@@ -194,7 +196,7 @@ export default function RecurringExpenses() {
 
       await loadData()
     } catch (e: any) {
-      window.alert(e?.message ?? 'Failed to mark as paid')
+      window.alert(e?.message ?? (t('failed_mark_paid') || 'Failed to mark as paid'))
     } finally {
       setMarkingPaidId(null)
     }
@@ -246,7 +248,7 @@ export default function RecurringExpenses() {
   }
 
   const deleteExpense = async (id: string) => {
-    if (!confirm('Delete this recurring bill?')) return
+    if (!confirm(t('delete_recurring_bill') || 'Delete this recurring bill?')) return
     await supabase.from('recurring_expenses').delete().eq('id', id)
     loadData()
   }
@@ -295,25 +297,25 @@ export default function RecurringExpenses() {
     const diffTime = due.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
-    if (diffDays < 0) return { text: `${Math.abs(diffDays)} days overdue`, color: 'text-red-600', bg: 'bg-red-50' }
-    if (diffDays === 0) return { text: 'Due today', color: 'text-yellow-600', bg: 'bg-yellow-50' }
-    if (diffDays <= (exp.reminder_days || 3)) return { text: `${diffDays} days left`, color: 'text-orange-600', bg: 'bg-orange-50' }
-    return { text: `${diffDays} days until due`, color: 'text-gray-500', bg: 'bg-gray-50' }
+    if (diffDays < 0) return { text: `${Math.abs(diffDays)} ${t('days_overdue')}`, color: 'text-red-600', bg: 'bg-red-50' }
+    if (diffDays === 0) return { text: t('due_today'), color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (diffDays <= (exp.reminder_days || 3)) return { text: `${diffDays} ${t('days_left')}`, color: 'text-orange-600', bg: 'bg-orange-50' }
+    return { text: `${diffDays} ${t('days_until_due')}`, color: 'text-gray-500', bg: 'bg-gray-50' }
   }
 
   const frequencies = {
-    daily: 'Daily',
-    weekly: 'Weekly',
-    monthly: 'Monthly',
-    yearly: 'Yearly'
+    daily: t('freq_daily'),
+    weekly: t('freq_weekly'),
+    monthly: t('freq_monthly'),
+    yearly: t('freq_yearly')
   }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Recurring Bills</h2>
-          <p className="text-sm text-gray-500">Track bills with due dates & reminders v2</p>
+          <h2 className="text-lg font-bold text-gray-900">{t('recurring_bills_title')}</h2>
+          <p className="text-sm text-gray-500">{t('recurring_bills_subtitle')}</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
@@ -328,7 +330,7 @@ export default function RecurringExpenses() {
           {/* Bill Type Presets */}
           {showPresets && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">Select Bill Type</p>
+              <p className="text-sm font-medium text-gray-700">{t('select_bill_type')}</p>
               <div className="grid grid-cols-3 gap-2">
                 {BILL_PRESETS.map(preset => {
                   const Icon = preset.icon
@@ -348,7 +350,7 @@ export default function RecurringExpenses() {
                 onClick={() => setShowPresets(false)}
                 className="text-sm text-emerald-600 font-medium"
               >
-                Skip presets, enter manually →
+                {t('skip_presets')}
               </button>
             </div>
           )}
@@ -386,7 +388,7 @@ export default function RecurringExpenses() {
                     !formData.is_variable_amount ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
                   }`}
                 >
-                  Fixed Amount
+                  {t('fixed_amount')}
                 </button>
                 <button
                   type="button"
@@ -395,7 +397,7 @@ export default function RecurringExpenses() {
                     formData.is_variable_amount ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
                   }`}
                 >
-                  Varies Each Month
+                  {t('varies_each_month')}
                 </button>
               </div>
 
@@ -404,7 +406,7 @@ export default function RecurringExpenses() {
                 type="number"
                 step="0.01"
                 className="w-full border border-gray-200 rounded-lg px-3 py-2"
-                placeholder={formData.is_variable_amount ? "Estimated amount (optional)" : "Amount (MVR)"}
+                placeholder={formData.is_variable_amount ? t('estimated_amount_optional') : t('form_amount')}
                 value={formData.amount}
                 onChange={e => setFormData({...formData, amount: e.target.value})}
                 required={!formData.is_variable_amount}
@@ -423,18 +425,18 @@ export default function RecurringExpenses() {
                   value={formData.category_id}
                   onChange={e => setFormData({...formData, category_id: e.target.value})}
                 >
-                  <option value="">Category</option>
+                  <option value="">{t('form_category')}</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
 
               {/* Due Date Settings */}
               <div className="border-t border-gray-100 pt-3 space-y-3">
-                <p className="text-sm font-medium text-gray-700">Due Date Settings</p>
+                <p className="text-sm font-medium text-gray-700">{t('due_date_settings')}</p>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-gray-500">Due Day of Month</label>
+                    <label className="text-xs text-gray-500">{t('due_day_of_month')}</label>
                     <input
                       type="number"
                       min="1"
@@ -446,7 +448,7 @@ export default function RecurringExpenses() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">First Due Date</label>
+                    <label className="text-xs text-gray-500">{t('first_due_date')}</label>
                     <input
                       type="date"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
@@ -459,7 +461,7 @@ export default function RecurringExpenses() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-gray-500">Remind me (days before)</label>
+                    <label className="text-xs text-gray-500">{t('remind_me_days')}</label>
                     <input
                       type="number"
                       min="0"
@@ -470,7 +472,7 @@ export default function RecurringExpenses() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">Grace period (days to pay)</label>
+                    <label className="text-xs text-gray-500">{t('grace_period_days')}</label>
                     <input
                       type="number"
                       min="0"
@@ -485,23 +487,23 @@ export default function RecurringExpenses() {
 
               {/* Provider Info */}
               <div className="border-t border-gray-100 pt-3 space-y-3">
-                <p className="text-sm font-medium text-gray-700">Provider Details (optional)</p>
+                <p className="text-sm font-medium text-gray-700">{t('provider_details_optional')}</p>
                 <input
                   className="w-full border border-gray-200 rounded-lg px-3 py-2"
-                  placeholder="Provider name (e.g., STELCO, MWSC)"
+                  placeholder={t('provider_name_placeholder')}
                   value={formData.provider}
                   onChange={e => setFormData({...formData, provider: e.target.value})}
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     className="border border-gray-200 rounded-lg px-3 py-2"
-                    placeholder="Account number"
+                    placeholder={t('account_number')}
                     value={formData.account_number}
                     onChange={e => setFormData({...formData, account_number: e.target.value})}
                   />
                   <input
                     className="border border-gray-200 rounded-lg px-3 py-2"
-                    placeholder="Meter number"
+                    placeholder={t('meter_number')}
                     value={formData.meter_number}
                     onChange={e => setFormData({...formData, meter_number: e.target.value})}
                   />
@@ -514,10 +516,10 @@ export default function RecurringExpenses() {
                   onClick={() => {setShowAdd(false); setShowPresets(true); setSelectedPreset(null)}} 
                   className="flex-1 py-2 rounded-lg border border-gray-200"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button type="submit" className="flex-1 py-2 rounded-lg bg-emerald-600 text-white">
-                  Add Bill
+                  {t('add_bill')}
                 </button>
               </div>
             </form>
@@ -532,8 +534,8 @@ export default function RecurringExpenses() {
       ) : expenses.length === 0 ? (
         <div className="text-center py-10 text-gray-400">
           <RefreshCw size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No recurring expenses</p>
-          <p className="text-sm">Add bills that repeat monthly/weekly</p>
+          <p>{t('no_recurring_expenses')}</p>
+          <p className="text-sm">{t('add_bills_repeat')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -565,7 +567,7 @@ export default function RecurringExpenses() {
                       <h3 className="font-semibold text-gray-900 truncate">{exp.name}</h3>
                       <p className="text-sm text-gray-500">
                         {exp.category?.name} • {frequencies[exp.frequency as keyof typeof frequencies]}
-                        {exp.is_variable_amount && ' • Variable amount'}
+                        {exp.is_variable_amount && ` • ${t('variable')}`}
                       </p>
                       
                       {/* Due Date & Status */}
@@ -573,25 +575,25 @@ export default function RecurringExpenses() {
                         <Calendar size={12} />
                         {status.text}
                         {(exp.grace_period_days || 0) > 0 && !overdue && (
-                          <span className="text-gray-400">(Grace: {exp.grace_period_days}d)</span>
+                          <span className="text-gray-400">({t('grace_short')}: {exp.grace_period_days}d)</span>
                         )}
                       </div>
                       
                       {exp.account_number && (
-                        <p className="text-xs text-gray-400 mt-1">Acc: {exp.account_number}</p>
+                        <p className="text-xs text-gray-400 mt-1">{t('account_short')}: {exp.account_number}</p>
                       )}
                     </div>
                   </div>
                   
                   <div className="text-right flex-shrink-0">
                     <p className="font-semibold text-gray-900">
-                      {exp.is_variable_amount ? 'Variable' : formatMVR(exp.amount)}
+                      {exp.is_variable_amount ? t('variable') : formatMVR(exp.amount)}
                     </p>
                     
                     {(exp.reminder_days || 0) > 0 && (
                       <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
                         <Bell size={12} />
-                        <span>Remind {exp.reminder_days}d before</span>
+                        <span>{t('remind_before').replace('{days}', String(exp.reminder_days))}</span>
                       </div>
                     )}
                     
@@ -603,12 +605,12 @@ export default function RecurringExpenses() {
                           disabled={markingPaidId === exp.id}
                           title="Create expense transaction and mark paid"
                         >
-                          {markingPaidId === exp.id ? 'Saving…' : 'Mark Paid'}
+                          {markingPaidId === exp.id ? t('form_saving') : t('mark_paid')}
                         </button>
                       )}
                       {isPaid && (
                         <span className="px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                          Paid
+                          {t('paid')}
                         </span>
                       )}
                       <button 
@@ -633,7 +635,7 @@ export default function RecurringExpenses() {
                 {exp.is_variable_amount && (
                   <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2">
                     <button className="flex-1 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
-                      Enter This Month's Amount
+                      {t('enter_this_month_amount')}
                     </button>
                   </div>
                 )}

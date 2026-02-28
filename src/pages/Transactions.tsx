@@ -92,7 +92,7 @@ export default function Transactions() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this transaction?')) return
+    if (!confirm(t('confirm_delete_tx'))) return
 
     const { error } = await supabase
       .from('transactions')
@@ -134,7 +134,7 @@ export default function Transactions() {
     <div className="p-4 pb-24">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-gray-900">{t('page_all_transactions')}</h1>
-        <p className="text-sm text-gray-500">View, edit and delete expenses & income</p>
+        <p className="text-sm text-gray-500">{t('transactions_subtitle')}</p>
       </div>
 
       {/* Search and Filter */}
@@ -143,7 +143,7 @@ export default function Transactions() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search transactions..."
+            placeholder={t('placeholder_search_tx')}
             className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
@@ -155,19 +155,19 @@ export default function Transactions() {
             onClick={() => setFilter('all')}
             className={`flex-1 py-2 text-sm rounded-lg ${filter === 'all' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'}`}
           >
-            All
+            {t('filter_all')}
           </button>
           <button
             onClick={() => setFilter('expense')}
             className={`flex-1 py-2 text-sm rounded-lg ${filter === 'expense' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700'}`}
           >
-            Expenses
+            {t('filter_expenses')}
           </button>
           <button
             onClick={() => setFilter('income')}
             className={`flex-1 py-2 text-sm rounded-lg ${filter === 'income' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'}`}
           >
-            Income
+            {t('filter_income')}
           </button>
         </div>
       </div>
@@ -175,13 +175,13 @@ export default function Transactions() {
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-white rounded-xl p-3">
-          <p className="text-xs text-gray-500">Total Expenses</p>
+          <p className="text-xs text-gray-500">{t('total_expenses')}</p>
           <p className="text-lg font-bold text-red-600">
             {formatMVR(filteredTransactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0))}
           </p>
         </div>
         <div className="bg-white rounded-xl p-3">
-          <p className="text-xs text-gray-500">Total Income</p>
+          <p className="text-xs text-gray-500">{t('total_income')}</p>
           <p className="text-lg font-bold text-emerald-600">
             {formatMVR(filteredTransactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0))}
           </p>
@@ -192,7 +192,7 @@ export default function Transactions() {
       <div className="space-y-2">
         {filteredTransactions.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
-            <p>No transactions found</p>
+            <p>{t('no_transactions_found')}</p>
           </div>
         ) : (
           filteredTransactions.map(tx => {
@@ -209,7 +209,7 @@ export default function Transactions() {
                         type="number"
                         step="0.01"
                         className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                        placeholder="Amount"
+                        placeholder={t('edit_amount_placeholder')}
                         value={editForm.amount}
                         onChange={e => setEditForm({...editForm, amount: e.target.value})}
                       />
@@ -223,7 +223,7 @@ export default function Transactions() {
                     <input
                       type="text"
                       className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                      placeholder="Description"
+                      placeholder={t('edit_description_placeholder')}
                       value={editForm.description}
                       onChange={e => setEditForm({...editForm, description: e.target.value})}
                     />
@@ -233,7 +233,7 @@ export default function Transactions() {
                         value={editForm.category_id}
                         onChange={e => setEditForm({...editForm, category_id: e.target.value})}
                       >
-                        <option value="">Select Category</option>
+                        <option value="">{t('select_category')}</option>
                         {categories.map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
@@ -245,7 +245,7 @@ export default function Transactions() {
                         value={editForm.income_source_id}
                         onChange={e => setEditForm({...editForm, income_source_id: e.target.value})}
                       >
-                        <option value="">Select Income Source</option>
+                        <option value="">{t('select_income_source')}</option>
                         {incomeSources.map(src => (
                           <option key={src.id} value={src.id}>{src.name}</option>
                         ))}
@@ -292,14 +292,14 @@ export default function Transactions() {
                         <button
                           onClick={() => handleEdit(tx)}
                           className="p-1.5 rounded bg-gray-100 hover:bg-gray-200"
-                          title="Edit"
+                          title={t('edit_title')}
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(tx.id)}
                           className="p-1.5 rounded bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600"
-                          title="Delete"
+                          title={t('delete_title')}
                         >
                           <Trash2 size={14} />
                         </button>

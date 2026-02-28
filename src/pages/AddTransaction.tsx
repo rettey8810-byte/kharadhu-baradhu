@@ -355,20 +355,20 @@ export default function AddTransaction() {
       <form onSubmit={submit} className="mt-4 space-y-4">
         {/* Type */}
         <div>
-          <label className="text-sm text-gray-600">Type</label>
+          <label className="text-sm text-gray-600">{t('form_type')}</label>
           <select
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
             value={type}
             onChange={(e) => setType(e.target.value as any)}
           >
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
+            <option value="expense">{t('form_expense')}</option>
+            <option value="income">{t('form_income')}</option>
           </select>
         </div>
 
         {/* Amount */}
         <div>
-          <label className="text-sm text-gray-600">Amount (MVR)</label>
+          <label className="text-sm text-gray-600">{t('form_amount')}</label>
           <input
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
             value={amount}
@@ -381,7 +381,7 @@ export default function AddTransaction() {
 
         {/* Date */}
         <div>
-          <label className="text-sm text-gray-600">Date</label>
+          <label className="text-sm text-gray-600">{t('form_date')}</label>
           <input
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
             value={date}
@@ -394,7 +394,7 @@ export default function AddTransaction() {
         {/* Category/Income Source */}
         {type === 'expense' ? (
           <div>
-            <label className="text-sm text-gray-600">Category</label>
+            <label className="text-sm text-gray-600">{t('form_category')}</label>
             <select
               className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
               value={categoryId}
@@ -407,7 +407,7 @@ export default function AddTransaction() {
           </div>
         ) : (
           <div>
-            <label className="text-sm text-gray-600">Income source</label>
+            <label className="text-sm text-gray-600">{t('form_income_source')}</label>
             <select
               className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
               value={incomeSourceId}
@@ -415,7 +415,7 @@ export default function AddTransaction() {
             >
               {incomeSources.length === 0 && (
                 <option value="" disabled>
-                  No income sources (add one)
+                  {t('form_no_income_sources')}
                 </option>
               )}
               {incomeSources.map(s => (
@@ -429,7 +429,7 @@ export default function AddTransaction() {
                 onClick={() => navigate('/income-sources')}
                 className="mt-2 text-sm text-emerald-700 font-semibold"
               >
-                Go to Income Sources
+                {t('form_go_to_income_sources')}
               </button>
             )}
           </div>
@@ -438,14 +438,14 @@ export default function AddTransaction() {
         {/* Description with Voice Input */}
         <div>
           <div className="flex items-center justify-between">
-            <label className="text-sm text-gray-600">Description</label>
+            <label className="text-sm text-gray-600">{t('form_description')}</label>
             <VoiceInput onResult={handleVoiceResult} />
           </div>
           <input
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Lunch at restaurant"
+            placeholder={t('form_description_placeholder')}
           />
         </div>
 
@@ -453,13 +453,13 @@ export default function AddTransaction() {
         <div>
           <label className="text-sm text-gray-600 flex items-center gap-1">
             <FileText size={14} />
-            Notes
+            {t('form_notes')}
           </label>
           <textarea
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 h-20 resize-none"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Additional details..."
+            placeholder={t('form_notes_placeholder')}
           />
         </div>
 
@@ -467,7 +467,7 @@ export default function AddTransaction() {
         <div>
           <label className="text-sm text-gray-600 flex items-center gap-1">
             <Hash size={14} />
-            Tags
+            {t('form_tags')}
           </label>
           <div className="flex gap-2 mt-1">
             <input
@@ -475,14 +475,14 @@ export default function AddTransaction() {
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-              placeholder="Add tag and press Enter"
+              placeholder={t('form_tags_placeholder')}
             />
             <button
               type="button"
               onClick={addTag}
               className="px-3 py-2 bg-gray-100 rounded-lg text-sm"
             >
-              Add
+              {t('form_add')}
             </button>
           </div>
           {tags.length > 0 && (
@@ -502,7 +502,7 @@ export default function AddTransaction() {
         {/* Receipt Upload */}
         <div>
           <label className="text-sm text-gray-600">
-            Receipt Photo {isGroceries ? <span className="text-red-500">*</span> : <span className="text-gray-400">(optional)</span>}
+            {t('form_receipt_photo')} {isGroceries ? <span className="text-red-500">*</span> : <span className="text-gray-400">({t('form_optional')})</span>}
           </label>
           <input
             ref={fileInputRef}
@@ -530,7 +530,7 @@ export default function AddTransaction() {
               className="mt-2 w-full py-8 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center gap-2 text-gray-500 hover:border-emerald-400 hover:text-emerald-600"
             >
               <Camera size={24} />
-              <span className="text-sm">Tap to add receipt photo</span>
+              <span className="text-sm">{t('form_tap_add_receipt')}</span>
             </button>
           )}
         </div>
@@ -539,8 +539,8 @@ export default function AddTransaction() {
           <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <div className="text-sm font-semibold text-emerald-900">Groceries bill</div>
-                <div className="text-xs text-emerald-700">Receipt is required and will be read automatically</div>
+                <div className="text-sm font-semibold text-emerald-900">{t('form_groceries_bill')}</div>
+                <div className="text-xs text-emerald-700">{t('form_receipt_required_auto')}</div>
               </div>
               <button
                 type="button"
@@ -548,22 +548,22 @@ export default function AddTransaction() {
                 disabled={!receiptPreview || ocrLoading}
                 className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:opacity-60"
               >
-                {ocrLoading ? 'Reading…' : 'Extract bill'}
+                {ocrLoading ? t('form_reading') : t('form_extract_bill')}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-emerald-800">Shop name</label>
+                <label className="text-xs text-emerald-800">{t('form_shop_name')}</label>
                 <input
                   className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
                   value={billShopName}
                   onChange={(e) => setBillShopName(e.target.value)}
-                  placeholder="Shop"
+                  placeholder={t('form_shop_placeholder')}
                 />
               </div>
               <div>
-                <label className="text-xs text-emerald-800">Bill date</label>
+                <label className="text-xs text-emerald-800">{t('form_bill_date')}</label>
                 <input
                   type="date"
                   className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
@@ -575,7 +575,7 @@ export default function AddTransaction() {
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-emerald-800">Subtotal</label>
+                <label className="text-xs text-emerald-800">{t('form_subtotal')}</label>
                 <input
                   className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
                   value={billSubtotal}
@@ -585,7 +585,7 @@ export default function AddTransaction() {
                 />
               </div>
               <div>
-                <label className="text-xs text-emerald-800">GST</label>
+                <label className="text-xs text-emerald-800">{t('form_gst')}</label>
                 <input
                   className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
                   value={billGst}
@@ -595,7 +595,7 @@ export default function AddTransaction() {
                 />
               </div>
               <div>
-                <label className="text-xs text-emerald-800">Total</label>
+                <label className="text-xs text-emerald-800">{t('form_total')}</label>
                 <input
                   className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm font-semibold"
                   value={billTotal}
@@ -607,9 +607,9 @@ export default function AddTransaction() {
             </div>
 
             <div>
-              <div className="text-xs text-emerald-800 mb-2">Items</div>
+              <div className="text-xs text-emerald-800 mb-2">{t('form_items')}</div>
               {billItems.length === 0 ? (
-                <div className="text-xs text-emerald-700">Extract the bill to get item list (you can edit).</div>
+                <div className="text-xs text-emerald-700">{t('form_extract_bill_hint')}</div>
               ) : (
                 <div className="space-y-2">
                   {billItems.map((it, idx) => (
@@ -622,7 +622,7 @@ export default function AddTransaction() {
                           next[idx] = { ...next[idx], item_name: e.target.value }
                           setBillItems(next)
                         }}
-                        placeholder="Item"
+                        placeholder={t('form_item_placeholder')}
                       />
                       <input
                         className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
@@ -632,7 +632,7 @@ export default function AddTransaction() {
                           next[idx] = { ...next[idx], qty: e.target.value }
                           setBillItems(next)
                         }}
-                        placeholder="Qty"
+                        placeholder={t('form_qty_placeholder')}
                         inputMode="decimal"
                       />
                       <input
@@ -643,7 +643,7 @@ export default function AddTransaction() {
                           next[idx] = { ...next[idx], unit_price: e.target.value }
                           setBillItems(next)
                         }}
-                        placeholder="Price"
+                        placeholder={t('form_price_placeholder')}
                         inputMode="decimal"
                       />
                       <div className="col-span-2 flex items-center gap-2">
@@ -655,7 +655,7 @@ export default function AddTransaction() {
                             next[idx] = { ...next[idx], line_total: e.target.value }
                             setBillItems(next)
                           }}
-                          placeholder="Total"
+                          placeholder={t('form_line_total_placeholder')}
                           inputMode="decimal"
                         />
                         <button
@@ -676,7 +676,7 @@ export default function AddTransaction() {
                     onClick={() => setBillItems([...billItems, { item_name: '', qty: '', unit_price: '', line_total: '' }])}
                     className="w-full py-2 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-sm font-semibold"
                   >
-                    Add item
+                    {t('form_add_item')}
                   </button>
                 </div>
               )}
@@ -693,7 +693,7 @@ export default function AddTransaction() {
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-3 font-semibold disabled:opacity-60"
           disabled={loading || ocrLoading}
         >
-          {loading ? 'Saving…' : 'Save Transaction'}
+          {loading ? t('form_saving') : t('form_save_transaction')}
         </button>
       </form>
     </div>
