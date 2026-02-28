@@ -6,7 +6,7 @@ import { useLanguage } from '../hooks/useLanguage'
 import SmartInsights from '../components/SmartInsights'
 import CashFlowForecast from '../components/CashFlowForecast'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
-import { getDaysRemainingInMonth, getYearMonth } from '../utils/date'
+import { getDaysRemainingInMonth, getYearMonth, formatDateLocal } from '../utils/date'
 import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
 
 function formatMVR(value: number) {
@@ -43,13 +43,13 @@ export default function Dashboard() {
       const { data: tx, error: txError } = await supabase
         .from('transactions')
         .select('*, profile:profile_id(name), category:category_id(name), income_source:income_source_id(name)')
-        .gte('transaction_date', start.toISOString().slice(0, 10))
-        .lte('transaction_date', end.toISOString().slice(0, 10))
+        .gte('transaction_date', formatDateLocal(start))
+        .lte('transaction_date', formatDateLocal(end))
         .order('transaction_date', { ascending: false })
 
       console.log('Dashboard query:', { 
-        start: start.toISOString().slice(0, 10), 
-        end: end.toISOString().slice(0, 10),
+        start: formatDateLocal(start), 
+        end: formatDateLocal(end),
         year, 
         month,
         txCount: tx?.length || 0,
