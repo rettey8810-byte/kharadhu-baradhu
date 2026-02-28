@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png', 'manifest.json'],
       manifest: {
-        name: 'Expense Tracker',
-        short_name: 'ExpTrack',
-        description: 'Track your expenses and manage budgets in MVR',
+        name: 'Kharadhu Baradhu',
+        short_name: 'Kharadhu',
+        description: 'Track family expenses and manage budgets in MVR (Maldivian Rufiyaa)',
         theme_color: '#10b981',
         background_color: '#10b981',
         display: 'standalone',

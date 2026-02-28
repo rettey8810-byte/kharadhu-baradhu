@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
+import { PWAInstallButton } from '../hooks/usePWAInstall'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
 import { getDaysRemainingInMonth, getYearMonth } from '../utils/date'
 import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
@@ -97,6 +98,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <PWAInstallButton />
       <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
@@ -108,20 +110,20 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-emerald-100 text-xs">Total Budget</p>
-            <p className="text-lg font-semibold">{formatMVR(stats.budget)}</p>
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+            <p className="text-emerald-100 text-[10px] sm:text-xs">Total Budget</p>
+            <p className="text-sm sm:text-base font-semibold truncate">{formatMVR(stats.budget)}</p>
           </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-emerald-100 text-xs">Remaining</p>
-            <p className={`text-lg font-semibold ${stats.remainingBalance < 0 ? 'text-red-200' : ''}`}>
+          <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+            <p className="text-emerald-100 text-[10px] sm:text-xs">Remaining</p>
+            <p className={`text-sm sm:text-base font-semibold truncate ${stats.remainingBalance < 0 ? 'text-red-200' : ''}`}>
               {formatMVR(stats.remainingBalance)}
             </p>
           </div>
-          <div className="bg-white/10 rounded-xl p-3">
-            <p className="text-emerald-100 text-xs">Days Left</p>
-            <p className="text-lg font-semibold">{stats.daysRemaining}</p>
+          <div className="bg-white/10 rounded-xl p-2 sm:p-3">
+            <p className="text-emerald-100 text-[10px] sm:text-xs">Days Left</p>
+            <p className="text-sm sm:text-base font-semibold">{stats.daysRemaining}</p>
           </div>
         </div>
       </div>
