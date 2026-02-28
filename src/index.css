@@ -25,6 +25,10 @@ body {
   text-align: right;
 }
 
+html.dhivehi-font body {
+  font-family: 'Dhivehi', 'MV Faseyha', 'Faruma', sans-serif;
+}
+
 /* For better Dhivehi text rendering */
 .dhivehi-text {
   line-height: 1.8;
