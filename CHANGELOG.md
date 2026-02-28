@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-02-28
+
+### Added
+- **PWA Install Banner** - Install button shown on Dashboard when supported
+- **iOS Install Fallback** - Instructions shown when install prompt is not available (Safari Add to Home Screen)
+
+### Fixed
+- **Mobile Dashboard Cards** - Budget/Remaining values no longer get cut off on small screens
+- **Mobile Header** - Active Profile selector no longer clipped on mobile
+
+---
+
 ## [1.1.0] - 2025-02-27
 
 ### Added - Enhanced Recurring Bills

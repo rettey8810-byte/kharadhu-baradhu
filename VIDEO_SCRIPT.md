@@ -50,8 +50,8 @@
 
 ### SCENE 4: Call to Action (57-65 sec)
 **Visual:** App running on phone, "Download Now" button
-**Text:** "Free to Use | Works on All Devices"
-**Voiceover:** "Kharadhu Baradhu - Track family expenses the smart way. Download now, it's free!"
+**Text:** "Free to Use | Install as an App (PWA)"
+**Voiceover:** "Kharadhu Baradhu - track family expenses the smart way. Install it as an app on your phone, it's free!"
 **Final Screen:** App logo + Website URL + QR code
 
 ---

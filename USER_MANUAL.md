@@ -1,4 +1,4 @@
-# Kharadhu Baradhu - User Manual
+﻿# Kharadhu Baradhu - User Manual
 
 Complete guide to using the Family Expense Tracker.
 
@@ -41,6 +41,22 @@ To switch or add profiles:
 2. Select a different profile, or
 3. Go to **Profiles** page to create new ones
 
+### 2.1 Install as a Mobile App (PWA)
+
+You can install Kharadhu Baradhu like a mobile app for faster access.
+
+#### Android (Chrome)
+1. Open the app in Chrome
+2. On the Dashboard, tap the **Install** banner button, or
+3. Chrome menu (three dots) -> **Install app** / **Add to Home screen**
+
+#### iPhone (Safari)
+1. Open the app in Safari
+2. Tap **Share**
+3. Tap **Add to Home Screen**
+
+**Tip:** If you don't see an install prompt, iOS requires the Safari Share method.
+
 ### 3. Profile Types
 
 - **Personal** - Your individual expenses
@@ -68,7 +84,7 @@ Use the **Active Profile** dropdown in the header to quickly switch between prof
 
 ### Delete a Profile
 
-⚠️ **Warning:** Deleting a profile removes ALL its data permanently.
+**Warning:** Deleting a profile removes ALL its data permanently.
 
 1. Go to **Profiles** page
 2. Find the profile you want to delete
@@ -319,14 +335,14 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
 1. Go to **Recurring Bills** from side menu
 2. Click **"Add Recurring"**
 3. **Select Bill Type** (or skip to enter manually):
-   - ⚡ STELCO Electricity
-   - 💧 MWSC Water
-   - 📱 Dhiraagu / Ooredoo Phone
-   - 📺 Medianet TV/Internet
-   - 🎬 Netflix, Disney+, YouTube Premium
-   - 🏠 House Rent
-   - 🎓 Tuition / School Fees
-   - 💳 Other
+   - STELCO Electricity
+   - MWSC Water
+   - Dhiraagu / Ooredoo Phone
+   - Medianet TV/Internet
+   - Netflix, Disney+, YouTube Premium
+   - House Rent
+   - Tuition / School Fees
+   - Other
 4. Choose **Fixed** or **Variable Amount**:
    - **Fixed** - Same amount every month (e.g., Rent 5000 MVR)
    - **Variable** - Amount changes (e.g., Electricity, Water)
@@ -351,10 +367,10 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
 - **Smart Reminders** - Get notified X days before due date
 - **Grace Period** - Extra days to pay without being marked overdue
 - **Visual Status**:
-  - 🔴 Red = Overdue (past grace period)
-  - 🟡 Yellow = Due today
-  - 🟠 Orange = In grace period
-  - ⚪ Gray = Normal
+  - Red = Overdue (past grace period)
+  - Yellow = Due today
+  - Orange = In grace period
+  - Gray = Normal
 
 ### Managing Bills
 
@@ -506,6 +522,6 @@ See matching transactions with:
 
 ---
 
-**Happy Tracking! 💰**
+**Happy Tracking!**
 
 *Kharadhu Baradhu - Track Family Expenses*

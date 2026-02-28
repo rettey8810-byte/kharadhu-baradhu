@@ -1,4 +1,4 @@
-# Kharadhu Baradhu - Family Expense Tracker
+﻿# Kharadhu Baradhu - Family Expense Tracker
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-kharadhu--baradhu.vercel.app-emerald)](https://kharadhu-baradhu.vercel.app)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -7,12 +7,12 @@
 
 A modern expense tracking application built for Maldivian families. Track income, monitor spending, set savings goals, and manage grocery receipts with OCR. Features enhanced recurring bill management with variable amounts, due dates, and smart reminders.
 
-🌐 **Live Site:** https://kharadhu-baradhu.vercel.app  
-📱 **Mobile-friendly** | 🔐 **Secure Auth** | ⚡ **Real-time Sync** | 📊 **Smart Analytics**
+**Live Site:** https://kharadhu-baradhu.vercel.app  
+**Mobile-friendly** | **Secure Auth** | **Real-time Sync** | **Smart Analytics**
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -23,40 +23,40 @@ A modern expense tracking application built for Maldivian families. Track income
 
 ---
 
-## 🚀 Features
+## Features
 
 ### Core Features
-- ✅ **Multi-Profile Support** - Separate profiles for Personal, Family, or Business
-- ✅ **Expense Tracking** - Log expenses with categories, notes, and tags
-- ✅ **Income Management** - Track multiple income sources (Salary, Allowances, etc.)
-- ✅ **Smart Categories** - Default categories auto-created (Food, Transport, Bills, Groceries, etc.)
-- ✅ **Budget Planning** - Set monthly budgets and category limits with alert thresholds
-- ✅ **Savings Goals** - Track progress toward financial goals with visual progress bars
-- ✅ **Visual Analytics** - Charts and reports for spending insights
-- ✅ **Search & Filter** - Find transactions by keyword, date, or amount
-- ✅ **Monthly Comparison** - Compare current vs previous month spending
-- ✅ **Yearly View** - Browse transactions by year and month
-- ✅ **All Transactions** - View, edit, and delete all expenses and income in one place
+- **Multi-Profile Support** - Separate profiles for Personal, Family, or Business
+- **Expense Tracking** - Log expenses with categories, notes, and tags
+- **Income Management** - Track multiple income sources (Salary, Allowances, etc.)
+- **Smart Categories** - Default categories auto-created (Food, Transport, Bills, Groceries, etc.)
+- **Budget Planning** - Set monthly budgets and category limits with alert thresholds
+- **Savings Goals** - Track progress toward financial goals with visual progress bars
+- **Visual Analytics** - Charts and reports for spending insights
+- **Search & Filter** - Find transactions by keyword, date, or amount
+- **Monthly Comparison** - Compare current vs previous month spending
+- **Yearly View** - Browse transactions by year and month
+- **All Transactions** - View, edit, and delete all expenses and income in one place
 
 ### Enhanced Recurring Bills (NEW!)
-- 📅 **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
-- 💰 **Variable Amounts** - Handle bills that change monthly (electricity, water)
-- 📆 **Due Date Management** - Set exact due day of month with grace periods
-- 🔔 **Smart Reminders** - Get reminded X days before due date
-- ⏸️ **Pause/Resume** - Temporarily disable bills without deleting
-- 🔢 **Account Numbers** - Store meter numbers, account IDs for reference
+- **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
+- **Variable Amounts** - Handle bills that change monthly (electricity, water)
+- **Due Date Management** - Set exact due day of month with grace periods
+- **Smart Reminders** - Get reminded X days before due date
+- **Pause/Resume** - Temporarily disable bills without deleting
+- **Account Numbers** - Store meter numbers, account IDs for reference
 
 ### Grocery Receipt OCR
-- 🔐 **Supabase Auth** - Email/password and OAuth sign-in
-- 🛡️ **Row Level Security** - Your data is private and secure
-- ⚡ **Real-time Updates** - Live sync across devices
-- 📱 **PWA Ready** - Install as mobile app
-- 🎨 **Responsive Design** - Works on mobile, tablet, desktop
-- 🌍 **Maldives Currency** - MVR (Maldivian Rufiyaa) support
+- **Supabase Auth** - Email/password and OAuth sign-in
+- **Row Level Security** - Your data is private and secure
+- **Real-time Updates** - Live sync across devices
+- **PWA Ready** - Install as mobile app
+- **Responsive Design** - Works on mobile, tablet, desktop
+- **Maldives Currency** - MVR (Maldivian Rufiyaa) support
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -72,7 +72,7 @@ A modern expense tracking application built for Maldivian families. Track income
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+
@@ -104,7 +104,7 @@ Open http://localhost:5173
 
 ---
 
-## 📖 Database Setup
+## Database Setup
 
 Run these SQL files in Supabase SQL Editor:
 
@@ -134,23 +134,30 @@ ALTER TABLE public.recurring_expenses
 
 ---
 
-## � PWA Installation
+##  PWA Installation
 
 Install Kharadhu Baradhu as a mobile app:
 
+You will also see an **Install banner** at the top of the Dashboard when your device/browser supports installation.
+
 ### Android (Chrome)
 1. Open the live site in Chrome
-2. Tap the menu (⋮)
-3. Tap **"Install app"** or **"Add to Home screen"**
+2. Tap the **Install** button in the in-app banner (recommended)
+3. OR tap the browser menu (three dots)
+4. Tap **"Install app"** or **"Add to Home screen"**
 
 ### iPhone (Safari)
 1. Open the site in Safari
 2. Tap **Share** button
 3. Tap **"Add to Home Screen"**
 
+### Notes
+- **Install prompt not showing?** iOS does not support the same install prompt as Android. Use Safari  Share  Add to Home Screen.
+- **Mobile UI** is optimized to avoid clipping/hidden values for large budgets and long profile names.
+
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Vercel (Recommended)
 
@@ -163,14 +170,14 @@ Install Kharadhu Baradhu as a mobile app:
 
 ### Supabase Configuration
 
-1. **Authentication** → Enable Email + Google OAuth
-2. **URL Configuration** → Add your Vercel domain to redirect URLs
-3. **Database** → Run the SQL schema files
-4. **Storage** → Create "receipts" bucket for bill photos
+1. **Authentication** -> Enable Email + Google OAuth
+2. **URL Configuration** -> Add your Vercel domain to redirect URLs
+3. **Database** -> Run the SQL schema files
+4. **Storage** -> Create "receipts" bucket for bill photos
 
 ---
 
-## 📄 Documentation
+## Documentation
 
 - [User Manual](./USER_MANUAL.md) - Complete user guide
 - [Video Script](./VIDEO_SCRIPT.md) - App promotion video script
@@ -178,7 +185,7 @@ Install Kharadhu Baradhu as a mobile app:
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Multi-profile expense tracking
 - [x] Budget management
@@ -190,7 +197,7 @@ Install Kharadhu Baradhu as a mobile app:
 - [x] Search and filter
 - [x] Income source management
 
-### Upcoming 🚧
+### Upcoming
 - [ ] Multi-currency support
 - [ ] Dark mode
 - [ ] Offline mode enhancement
@@ -198,18 +205,18 @@ Install Kharadhu Baradhu as a mobile app:
 
 ---
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](./LICENSE) file
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
 - **Issues:** [GitHub Issues](https://github.com/rettey8810-byte/kharadhu-baradhu/issues)
 
 ---
 
-Built with ❤️ for Maldivian families.
+Built for Maldivian families.
 
 **Kharadhu Baradhu - Track Family Expenses**
