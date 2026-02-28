@@ -158,25 +158,76 @@ export default function AddTransaction() {
     }
 
     const items: Array<{ item_name: string; qty: string; unit_price: string; line_total: string }> = []
-    for (const line of lines) {
-      if (/\b(total|subtotal|gst|vat|tax|change|cash|card)\b/i.test(line)) continue
+    
+    // Enhanced grocery receipt item parsing
+    const skipPatterns = /\b(total|subtotal|gst|vat|tax|change|cash|card|debit|credit|amount|receipt|invoice|date|time|cashier|qty|price|item|pcs|kg|d%|damage|local sales|thanks|store|workstation)\b/i
+    const unitWords = /\b(pcs|kg|g|ml|l|pack|bottle|box|bag|can|dozen)\b/i
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      
+      // Skip header/footer lines and lines with only units
+      if (skipPatterns.test(line)) continue
+      if (line.length < 3) continue
+      if (/^\d{1,2}[\/\-]/.test(line)) continue // Date-like lines
+      if (/^#?\d+$/.test(line)) continue // Receipt numbers
+      
+      // Skip unit-of-measure lines (Pcs, Kg, etc. on their own line)
+      if (/^(pcs|kg|g|ml|l|pack|d%)$/i.test(line.trim())) continue
+      
+      // Match patterns like: ITEM_NAME QTY PRICE EXT_PRICE or ITEM_NAME ... PRICE
       const nums = line.match(/(\d+(?:[\.,]\d{1,2})?)/g) ?? []
       if (nums.length < 1) continue
-      const name = line.replace(/(\d+(?:[\.,]\d{1,2})?)/g, '').replace(/\s{2,}/g, ' ').trim()
-      if (!name) continue
-
-      const lineTotalRaw = nums[nums.length - 1]?.replace(',', '.')
-      const lineTotal = lineTotalRaw ? Number(lineTotalRaw) : NaN
+      
+      // Extract line total (usually the last number, may have 'T' suffix)
+      let lineTotalStr = nums[nums.length - 1]
+      const lineTotalRaw = lineTotalStr.replace(',', '.')
+      const lineTotal = Number(lineTotalRaw)
       if (!Number.isFinite(lineTotal)) continue
-
-      const qtyRaw = nums.length >= 3 ? nums[0] : nums.length === 2 ? '1' : '1'
-      const unitPriceRaw = nums.length >= 3 ? nums[1] : nums.length === 2 ? nums[0] : lineTotalRaw
-
+      
+      // Determine qty and unit_price based on number count
+      let qty = '1'
+      let unitPrice = lineTotalRaw
+      
+      if (nums.length >= 3) {
+        // Format: ITEM QTY PRICE TOTAL (like in the receipt: BANANA 0.6 25.00 15.00)
+        qty = nums[0] ?? '1'
+        unitPrice = nums[1] ?? lineTotalRaw
+      } else if (nums.length === 2) {
+        // Format: ITEM PRICE TOTAL
+        unitPrice = nums[0] ?? lineTotalRaw
+      }
+      
+      // Clean up item name
+      let name = line
+        .replace(/\d+(?:[\.,]\d{1,2})?/g, ' ')  // Remove numbers
+        .replace(/\bT\b/g, ' ')                    // Remove T markers
+        .replace(/\s{2,}/g, ' ')                  // Collapse spaces
+        .replace(/[\.,\-]+$/, '')                 // Remove trailing punctuation
+        .trim()
+      
+      if (!name || name.length < 2) continue
+      if (/^(mvr|rf|mr|usd|\$)/i.test(name)) continue // Currency prefixes
+      
+      // Look ahead for unit of measure on next line
+      const nextLine = lines[i + 1]
+      if (nextLine && unitWords.test(nextLine)) {
+        name = `${name} (${nextLine.trim()})`
+        i++ // Skip the unit line
+      }
+      
+      // Check for weight info in the item name (like "CHICKEN 900GMS 1")
+      const weightMatch = name.match(/(\d+(?:\.\d+)?)\s*(gms?|kg|gm|grams?)/i)
+      if (weightMatch) {
+        // Keep the weight info as part of the name, it's useful
+        name = name.replace(/\s+/g, ' ').trim()
+      }
+      
       items.push({
         item_name: name,
-        qty: String(qtyRaw).replace(',', '.'),
-        unit_price: String(unitPriceRaw).replace(',', '.'),
-        line_total: String(lineTotalRaw).replace(',', '.'),
+        qty: qty.replace(',', '.'),
+        unit_price: unitPrice.replace(',', '.'),
+        line_total: lineTotalRaw,
       })
     }
 
