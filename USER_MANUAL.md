@@ -515,7 +515,117 @@ See matching transactions with:
 
 ---
 
-## Need Help?
+## Dark Mode
+
+Switch between light and dark themes for comfortable viewing day or night.
+
+### Toggle Dark Mode
+
+1. Look for the **Moon/Sun icon** in the header (top right)
+2. Click to toggle between light and dark mode
+3. Your preference is saved automatically
+
+### Automatic Detection
+
+- The app automatically detects your system theme preference on first load
+- You can still manually override it anytime
+
+---
+
+## Recurring Income
+
+Set up automatic tracking for income that repeats monthly (salary, allowances, etc.). Never forget to log your income!
+
+### Add Recurring Income
+
+1. Go to **Recurring Income** from the side menu
+2. Click **"Add Recurring"**
+3. **Select Income Type** (or enter manually):
+   - Monthly Salary
+   - Food/Accommodation/Transport Allowances
+   - Bonus/Commission
+   - Freelance Income
+   - Other Income
+4. Enter **Amount** (leave empty if variable)
+5. Set **Due Day of Month** (e.g., "25" for 25th of every month)
+6. Set **Reminder Days** - How many days before due date to remind you
+7. Select **Income Source**
+8. Click **"Add Income"**
+
+### How It Works
+
+- **Auto-Creation** - Income transaction created automatically on due date
+- **Smart Reminders** - Get notified X days before income is expected
+- **Next Due Tracking** - See upcoming income dates
+- **Pause/Resume** - Click checkmark icon to temporarily disable
+
+---
+
+## Export Reports
+
+Download your financial data for tax preparation, analysis, or backup.
+
+### Generate Report
+
+1. Go to **Export Reports** from the side menu
+2. Choose **Report Type**:
+   - Monthly - Specific month report
+   - Yearly - Full year summary
+3. Select **Period** (year and month if applicable)
+4. Choose **Export Format**:
+   - CSV - Opens in Excel, Google Sheets, Numbers
+   - JSON - Structured data for analysis
+5. Click **Download Report**
+
+### What's Included
+
+- Complete transaction list (date, type, category, amount)
+- Summary with totals, savings, budget status
+- Transaction count
+- Budget vs Actual comparison (monthly reports)
+
+### Use Cases
+
+- **Tax Preparation** - Export yearly report for tax filing
+- **Analysis** - Import CSV into spreadsheet for custom charts
+- **Backup** - Keep offline copy of your financial data
+
+---
+
+## Quick Widget
+
+Fastest way to add expenses - no navigation, just add and go!
+
+### Access Quick Add
+
+1. Go to **Quick Add** from side menu, OR
+2. Bookmark `/quick-add` page, OR
+3. Add to home screen for instant access
+
+### Use Presets
+
+Tap any preset to pre-fill:
+- **Coffee** - 35 MVR
+- **Lunch** - 80 MVR
+- **Transport** - 15 MVR
+- **Groceries** - 200 MVR
+- **Electricity** - 500 MVR
+
+### Custom Entry
+
+1. Adjust the amount if needed
+2. Add description (optional)
+3. Select category
+4. Tap **Add Expense**
+5. Done! Auto-redirects to Dashboard
+
+### Pro Tip
+
+Add `/quick-add` to your phone's home screen for one-tap expense tracking!
+
+---
+
+## Troubleshooting
 
 - **GitHub Issues:** https://github.com/rettey8810-byte/kharadhu-baradhu/issues
 - Check the **README** for technical details

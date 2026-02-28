@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-02-28
+
+### Added - New Features
+
+#### Dark Mode
+- **Theme Toggle** - Switch between light and dark mode from header
+- **System Preference** - Automatically detects and respects system theme preference
+- **Persistent** - Saves your preference to localStorage
+- **Modern UI** - Complete dark theme support across all pages
+
+#### Recurring Income
+- **Income Presets** - Quick-setup for common income types:
+  - Monthly Salary
+  - Food/Accommodation/Transport Allowances
+  - Bonus/Commission
+  - Freelance Income
+- **Auto-Tracking** - Automatically creates income transactions when due
+- **Due Date Management** - Set pay day of month with reminders
+- **Smart Reminders** - Get notified X days before income is expected
+- **Pause/Resume** - Temporarily disable without deleting
+
+#### Export Reports
+- **Monthly/Yearly Reports** - Download complete financial reports
+- **CSV Export** - Excel-compatible format for tax preparation and analysis
+- **JSON Export** - Structured data for backups and integrations
+- **Summary Included** - Totals, savings, budget status, transaction count
+- **All Profiles** - Report includes data from all your profiles
+
+#### Quick Widget
+- **Standalone Page** - Fast expense entry at `/quick-add`
+- **Common Presets** - One-tap adding for Coffee, Lunch, Transport, Groceries
+- **Custom Amounts** - Adjust preset amounts before saving
+- **PWA Shortcut** - Can be bookmarked or added to home screen for instant access
+- **Minimal UI** - No navigation, just add and go
+
+---
+
 ## [1.1.1] - 2026-02-28
 
 ### Added

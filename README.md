@@ -37,6 +37,10 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Monthly Comparison** - Compare current vs previous month spending
 - **Yearly View** - Browse transactions by year and month
 - **All Transactions** - View, edit, and delete all expenses and income in one place
+- **Dark Mode** - Toggle between light and dark themes
+- **Export Reports** - Download monthly/yearly reports as CSV or JSON
+- **Quick Add Widget** - Fast expense entry from home screen
+- **Recurring Income** - Auto-track salary and allowances
 
 ### Enhanced Recurring Bills (NEW!)
 - **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
@@ -111,7 +115,7 @@ Run these SQL files in Supabase SQL Editor:
 1. **Main Schema** - `supabase-expense-schema.sql`
 2. **Additional Tables** - `supabase-expense-schema-additions.sql`
 3. **Enhanced Recurring Bills** - `supabase-recurring-bills-enhancement.sql` (NEW!)
-4. **Storage Setup** - `supabase-storage-setup.sql`
+4. **Recurring Income** - `supabase-recurring-income.sql` (NEW!)
 
 ### Required SQL Migrations
 
@@ -196,10 +200,13 @@ You will also see an **Install banner** at the top of the Dashboard when your de
 - [x] Grocery receipt OCR
 - [x] Search and filter
 - [x] Income source management
+- [x] **Dark mode** (NEW!)
+- [x] **Recurring income tracking** (NEW!)
+- [x] **Export reports (CSV/JSON)** (NEW!)
+- [x] **Quick add widget** (NEW!)
 
 ### Upcoming
 - [ ] Multi-currency support
-- [ ] Dark mode
 - [ ] Offline mode enhancement
 - [ ] Push notifications
 

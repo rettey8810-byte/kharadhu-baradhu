@@ -48,7 +48,17 @@
 **Text:** "Manage All Transactions"
 **Voiceover:** "View, edit, and delete all your expenses and income in one place with powerful search and filters."
 
-### SCENE 4: Call to Action (57-65 sec)
+**Feature 7 - Dark Mode (57-62 sec)**
+**Visual:** App switching from light to dark mode, toggle button
+**Text:** "Dark Mode"
+**Voiceover:** "Easy on the eyes day or night. Switch between light and dark themes with one tap."
+
+**Feature 8 - Quick Add Widget (62-67 sec)**
+**Visual:** Quick add screen, tapping presets (Coffee, Lunch), instant save
+**Text:** "Add in Seconds"
+**Voiceover:** "Track expenses instantly with Quick Add. One tap for common expenses, no navigation needed."
+
+### SCENE 4: Call to Action (67-75 sec)
 **Visual:** App running on phone, "Download Now" button
 **Text:** "Free to Use | Install as an App (PWA)"
 **Voiceover:** "Kharadhu Baradhu - track family expenses the smart way. Install it as an app on your phone, it's free!"
@@ -180,6 +190,21 @@
 **Visual:** Switching Personal → Family → Business
 **Text:** "One app, all your finances."
 **Caption:** "Separate profiles for Personal, Family & Business 📊 #ExpenseTracker"
+
+### Clip 5: Dark Mode (15 sec)
+**Visual:** App transitioning light to dark, toggle animation
+**Text:** "Easy on the eyes."
+**Caption:** "Dark mode for comfortable tracking day or night 🌙 #DarkMode #FinanceApp"
+
+### Clip 6: Quick Add (15 sec)
+**Visual:** Phone showing quick add screen, tap Coffee preset, instant save
+**Text:** "Track in 2 seconds."
+**Caption:** "Quick Add Widget - one tap expense tracking ⚡ #QuickAdd #ExpenseTracker"
+
+### Clip 7: Export Reports (15 sec)
+**Visual:** Report being generated, download animation, CSV opening in Excel
+**Text:** "Tax ready reports."
+**Caption:** "Export monthly/yearly reports for taxes and analysis 📈 #Finance #Maldives"
 
 ---
 
