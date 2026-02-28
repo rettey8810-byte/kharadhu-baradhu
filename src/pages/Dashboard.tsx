@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
 
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
+  // v2 - Show all transactions regardless of profile_id
 
   useEffect(() => {
     const load = async () => {
@@ -39,12 +40,22 @@ export default function Dashboard() {
       const end = new Date(year, month, 0)
 
       // Load all transactions for this month (including those with no/mismatched profile)
-      const { data: tx } = await supabase
+      const { data: tx, error: txError } = await supabase
         .from('transactions')
         .select('*, profile:profile_id(name), category:category_id(name), income_source:income_source_id(name)')
         .gte('transaction_date', start.toISOString().slice(0, 10))
         .lte('transaction_date', end.toISOString().slice(0, 10))
         .order('transaction_date', { ascending: false })
+
+      console.log('Dashboard query:', { 
+        start: start.toISOString().slice(0, 10), 
+        end: end.toISOString().slice(0, 10),
+        year, 
+        month,
+        txCount: tx?.length || 0,
+        error: txError?.message,
+        transactions: tx
+      })
 
       // Load all budgets from all profiles
       const { data: b } = await supabase
