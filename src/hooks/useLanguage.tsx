@@ -187,6 +187,28 @@ type TranslationKey =
   | 'edit_title'
   | 'delete_title'
   | 'confirm_delete_tx'
+  | 'grocery_bills_title'
+  | 'grocery_bills_subtitle'
+  | 'tab_bills'
+  | 'tab_compare'
+  | 'placeholder_search_bills'
+  | 'filter_all_shops'
+  | 'no_grocery_bills'
+  | 'add_grocery_bills_hint'
+  | 'th_item'
+  | 'th_qty'
+  | 'th_price'
+  | 'th_total'
+  | 'label_subtotal'
+  | 'label_gst'
+  | 'label_total'
+  | 'price_compare_info'
+  | 'no_price_comparisons'
+  | 'price_compare_hint'
+  | 'save_upto'
+  | 'by_buying_at'
+  | 'nav_grocery_bills'
+  | 'menu_grocery_bills'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -374,6 +396,28 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     edit_title: 'Edit',
     delete_title: 'Delete',
     confirm_delete_tx: 'Are you sure you want to delete this transaction?',
+    grocery_bills_title: 'Grocery Bills',
+    grocery_bills_subtitle: 'Track your purchases and find the cheapest shops',
+    tab_bills: 'Bills',
+    tab_compare: 'Price Compare',
+    placeholder_search_bills: 'Search bills or items...',
+    filter_all_shops: 'All Shops',
+    no_grocery_bills: 'No grocery bills found',
+    add_grocery_bills_hint: 'Add grocery transactions with receipts to see them here',
+    th_item: 'Item',
+    th_qty: 'Qty',
+    th_price: 'Price',
+    th_total: 'Total',
+    label_subtotal: 'Subtotal',
+    label_gst: 'GST',
+    label_total: 'Total',
+    price_compare_info: 'Compare prices across shops to find the best deals',
+    no_price_comparisons: 'Need more data to compare',
+    price_compare_hint: 'Buy the same item from different shops to see price comparisons',
+    save_upto: 'Save up to',
+    by_buying_at: 'by buying at',
+    nav_grocery_bills: 'Grocery Bills',
+    menu_grocery_bills: 'Grocery Bills',
   },
   dv: {
     app_name: 'ކަރަދު ބަރަދު',
@@ -560,6 +604,28 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     edit_title: 'އެޑިޓް',
     delete_title: 'ފޮހައިލާ',
     confirm_delete_tx: 'މި ޓްރާންޒެކްޝަން ފޮހެލަން ބޭނުންތަ؟',
+    grocery_bills_title: 'ގުރޮސަރީ ބިލްސް',
+    grocery_bills_subtitle: 'ގުރޮސަރީ ގިންތައް ޓްރެކް ކުރީ އަދި އަގުހޫން ދުއްކުންތައް ހޯދާ',
+    tab_bills: 'ބިލްސް',
+    tab_compare: 'އަގު ބެލީ',
+    placeholder_search_bills: 'ބިލް ނުވަތަ އެތަކެއް ހޯދާ...',
+    filter_all_shops: 'ހުރިހާ ދުއްކުންތައް',
+    no_grocery_bills: 'ގުރޮސަރީ ބިލްސް ނެތް',
+    add_grocery_bills_hint: 'ގުރޮސަރީ ޓްރާންޒެކްޝަންސް ރިސީޕްޓް އެޑް ކުރީ މިތާނގެ ފެންވާ',
+    th_item: 'އެތަކު',
+    th_qty: 'އަދަދު',
+    th_price: 'އަގު',
+    th_total: 'ޖުމްލަ',
+    label_subtotal: 'ސަބް-ޓޮޓަލް',
+    label_gst: 'ޖީއެސްޓީ',
+    label_total: 'ޖުމްލަ',
+    price_compare_info: 'އަގު ހޯދާ ދުއްކުންތައް އެއްކުރީ އަގު ބެލީ',
+    no_price_comparisons: 'ބެލީ ކުރަން ޑޭޓާ ބޭން',
+    price_compare_hint: 'އެއް އެތަކު ތަފާތު ދުއްކުންތަކުން ގަންނަން އަގު ބެލީ',
+    save_upto: 'ސޭވް ކުރާ',
+    by_buying_at: 'ގަންނަން',
+    nav_grocery_bills: 'ގުރޮސަރީ ބިލްސް',
+    menu_grocery_bills: 'ގުރޮސަރީ ބިލްސް',
   },
 }
 

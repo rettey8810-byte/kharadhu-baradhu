@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -160,6 +160,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/recurring-income" label={t('menu_recurring_income')} icon={TrendingUp} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/reminders" label={t('menu_reminders')} icon={Bell} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/transactions" label={t('menu_all_transactions')} icon={List} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/grocery-bills" label={t('menu_grocery_bills')} icon={Receipt} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/search" label={t('menu_search')} icon={Search} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/categories" label={t('menu_categories')} icon={PieChart} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/income-sources" label={t('menu_income_sources')} icon={Wallet} onMenuClose={() => setMenuOpen(false)} />
