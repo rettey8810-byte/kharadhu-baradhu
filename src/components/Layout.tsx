@@ -47,12 +47,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-100">
               <img src="/logo.png" alt="Kharadhu Baradhu" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-gray-900 truncate">Kharadhu Baradhu</span>
+            <span className="font-bold text-gray-900 truncate hidden sm:inline">Kharadhu Baradhu</span>
           </Link>
           <div className="min-w-0 flex-1">
             <div className="text-xs text-gray-500">Active Profile</div>
             <select
-              className="w-full text-sm font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1"
+              className="w-full min-w-0 text-sm font-semibold bg-white border border-gray-200 rounded-lg px-2 py-1"
               value={currentProfile?.id ?? ''}
               onChange={(e) => {
                 const next = profiles.find(p => p.id === e.target.value)
