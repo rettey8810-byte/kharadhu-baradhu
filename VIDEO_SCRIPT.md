@@ -206,6 +206,31 @@
 **Text:** "Tax ready reports."
 **Caption:** "Export monthly/yearly reports for taxes and analysis 📈 #Finance #Maldives"
 
+### Clip 8: Smart Insights (15 sec)
+**Visual:** Dashboard with colored insight cards appearing, spending alerts
+**Text:** "AI-powered money insights."
+**Caption:** "Smart alerts warn you before you overspend 🧠💡 #SmartInsights #Budgeting"
+
+### Clip 9: Cash Flow Forecast (15 sec)
+**Visual:** Cash flow card showing balance prediction, color-coded warnings
+**Text:** "Know if you'll run out."
+**Caption:** "Predicts if you'll run out of money before month-end 🔮 #CashFlow #FinancialPlanning"
+
+### Clip 10: Voice Input (15 sec)
+**Visual:** Person speaking into phone, app parsing "Coffee 35 MVR", instant save
+**Text:** "Just say it - hands free."
+**Caption:** "Voice input - add expenses without typing 🎤✋ #VoiceInput #HandsFree"
+
+### Clip 11: Profile Sharing (15 sec)
+**Visual:** Multiple phones showing same profile, real-time sync animation
+**Text:** "Track together with family."
+**Caption:** "Share profiles with spouse/parents - real-time sync 👨‍👩‍👧‍👦 #FamilyFinance #Collaboration"
+
+### Clip 12: Offline Mode (15 sec)
+**Visual:** Airplane mode on, adding transaction, connection restored, auto-sync
+**Text:** "Works offline, syncs later."
+**Caption:** "Work offline - auto-sync when connected 📲✈️ #OfflineMode #PWA"
+
 ---
 
 ## Production Notes

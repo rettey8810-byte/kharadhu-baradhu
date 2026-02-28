@@ -41,6 +41,11 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Export Reports** - Download monthly/yearly reports as CSV or JSON
 - **Quick Add Widget** - Fast expense entry from home screen
 - **Recurring Income** - Auto-track salary and allowances
+- **Smart Insights** - AI-powered spending alerts and predictions
+- **Cash Flow Forecast** - Predict if you'll run out of money
+- **Voice Input** - Hands-free expense entry with speech recognition
+- **Profile Sharing** - Multi-user access for family expense tracking
+- **Offline Mode** - Work offline with auto-sync when connected
 
 ### Enhanced Recurring Bills (NEW!)
 - **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.

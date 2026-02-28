@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-02-28
+
+### Added - Advanced Features
+
+#### Smart Insights
+- **Spending Alerts** - Warns when expenses exceed income
+- **Category Analysis** - Alerts when one category exceeds 30% of budget
+- **Unusual Expense Detection** - Flags large transactions (>500 MVR)
+- **Spending Predictions** - Projects month-end balance based on current rate
+- **Income Reminders** - Alerts when no income logged this month
+- **Savings Opportunities** - Highlights when you're under budget
+
+#### Cash Flow Forecast
+- **Current Balance** - Real-time income minus expenses
+- **Projected End Balance** - Predicts month-end based on upcoming recurring items
+- **Upcoming Bills/Income** - Shows expected transactions this month
+- **Run-out Prediction** - Calculates days until money runs out
+- **Daily Burn Rate** - Average daily spending tracker
+- **Visual Status** - Color-coded health indicator (green/yellow/red)
+
+#### Voice Input
+- **Hands-free Entry** - Add expenses by speaking
+- **Smart Parsing** - Understands "Add 50 MVR for lunch" or "Coffee 35"
+- **Category Detection** - Auto-detects from keywords (coffee, transport, groceries)
+- **Browser Support** - Chrome/Safari Web Speech API
+- **Quick Access** - Voice button on Add Transaction page
+
+#### Multi-User Access (Profile Sharing)
+- **Family Sharing** - Invite members to shared profiles
+- **Role Management** - Owner, Admin, Member permissions
+- **Real-time Sync** - All members see updates instantly
+- **Invitation System** - Email-based invites with acceptance
+- **Access Control** - `/profile-sharing` page to manage members
+
+#### Offline Mode with Auto-Sync
+- **Work Offline** - App functions without internet
+- **Auto-Sync** - Uploads queued changes when connection restored
+- **IndexedDB Storage** - Local queue for pending changes
+- **Offline Indicator** - Visual toast when disconnected
+- **Sync Progress** - Shows syncing status and pending count
+- **Mutation Hook** - `useOfflineMutation()` for offline-aware operations
+
+---
+
 ## [1.2.0] - 2026-02-28
 
 ### Added - New Features

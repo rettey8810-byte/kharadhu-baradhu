@@ -625,6 +625,180 @@ Add `/quick-add` to your phone's home screen for one-tap expense tracking!
 
 ---
 
+## Smart Insights
+
+AI-powered financial analysis that watches your spending patterns and alerts you to important trends.
+
+### Viewing Insights
+
+1. Go to **Dashboard** - Insights appear automatically below your budget card
+2. Look for colored alert cards:
+   - **Red** - Critical issues (running out of money, spending > income)
+   - **Yellow** - Warnings (category overspend, unusual expenses)
+   - **Green** - Positive (under budget, healthy spending)
+
+### Types of Insights
+
+- **Spending Alert** - "You've spent more than your income this month"
+- **Category Warning** - "Food is 40% of your budget (usual: 25%)"
+- **Unusual Expense** - Flags transactions >500 MVR
+- **Spending Prediction** - "At this rate, you'll have 200 MVR left at month-end"
+- **Income Reminder** - "No income recorded yet this month"
+- **Savings Opportunity** - "You're under budget - potential to save 300 MVR"
+
+---
+
+## Cash Flow Forecast
+
+Predict your financial future - see if you'll run out of money before month-end.
+
+### Viewing Forecast
+
+1. Go to **Dashboard** - Cash Flow card appears below Smart Insights
+2. View your financial health at a glance:
+   - Current Balance (income - expenses so far)
+   - Projected End Balance (including upcoming recurring items)
+   - Daily Burn Rate (average daily spending)
+
+### Understanding the Colors
+
+- **Green** - Healthy balance, you'll save money this month
+- **Yellow** - Small buffer, be careful with spending
+- **Orange** - Expenses exceed income, need to cut back
+- **Red** - At risk of running out before month-end
+
+### Run-out Prediction
+
+If you're spending faster than earning, the app predicts:
+- **Days until zero** - How long current money will last
+- **Run-out date** - When you'll run out at current rate
+- **Warning** - Early alert to adjust spending
+
+---
+
+## Voice Input
+
+Hands-free expense entry - just speak your expense details!
+
+### Using Voice Input
+
+1. Go to **Add Transaction** page
+2. Look for the **🎤 Voice** button next to Description field
+3. Tap and speak clearly:
+   - "Add 50 MVR for lunch"
+   - "Coffee 35"
+   - "Transport 15 MVR"
+   - "Spent 200 on groceries"
+4. The app auto-parses amount and description
+
+### What You Can Say
+
+- **Amount + Description**: "Add 50 MVR for lunch"
+- **Just Amount**: "35 MVR"
+- **Common Items**: "Coffee", "Lunch", "Transport", "Groceries"
+- **Full Sentences**: "I spent 100 on food today"
+
+### Browser Support
+
+- **Chrome** - Full support (desktop & Android)
+- **Safari** - Supported on iOS 14.5+
+- **Edge** - Supported
+- **Firefox** - Limited support
+
+### Troubleshooting
+
+- **"No speech detected"** - Speak louder or check microphone
+- **"Microphone permission denied"** - Allow microphone access in browser settings
+- **Wrong amount parsed** - Speak numbers clearly, e.g., "fifty" or "five zero"
+
+---
+
+## Profile Sharing (Multi-User Access)
+
+Share your Family profile with spouse, parents, or household members for collaborative expense tracking.
+
+### Access Profile Sharing
+
+1. Go to **Profile Sharing** from side menu
+2. View current members and their roles
+3. Invite new family members
+
+### Member Roles
+
+- **Owner** - Full control, can delete profile, manage all members
+- **Admin** - Can add/edit transactions, invite members, manage settings
+- **Member** - Can add transactions and view reports only
+
+### Inviting Family Members
+
+1. Go to **Profile Sharing**
+2. Enter **Email Address** of family member
+3. Select **Role** (Member or Admin)
+4. Click **"Send Invitation"**
+5. They receive email with acceptance link
+
+### Accepting Invitations
+
+1. Check your email for invitation
+2. Click **Accept Invitation** link
+3. Sign in (or create account if new)
+4. Profile appears in your profile selector
+
+### Real-time Sync
+
+- All members see updates instantly
+- No refresh needed
+- Works across all devices
+- Changes are live for everyone
+
+### Managing Members
+
+- **Remove Member** - Click trash icon (Owner/Admin only)
+- **Change Role** - Contact Owner to upgrade/downgrade
+- **Leave Profile** - Switch to another profile, contact Owner to remove you
+
+---
+
+## Offline Mode
+
+Work without internet connection - your changes sync automatically when you're back online.
+
+### How It Works
+
+1. **Go Offline** - App continues working normally
+2. **Make Changes** - Add transactions, edit entries - all saved locally
+3. **Offline Indicator** - Yellow toast shows "Offline - Changes will sync when connected"
+4. **Go Online** - App automatically syncs all queued changes
+5. **Sync Complete** - Green toast confirms sync finished
+
+### What Works Offline
+
+- Add new transactions
+- Edit existing transactions
+- Add recurring expenses/income
+- View all data (cached)
+
+### What Requires Internet
+
+- Profile sharing/sync
+- Export reports
+- Initial login
+- Some analytics
+
+### Sync Status
+
+- **Pending Changes** - Number shown in sync indicator
+- **Syncing** - Spinning indicator with count
+- **Last Sync** - Timestamp of successful sync
+
+### Troubleshooting
+
+- **Changes not syncing** - Check internet connection, app will retry
+- **Sync stuck** - Refresh page after connection restored
+- **Data conflict** - Last edit wins (timestamp-based)
+
+---
+
 ## Troubleshooting
 
 - **GitHub Issues:** https://github.com/rettey8810-byte/kharadhu-baradhu/issues

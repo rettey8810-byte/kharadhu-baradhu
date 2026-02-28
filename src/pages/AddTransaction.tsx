@@ -92,6 +92,21 @@ export default function AddTransaction() {
     return Number.isFinite(n) ? n : null
   }
 
+  const handleVoiceResult = (result: string) => {
+    try {
+      const parsed = JSON.parse(result)
+      if (parsed.amount) {
+        setAmount(parsed.amount.toString())
+      }
+      if (parsed.description) {
+        setDescription(parsed.description)
+      }
+    } catch (e) {
+      // If not JSON, use as description
+      setDescription(result)
+    }
+  }
+
   const parseOcrText = (text: string) => {
     const lines = text
       .split(/\r?\n/)
@@ -418,9 +433,12 @@ export default function AddTransaction() {
           </div>
         )}
 
-        {/* Description */}
+        {/* Description with Voice Input */}
         <div>
-          <label className="text-sm text-gray-600">Description</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-gray-600">Description</label>
+            <VoiceInput onResult={handleVoiceResult} />
+          </div>
           <input
             className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
             value={description}
