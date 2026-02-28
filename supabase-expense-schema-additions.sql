@@ -191,6 +191,12 @@ CREATE TABLE IF NOT EXISTS public.grocery_bills (
   created_at timestamptz DEFAULT now()
 );
 
+-- Add profile_id column if it doesn't exist (for filtering)
+ALTER TABLE public.grocery_bills ADD COLUMN IF NOT EXISTS profile_id uuid REFERENCES public.expense_profiles(id) ON DELETE CASCADE;
+
+-- Create index for profile_id lookups
+CREATE INDEX IF NOT EXISTS idx_grocery_bills_profile_id ON public.grocery_bills(profile_id);
+
 CREATE TABLE IF NOT EXISTS public.grocery_bill_items (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   grocery_bill_id uuid REFERENCES public.grocery_bills(id) ON DELETE CASCADE NOT NULL,
