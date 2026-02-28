@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react'
@@ -14,18 +14,21 @@ export default function MonthlyComparison() {
   const [comparison, setComparison] = useState<MonthlyComparison | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const now = useMemo(() => new Date(), [])
+  const [selectedYear, setSelectedYear] = useState(() => now.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(() => now.getMonth() + 1)
+
   useEffect(() => {
     loadComparison()
-  }, [profiles])
+  }, [profiles, selectedYear, selectedMonth])
 
   const loadComparison = async () => {
     if (profiles.length === 0) return
     setLoading(true)
 
     const profileIds = profiles.map(p => p.id)
-    const now = new Date()
-    const currentMonth = now.getMonth() + 1
-    const currentYear = now.getFullYear()
+    const currentMonth = selectedMonth
+    const currentYear = selectedYear
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
 
@@ -78,14 +81,52 @@ export default function MonthlyComparison() {
     setLoading(false)
   }
 
-  const monthName = new Date().toLocaleString('default', { month: 'long' })
-  const prevMonthName = new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleString('default', { month: 'long' })
+  const monthName = useMemo(() => {
+    return new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('default', { month: 'long' })
+  }, [selectedMonth, selectedYear])
+  const prevMonthName = useMemo(() => {
+    const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1
+    const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear
+    return new Date(prevYear, prevMonth - 1, 1).toLocaleString('default', { month: 'long' })
+  }, [selectedMonth, selectedYear])
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-gray-900">Monthly Comparison</h2>
-        <p className="text-sm text-gray-500">{monthName} vs {prevMonthName}</p>
+        <p className="text-sm text-gray-500">{monthName} {selectedYear} vs {prevMonthName}</p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <select
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+          >
+            {Array.from({ length: 12 }).map((_, i) => {
+              const m = i + 1
+              const label = new Date(2000, i, 1).toLocaleString('default', { month: 'long' })
+              return (
+                <option key={m} value={m}>
+                  {label}
+                </option>
+              )
+            })}
+          </select>
+
+          <select
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          >
+            {[0, 1, 2, 3].map(i => {
+              const y = new Date().getFullYear() - i
+              return (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              )
+            })}
+          </select>
+        </div>
       </div>
 
       {loading ? (

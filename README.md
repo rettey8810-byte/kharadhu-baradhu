@@ -37,6 +37,8 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Monthly Comparison** - Compare current vs previous month spending
 - **Yearly View** - Browse transactions by year and month
 - **All Transactions** - View, edit, and delete all expenses and income in one place
+- **Grocery Bills** - View saved grocery receipts and item history
+- **Price Compare** - Compare item prices across shops to find the cheapest place
 - **Dark Mode** - Toggle between light and dark themes
 - **Export Reports** - Download monthly/yearly reports as CSV or JSON
 - **Quick Add Widget** - Fast expense entry from home screen
@@ -62,6 +64,11 @@ A modern expense tracking application built for Maldivian families. Track income
 - **PWA Ready** - Install as mobile app
 - **Responsive Design** - Works on mobile, tablet, desktop
 - **Maldives Currency** - MVR (Maldivian Rufiyaa) support
+
+### Recurring Automation
+
+- **Auto Processing** - Recurring expenses and income are processed automatically when you open the Dashboard
+- **Catch-up Support** - If you missed opening the app for a while, it will catch up due recurring items safely
 
 ---
 
@@ -121,6 +128,18 @@ Run these SQL files in Supabase SQL Editor:
 2. **Additional Tables** - `supabase-expense-schema-additions.sql`
 3. **Enhanced Recurring Bills** - `supabase-recurring-bills-enhancement.sql` (NEW!)
 4. **Recurring Income** - `supabase-recurring-income.sql` (NEW!)
+
+### Grocery Bills Migration
+
+If you created the `grocery_bills` table earlier, ensure it has `profile_id` for filtering:
+
+```sql
+ALTER TABLE public.grocery_bills
+  ADD COLUMN IF NOT EXISTS profile_id uuid REFERENCES public.expense_profiles(id) ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_grocery_bills_profile_id
+  ON public.grocery_bills(profile_id);
+```
 
 ### Required SQL Migrations
 

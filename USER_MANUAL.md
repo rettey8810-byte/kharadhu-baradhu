@@ -296,6 +296,16 @@ When you reach your target:
 - List of all items with quantities and prices
 - Raw OCR text (for reference)
 
+### Grocery Bills (History + Price Compare)
+
+After you save grocery transactions with receipts, you can view them later:
+
+1. Open the side menu
+2. Tap **Grocery Bills**
+3. Use tabs:
+   - **Bills** - View saved bills and expand to see items
+   - **Price Compare** - Compare prices across shops for the same item
+
 ---
 
 ## Reports & Analytics
@@ -311,6 +321,7 @@ When you reach your target:
 ### Monthly Comparison
 
 1. Go to **Monthly Compare** from side menu
+2. Select **Month** and **Year** from the dropdowns
 2. See:
    - Current month vs. previous month
    - Total expense comparison
@@ -361,6 +372,10 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
   - App creates expense transaction automatically
   - Next due date advances automatically
   - Bill shows **"Paid"** badge until next cycle
+
+- **Auto Processing**:
+  - Recurring items are processed automatically when you open the **Dashboard**
+  - If you missed opening the app for some time, it will safely catch up due items
   
 - **Fixed Amount Bills** - Can add estimated amount when creating
 - **Variable Amount Bills** - Leave amount empty, enter when paying

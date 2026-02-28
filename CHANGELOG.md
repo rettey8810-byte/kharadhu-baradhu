@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-03-01
+
+### Added
+- **Monthly Comparison Month/Year Selector** - View and compare any month (not only current vs previous)
+- **Auto Recurring Processing on Dashboard** - Recurring expenses/income are processed when Dashboard loads (with safe catch-up)
+
+### Fixed
+- **Timezone Date Range Bugs** - Use local date formatting for month/year boundaries across Dashboard, Yearly View, and Monthly Comparison
+- **Yearly View Missing Data** - Now aggregates across all profiles and shows both income and expense totals
+- **Grocery Bills Filtering** - Added `profile_id` support for `grocery_bills` filtering (migration required for existing DB)
+- **Auth Refresh Token Errors** - Invalid refresh token now triggers a clean sign-out so you can log in again
+
+---
+
 ## [1.3.0] - 2026-02-28
 
 ### Added - Advanced Features
@@ -302,4 +316,4 @@ PATCH - Bug fixes (backwards compatible)
 
 ---
 
-*Last updated: February 27, 2025*
+*Last updated: March 1, 2026*

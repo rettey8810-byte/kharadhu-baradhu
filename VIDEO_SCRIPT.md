@@ -33,7 +33,12 @@
 **Text:** "Smart Receipt Scanner"
 **Voiceover:** "Just snap your grocery receipt - we automatically read items, prices, and GST!"
 
-**Feature 4 - Smart Recurring Bills (38-45 sec)**
+**Feature 3B - Grocery Bills & Price Compare (38-45 sec)**
+**Visual:** Grocery Bills page showing saved bills, then Price Compare tab showing best shop
+**Text:** "Track Items & Find Cheapest Shop"
+**Voiceover:** "Review your past grocery bills anytime, and compare item prices across shops to save money."
+
+**Feature 4 - Smart Recurring Bills (45-52 sec)**
 **Visual:** Bill preset selection (STELCO, MWSC), variable amount toggle, due date calendar, grace period setting
 **Text:** "Smart Bill Tracking"
 **Voiceover:** "Set up recurring bills with smart presets for STELCO, MWSC, and more. Handle variable amounts, set due dates, grace periods, and get reminded before bills are due."
