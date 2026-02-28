@@ -159,23 +159,66 @@ export default function AddTransaction() {
 
     const items: Array<{ item_name: string; qty: string; unit_price: string; line_total: string }> = []
     
-    // Enhanced grocery receipt item parsing
-    const skipPatterns = /\b(total|subtotal|gst|vat|tax|change|cash|card|debit|credit|amount|receipt|invoice|date|time|cashier|qty|price|item|pcs|kg|d%|damage|local sales|thanks|store|workstation)\b/i
-    const unitWords = /\b(pcs|kg|g|ml|l|pack|bottle|box|bag|can|dozen)\b/i
-    
+    // Find the item section - look for table headers
+    let itemSectionStart = -1
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
+      const line = lines[i].toLowerCase()
+      // Look for item/qty/price headers
+      if (/item.*name|item\s+qty|qty.*price|ext\s*price/i.test(line) || 
+          (/\bitem\b/i.test(line) && /\b(qty|price)\b/i.test(line))) {
+        itemSectionStart = i + 1
+        break
+      }
+    }
+    
+    // If no header found, try to find where items start (after shop/date info)
+    if (itemSectionStart === -1) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        // Skip until we see a line that looks like an item (has price at end)
+        if (/\d+(?:\.\d{1,2})?\s*[Tt]?$/.test(line.trim()) && 
+            !/total|subtotal|gst|tax/i.test(line)) {
+          itemSectionStart = i
+          break
+        }
+      }
+    }
+    
+    if (itemSectionStart === -1) itemSectionStart = 0
+    
+    // Skip patterns for non-item lines
+    const skipPatterns = /\b(total|subtotal|gst|vat|tax|change|cash|card|debit|credit|amount|receipt|invoice|date|time|cashier|local sales|thanks|store|workstation|company|shop|ufanveli|dharavandhoo|uthuruge|madihaa|sales receipt|debit card|thanks for shopping)\b/i
+    const headerPatterns = /\b(item name|item\s+qty|qty|price|ext price|subtotal|gst|tax|total)\b/i
+    const unitWords = /\b(pcs|kg|g|ml|l|pack|bottle|box|bag|can|dozen|pce)\b/i
+    
+    // Process only lines in the item section
+    const endIdx = lines.findIndex((l, i) => i > itemSectionStart && /\b(subtotal|total|gst|tax)\b/i.test(l))
+    const itemLines = lines.slice(itemSectionStart, endIdx > 0 ? endIdx : undefined)
+    
+    for (let i = 0; i < itemLines.length; i++) {
+      const line = itemLines[i].trim()
       
-      // Skip header/footer lines and lines with only units
+      // Skip empty/short lines
+      if (!line || line.length < 3) continue
+      
+      // Skip header/footer patterns
       if (skipPatterns.test(line)) continue
-      if (line.length < 3) continue
-      if (/^\d{1,2}[\/\-]/.test(line)) continue // Date-like lines
-      if (/^#?\d+$/.test(line)) continue // Receipt numbers
+      if (headerPatterns.test(line)) continue
       
-      // Skip unit-of-measure lines (Pcs, Kg, etc. on their own line)
-      if (/^(pcs|kg|g|ml|l|pack|d%)$/i.test(line.trim())) continue
+      // Skip date-like lines
+      if (/^\d{1,2}[\/\-]/.test(line)) continue
       
-      // Match patterns like: ITEM_NAME QTY PRICE EXT_PRICE or ITEM_NAME ... PRICE
+      // Skip lines that are just numbers (receipt numbers, etc.)
+      if (/^#?\d+$/.test(line)) continue
+      if (/^\d{4,}$/.test(line)) continue // Large numbers like receipt #59262
+      
+      // Skip unit-of-measure lines that appear on their own
+      if (/^(pcs|kg|g|ml|l|pack|d%|pce)$/i.test(line)) continue
+      
+      // Skip damage/discount percentage lines
+      if (/^\d+%\s*damage|\d+%\s*d\s*\$/i.test(line)) continue
+      
+      // Must have at least one number that could be a price
       const nums = line.match(/(\d+(?:[\.,]\d{1,2})?)/g) ?? []
       if (nums.length < 1) continue
       
@@ -183,45 +226,66 @@ export default function AddTransaction() {
       let lineTotalStr = nums[nums.length - 1]
       const lineTotalRaw = lineTotalStr.replace(',', '.')
       const lineTotal = Number(lineTotalRaw)
-      if (!Number.isFinite(lineTotal)) continue
+      
+      // Line total should be reasonable (not a receipt number)
+      if (!Number.isFinite(lineTotal) || lineTotal > 10000 || lineTotal < 0.01) continue
       
       // Determine qty and unit_price based on number count
       let qty = '1'
       let unitPrice = lineTotalRaw
       
       if (nums.length >= 3) {
-        // Format: ITEM QTY PRICE TOTAL (like in the receipt: BANANA 0.6 25.00 15.00)
-        qty = nums[0] ?? '1'
-        unitPrice = nums[1] ?? lineTotalRaw
+        // Format: ITEM QTY PRICE TOTAL (like: BANANA 0.6 25.00 15.00)
+        const possibleQty = Number(nums[0]?.replace(',', '.'))
+        const possiblePrice = Number(nums[1]?.replace(',', '.'))
+        
+        // Validate qty is reasonable (0.01 to 1000)
+        if (possibleQty >= 0.01 && possibleQty <= 1000) {
+          qty = nums[0] ?? '1'
+        }
+        // Validate price is reasonable (0.01 to 5000)
+        if (possiblePrice >= 0.01 && possiblePrice <= 5000 && possiblePrice !== lineTotal) {
+          unitPrice = nums[1] ?? lineTotalRaw
+        }
       } else if (nums.length === 2) {
         // Format: ITEM PRICE TOTAL
-        unitPrice = nums[0] ?? lineTotalRaw
+        const possiblePrice = Number(nums[0]?.replace(',', '.'))
+        if (possiblePrice >= 0.01 && possiblePrice <= 5000) {
+          unitPrice = nums[0] ?? lineTotalRaw
+        }
       }
       
       // Clean up item name
       let name = line
         .replace(/\d+(?:[\.,]\d{1,2})?/g, ' ')  // Remove numbers
         .replace(/\bT\b/g, ' ')                    // Remove T markers
+        .replace(/\bEE\b/g, ' ')                   // Remove EE markers
         .replace(/\s{2,}/g, ' ')                  // Collapse spaces
         .replace(/[\.,\-]+$/, '')                 // Remove trailing punctuation
+        .replace(/^[\s\-]+/, '')                  // Remove leading punctuation/spaces
         .trim()
       
-      if (!name || name.length < 2) continue
-      if (/^(mvr|rf|mr|usd|\$)/i.test(name)) continue // Currency prefixes
+      // Skip if name is too short or looks like garbage
+      if (!name || name.length < 3) continue
+      if (/^(mvr|rf|mr|usd|\$|#)/i.test(name)) continue
+      
+      // Skip lines that still look like headers
+      if (/workstation|store:|company|shop|sales|receipt|debit|credit/i.test(name)) continue
       
       // Look ahead for unit of measure on next line
-      const nextLine = lines[i + 1]
-      if (nextLine && unitWords.test(nextLine)) {
+      const nextLine = itemLines[i + 1]
+      if (nextLine && unitWords.test(nextLine.trim()) && nextLine.trim().length < 10) {
         name = `${name} (${nextLine.trim()})`
         i++ // Skip the unit line
       }
       
-      // Check for weight info in the item name (like "CHICKEN 900GMS 1")
-      const weightMatch = name.match(/(\d+(?:\.\d+)?)\s*(gms?|kg|gm|grams?)/i)
-      if (weightMatch) {
-        // Keep the weight info as part of the name, it's useful
-        name = name.replace(/\s+/g, ' ').trim()
-      }
+      // Clean up the name more
+      name = name
+        .replace(/\s*\(\s*/g, ' (')            // Clean up spacing around parentheses
+        .replace(/\s*\)\s*/g, ') ')
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .replace(/[\.,\-]+$/, '')
       
       items.push({
         item_name: name,
