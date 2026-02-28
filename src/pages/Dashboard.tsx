@@ -38,11 +38,10 @@ export default function Dashboard() {
       const start = new Date(year, month - 1, 1)
       const end = new Date(year, month, 0)
 
-      // Load all transactions from all profiles
+      // Load all transactions for this month (including those with no/mismatched profile)
       const { data: tx } = await supabase
         .from('transactions')
         .select('*, profile:profile_id(name), category:category_id(name), income_source:income_source_id(name)')
-        .in('profile_id', profileIds)
         .gte('transaction_date', start.toISOString().slice(0, 10))
         .lte('transaction_date', end.toISOString().slice(0, 10))
         .order('transaction_date', { ascending: false })
