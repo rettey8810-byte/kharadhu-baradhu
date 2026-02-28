@@ -221,3 +221,50 @@ export interface DashboardStats {
   dailySafeSpend: number
   progressPercent: number
 }
+
+// Web Speech API Types
+export interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
+}
+
+export interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+export interface SpeechRecognitionResult {
+  isFinal: boolean
+  length: number
+  [index: number]: SpeechRecognitionAlternative
+}
+
+export interface SpeechRecognitionResultList {
+  length: number
+  [index: number]: SpeechRecognitionResult
+}
+
+export interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
+
+export interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onstart: (event: Event) => void
+  onresult: (event: SpeechRecognitionEvent) => void
+  onerror: (event: SpeechRecognitionErrorEvent) => void
+  onend: (event: Event) => void
+  start(): void
+  stop(): void
+  abort(): void
+}

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
+import SmartInsights from '../components/SmartInsights'
+import CashFlowForecast from '../components/CashFlowForecast'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
 import { getDaysRemainingInMonth, getYearMonth } from '../utils/date'
 import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
@@ -151,6 +153,9 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      <SmartInsights />
+      <CashFlowForecast />
 
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
