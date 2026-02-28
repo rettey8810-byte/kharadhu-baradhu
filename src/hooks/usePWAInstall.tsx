@@ -10,11 +10,18 @@ export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || 
-        (window.navigator as any).standalone === true) {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    setIsStandalone(standalone);
+    const ua = window.navigator.userAgent;
+    const ios = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    if (standalone) {
       setIsInstalled(true);
       return;
     }
@@ -64,15 +71,32 @@ export function usePWAInstall() {
   return {
     canInstall: !!deferredPrompt && !isInstalled && !isDismissed,
     isInstalled,
+    isDismissed,
+    isIOS,
+    isStandalone,
     install,
     dismiss
   };
 }
 
 export function PWAInstallButton() {
-  const { canInstall, install, dismiss } = usePWAInstall();
+  const { canInstall, isInstalled, isDismissed, isIOS, isStandalone, install, dismiss } = usePWAInstall();
 
-  if (!canInstall) return null;
+  if (isInstalled || isStandalone || isDismissed) return null;
+
+  const handleInstallClick = async () => {
+    if (canInstall) {
+      await install();
+      return;
+    }
+
+    if (isIOS) {
+      window.alert('To install: tap the Share button in Safari, then choose "Add to Home Screen".');
+      return;
+    }
+
+    window.alert('To install: open your browser menu and choose "Install app" or "Add to Home screen".');
+  };
 
   return (
     <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg mb-5">
@@ -88,7 +112,7 @@ export function PWAInstallButton() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={install}
+            onClick={handleInstallClick}
             className="bg-white text-emerald-600 px-4 py-2 rounded-xl font-semibold text-sm hover:bg-emerald-50 transition-colors"
           >
             Install

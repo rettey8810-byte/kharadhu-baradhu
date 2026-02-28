@@ -113,11 +113,11 @@ export default function Dashboard() {
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
           <div className="bg-white/10 rounded-xl p-2 sm:p-3">
             <p className="text-emerald-100 text-[10px] sm:text-xs">Total Budget</p>
-            <p className="text-sm sm:text-base font-semibold truncate">{formatMVR(stats.budget)}</p>
+            <p className="text-[11px] sm:text-base font-semibold leading-tight break-words whitespace-normal">{formatMVR(stats.budget)}</p>
           </div>
           <div className="bg-white/10 rounded-xl p-2 sm:p-3">
             <p className="text-emerald-100 text-[10px] sm:text-xs">Remaining</p>
-            <p className={`text-sm sm:text-base font-semibold truncate ${stats.remainingBalance < 0 ? 'text-red-200' : ''}`}>
+            <p className={`text-[11px] sm:text-base font-semibold leading-tight break-words whitespace-normal ${stats.remainingBalance < 0 ? 'text-red-200' : ''}`}>
               {formatMVR(stats.remainingBalance)}
             </p>
           </div>
