@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import type { Transaction, MonthlyBudget } from '../types'
 import { Download, FileSpreadsheet, FileText, Calendar, TrendingDown, TrendingUp, Wallet, Filter } from 'lucide-react'
-import { getYearMonth } from '../utils/date'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -14,8 +13,7 @@ function formatDate(dateStr: string) {
 }
 
 export default function ExportReports() {
-  const { profiles, currentProfile } = useProfile()
-  const [loading, setLoading] = useState(true)
+  const { profiles } = useProfile()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [year, setYear] = useState(new Date().getFullYear())
@@ -32,8 +30,6 @@ export default function ExportReports() {
   }, [profiles, year, month, reportType])
 
   const loadData = async () => {
-    setLoading(true)
-    
     let startDate: Date
     let endDate: Date
     
@@ -66,7 +62,6 @@ export default function ExportReports() {
     }
 
     setTransactions(tx || [])
-    setLoading(false)
   }
 
   const stats = useMemo(() => {

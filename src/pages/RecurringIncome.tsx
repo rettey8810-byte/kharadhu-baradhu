@@ -41,7 +41,6 @@ export default function RecurringIncome() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -84,7 +83,6 @@ export default function RecurringIncome() {
   }
 
   const selectPreset = (preset: typeof INCOME_PRESETS[0]) => {
-    setSelectedPreset(preset.type)
     setFormData(prev => ({
       ...prev,
       name: preset.name,
@@ -129,7 +127,6 @@ export default function RecurringIncome() {
         due_day_of_month: '',
         reminder_days: '3',
       })
-      setSelectedPreset(null)
       setShowAdd(false)
       loadData()
     }
@@ -220,7 +217,6 @@ export default function RecurringIncome() {
             <button
               onClick={() => {
                 setShowAdd(false)
-                setSelectedPreset(null)
               }}
               className="text-gray-500 hover:text-gray-700"
             >

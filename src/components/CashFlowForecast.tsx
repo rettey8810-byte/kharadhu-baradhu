@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import { AlertCircle, TrendingDown, Calendar, Wallet, ChevronRight } from 'lucide-react'
+import { AlertCircle, TrendingDown, Wallet } from 'lucide-react'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -19,7 +19,7 @@ interface CashFlowData {
 }
 
 export default function CashFlowForecast() {
-  const { profiles, currentProfile } = useProfile()
+  const { profiles } = useProfile()
   const [data, setData] = useState<CashFlowData | null>(null)
   const [loading, setLoading] = useState(true)
 

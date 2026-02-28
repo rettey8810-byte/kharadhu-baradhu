@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, XCircle } from 'lucide-react'
+import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle } from 'lucide-react'
 
 interface ProfileMember {
   id: string
@@ -17,7 +17,7 @@ interface ProfileMember {
 }
 
 export default function ProfileSharing() {
-  const { profiles, currentProfile } = useProfile()
+  const { currentProfile } = useProfile()
   const [members, setMembers] = useState<ProfileMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -61,7 +61,7 @@ export default function ProfileSharing() {
     
     try {
       // Call the Supabase function to invite member
-      const { data, error } = await supabase.rpc('invite_profile_member', {
+      const { error } = await supabase.rpc('invite_profile_member', {
         p_profile_id: currentProfile.id,
         p_email: inviteEmail,
         p_role: inviteRole

@@ -3,14 +3,13 @@ import { Mic, MicOff, Loader2 } from 'lucide-react'
 
 interface VoiceInputProps {
   onResult: (text: string) => void
-  placeholder?: string
 }
 
-export default function VoiceInput({ onResult, placeholder = 'Tap microphone to speak' }: VoiceInputProps) {
+export default function VoiceInput({ onResult }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null)
+  const [recognition, setRecognition] = useState<any | null>(null)
 
   const startListening = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -18,8 +17,8 @@ export default function VoiceInput({ onResult, placeholder = 'Tap microphone to 
       return
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    const recognizer = new SpeechRecognition()
+    const SpeechRecognitionCtor: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const recognizer = new SpeechRecognitionCtor()
     
     recognizer.continuous = false
     recognizer.interimResults = true
@@ -31,18 +30,18 @@ export default function VoiceInput({ onResult, placeholder = 'Tap microphone to 
       setTranscript('')
     }
 
-    recognizer.onresult = (event: SpeechRecognitionEvent) => {
+    recognizer.onresult = (event: any) => {
       const current = event.resultIndex
       const transcript = event.results[current][0].transcript
       setTranscript(transcript)
       
       if (event.results[current].isFinal) {
-        onResult(transcript)
+        handleVoiceResult(transcript)
         setIsListening(false)
       }
     }
 
-    recognizer.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognizer.onerror = (event: any) => {
       if (event.error === 'no-speech') {
         setError('No speech detected. Try again.')
       } else if (event.error === 'audio-capture') {
@@ -166,10 +165,3 @@ export default function VoiceInput({ onResult, placeholder = 'Tap microphone to 
   )
 }
 
-// TypeScript declarations for Web Speech API
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition
-    webkitSpeechRecognition: typeof SpeechRecognition
-  }
-}

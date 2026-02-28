@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import type { Transaction, ExpenseCategory } from '../types'
-import { AlertTriangle, TrendingUp, TrendingDown, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
+import type { Transaction } from '../types'
+import { AlertTriangle, TrendingUp, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -17,9 +17,8 @@ interface Insight {
 }
 
 export default function SmartInsights() {
-  const { profiles, currentProfile } = useProfile()
+  const { profiles } = useProfile()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,21 +46,14 @@ export default function SmartInsights() {
       .lte('transaction_date', now.toISOString().slice(0, 10))
 
     // Load previous month transactions for comparison
-    const { data: prevTx } = await supabase
+    await supabase
       .from('transactions')
       .select('*, category:category_id(name)')
       .in('profile_id', profileIds)
       .gte('transaction_date', prevMonth.toISOString().slice(0, 10))
       .lte('transaction_date', prevMonthEnd.toISOString().slice(0, 10))
 
-    // Load categories
-    const { data: cats } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .in('profile_id', profileIds)
-
     setTransactions(currentTx || [])
-    setCategories(cats || [])
     setLoading(false)
   }
 
