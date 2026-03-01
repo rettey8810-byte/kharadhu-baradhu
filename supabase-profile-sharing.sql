@@ -38,8 +38,13 @@ CREATE TABLE IF NOT EXISTS public.profile_share_invitations (
   role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member', 'viewer')),
   invited_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   invited_at TIMESTAMPTZ DEFAULT NOW(),
-  accepted BOOLEAN DEFAULT false
+  accepted BOOLEAN DEFAULT false,
+  token TEXT UNIQUE
 );
+
+-- Add token column if table already exists without it
+ALTER TABLE public.profile_share_invitations 
+  ADD COLUMN IF NOT EXISTS token TEXT UNIQUE;
 
 -- Enable RLS
 ALTER TABLE public.profile_shares ENABLE ROW LEVEL SECURITY;

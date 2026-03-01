@@ -23,6 +23,7 @@ import ExportReports from './pages/ExportReports'
 import QuickAdd from './pages/QuickAdd'
 import ProfileSharing from './pages/ProfileSharing'
 import GroceryBills from './pages/GroceryBills'
+import AcceptInvite from './pages/AcceptInvite'
 
 function App() {
   const { session, loading } = useAuth()
@@ -35,40 +36,48 @@ function App() {
     )
   }
 
-  if (!session) {
-    return <Login />
-  }
-
   return (
-    <ProfileProvider>
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/add" element={<AddTransaction />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/budget" element={<Budget />} />
-            <Route path="/yearly" element={<YearlyView />} />
-            <Route path="/profiles" element={<Profiles />} />
-            <Route path="/savings" element={<SavingsGoals />} />
-            <Route path="/reminders" element={<BillReminders />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/category-budgets" element={<CategoryBudgets />} />
-            <Route path="/recurring" element={<RecurringExpenses />} />
-            <Route path="/recurring-income" element={<RecurringIncome />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/search" element={<SearchTransactions />} />
-            <Route path="/compare" element={<MonthlyComparison />} />
-            <Route path="/income-sources" element={<IncomeSources />} />
-            <Route path="/export-reports" element={<ExportReports />} />
-            <Route path="/quick-add" element={<QuickAdd />} />
-            <Route path="/profile-sharing" element={<ProfileSharing />} />
-            <Route path="/grocery-bills" element={<GroceryBills />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
-    </ProfileProvider>
+    <BrowserRouter>
+      <Routes>
+        {/* Accept Invite route - accessible without auth */}
+        <Route path="/accept-invite" element={<AcceptInvite />} />
+        
+        {/* All other routes require auth */}
+        <Route path="*" element={
+          session ? (
+            <ProfileProvider>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/add" element={<AddTransaction />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/budget" element={<Budget />} />
+                  <Route path="/yearly" element={<YearlyView />} />
+                  <Route path="/profiles" element={<Profiles />} />
+                  <Route path="/savings" element={<SavingsGoals />} />
+                  <Route path="/reminders" element={<BillReminders />} />
+                  <Route path="/charts" element={<Charts />} />
+                  <Route path="/category-budgets" element={<CategoryBudgets />} />
+                  <Route path="/recurring" element={<RecurringExpenses />} />
+                  <Route path="/recurring-income" element={<RecurringIncome />} />
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/search" element={<SearchTransactions />} />
+                  <Route path="/compare" element={<MonthlyComparison />} />
+                  <Route path="/income-sources" element={<IncomeSources />} />
+                  <Route path="/export-reports" element={<ExportReports />} />
+                  <Route path="/quick-add" element={<QuickAdd />} />
+                  <Route path="/profile-sharing" element={<ProfileSharing />} />
+                  <Route path="/grocery-bills" element={<GroceryBills />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </Layout>
+            </ProfileProvider>
+          ) : (
+            <Login />
+          )
+        } />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

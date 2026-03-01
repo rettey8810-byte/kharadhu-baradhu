@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound } from 'lucide-react'
+import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound, Copy, Check } from 'lucide-react'
 
 interface SharedProfile {
   id: string
@@ -14,9 +14,19 @@ interface SharedProfile {
   created_at: string
 }
 
+interface PendingInvitation {
+  id: string
+  email: string
+  share_all_profiles: boolean
+  role: string
+  invited_at: string
+  token: string
+}
+
 export default function ProfileSharing() {
   const { profiles, currentProfile } = useProfile()
   const [sharedProfiles, setSharedProfiles] = useState<SharedProfile[]>([])
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'all' | 'individual'>('all')
   
@@ -27,6 +37,7 @@ export default function ProfileSharing() {
   const [shareAllProfiles, setShareAllProfiles] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [copiedToken, setCopiedToken] = useState<string | null>(null)
 
   useEffect(() => {
     // Update shareAllProfiles based on active tab
@@ -35,6 +46,7 @@ export default function ProfileSharing() {
 
   useEffect(() => {
     loadSharedProfiles()
+    loadPendingInvitations()
     if (currentProfile) {
       setSelectedProfileId(currentProfile.id)
     }
@@ -59,6 +71,28 @@ export default function ProfileSharing() {
     setLoading(false)
   }
 
+  const loadPendingInvitations = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data } = await supabase
+      .from('profile_share_invitations')
+      .select('*')
+      .eq('invited_by', user.id)
+      .eq('accepted', false)
+      .order('invited_at', { ascending: false })
+
+    setPendingInvitations(data || [])
+  }
+
+  const copyInviteLink = async (token: string) => {
+    const baseUrl = window.location.origin
+    const inviteLink = `${baseUrl}/accept-invite?token=${token}`
+    await navigator.clipboard.writeText(inviteLink)
+    setCopiedToken(token)
+    setTimeout(() => setCopiedToken(null), 2000)
+  }
+
   const sendInvitation = async () => {
     if (!inviteEmail) return
     
@@ -75,7 +109,8 @@ export default function ProfileSharing() {
       if (lookupError) throw lookupError
 
       if (!existingUserId) {
-        // User doesn't exist - create a pending invitation
+        // User doesn't exist - create a pending invitation with token
+        const token = crypto.randomUUID()
         const { error } = await supabase
           .from('profile_share_invitations')
           .insert({
@@ -83,23 +118,23 @@ export default function ProfileSharing() {
             profile_id: shareAllProfiles ? null : selectedProfileId,
             share_all_profiles: shareAllProfiles,
             role: inviteRole,
-            invited_by: (await supabase.auth.getUser()).data.user?.id
+            invited_by: (await supabase.auth.getUser()).data.user?.id,
+            token
           })
+          .select()
+          .single()
         
         if (error) throw error
-
-        const { error: emailError } = await supabase.functions.invoke('send-profile-invite', {
-          body: {
-            email,
-            shareAllProfiles,
-            profileId: shareAllProfiles ? null : selectedProfileId,
-            role: inviteRole
-          }
-        })
-
-        if (emailError) throw emailError
-
-        setMessage(`Invitation email sent to ${email}. They can sign up and then you can share again if needed.`)
+        
+        // Generate invite link
+        const baseUrl = window.location.origin
+        const inviteLink = `${baseUrl}/accept-invite?token=${token}`
+        
+        // Copy to clipboard
+        await navigator.clipboard.writeText(inviteLink)
+        setCopiedToken(token)
+        
+        setMessage(`Invite link copied! Send it via WhatsApp/any app: ${inviteLink}`)
       } else {
         // User exists - create direct share
         if (shareAllProfiles) {
@@ -300,6 +335,54 @@ export default function ProfileSharing() {
           </button>
         </div>
       </div>
+
+      {/* Pending Invitations */}
+      {pendingInvitations.length > 0 && (
+        <div className="bg-amber-50 rounded-xl border border-amber-200 overflow-hidden mb-4">
+          <div className="p-4 border-b border-amber-100">
+            <h3 className="font-semibold text-amber-900 flex items-center gap-2">
+              <Mail size={18} />
+              Pending Invitations (Not yet joined)
+            </h3>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendingInvitations.map(invite => (
+              <div key={invite.id} className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="font-medium text-amber-900">{invite.email}</p>
+                    <p className="text-xs text-amber-700">
+                      {invite.share_all_profiles ? 'All profiles' : 'One profile'} • {invite.role}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => copyInviteLink(invite.token)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-800 hover:bg-amber-100"
+                  >
+                    {copiedToken === invite.token ? (
+                      <>
+                        <Check size={16} className="text-emerald-600" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={16} />
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-amber-600">
+                  Share this link via WhatsApp/Messenger: 
+                  <span className="font-mono bg-white px-1 py-0.5 rounded ml-1">
+                    {window.location.origin}/accept-invite?token={invite.token.slice(0, 8)}...
+                  </span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Currently Shared */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
