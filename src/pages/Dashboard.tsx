@@ -158,6 +158,13 @@ export default function Dashboard() {
         .lte('due_date', monthEnd)
       console.log('Raw bill_payments:', rawBP?.map((b: any) => ({ id: b.id, recurring_expense_id: b.recurring_expense_id, amount: b.amount, due_date: b.due_date })))
 
+      // Debug: Check all STELCO recurring expenses
+      const { data: stelcoRecords } = await supabase
+        .from('recurring_expenses')
+        .select('id, name, amount, is_variable_amount, profile_id')
+        .ilike('name', '%STELCO%')
+      console.log('All STELCO recurring_expenses:', stelcoRecords)
+
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
         .select('id, profile_id, name, amount, next_due_date, is_variable_amount, profile:profile_id(name)')
