@@ -148,6 +148,16 @@ export default function Dashboard() {
         .lte('due_date', monthEnd)
         .order('due_date', { ascending: true })
 
+      // Debug: Check raw bill_payments data
+      const { data: rawBP } = await supabase
+        .from('bill_payments')
+        .select('*')
+        .in('profile_id', profileIds)
+        .eq('is_paid', false)
+        .gte('due_date', monthStart)
+        .lte('due_date', monthEnd)
+      console.log('Raw bill_payments:', rawBP?.map((b: any) => ({ id: b.id, recurring_expense_id: b.recurring_expense_id, amount: b.amount, due_date: b.due_date })))
+
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
         .select('id, profile_id, name, amount, next_due_date, is_variable_amount, profile:profile_id(name)')
@@ -179,6 +189,14 @@ export default function Dashboard() {
         const paymentAmount = row.amount == null ? null : Number(row.amount)
         const defaultAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
         const effectiveAmount = paymentAmount == null || paymentAmount === 0 ? defaultAmount : paymentAmount
+        console.log('Processing variable bill:', {
+          name: row.recurring_expense?.name,
+          paymentAmount,
+          defaultAmount,
+          effectiveAmount,
+          row_amount: row.amount,
+          recurring_expense_amount: row.recurring_expense?.amount
+        })
         pending.push({
           id: row.id,
           profile_id: row.profile_id,
