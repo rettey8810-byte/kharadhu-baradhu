@@ -292,14 +292,9 @@ export default function RecurringExpenses() {
 
   const updateExpense = async () => {
     if (!editingId) return
-    console.log('updateExpense called with formData:', { 
-      name: formData.name, 
-      amount: formData.amount, 
-      is_variable_amount: formData.is_variable_amount 
-    })
     const parsedAmount = formData.amount.trim() === '' ? null : Number(formData.amount)
-    console.log('Parsed amount:', parsedAmount)
     
+    // First update the current record
     const { error } = await supabase
       .from('recurring_expenses')
       .update({
@@ -311,23 +306,62 @@ export default function RecurringExpenses() {
       })
       .eq('id', editingId)
     
-    console.log('Supabase update result:', { error: error?.message, editingId })
-    
-    if (!error) {
-      if (parsedAmount != null) {
-        const { error: bpError } = await supabase
-          .from('bill_payments')
-          .update({ amount: parsedAmount })
-          .eq('recurring_expense_id', editingId)
-          .eq('is_paid', false)
-          .or('amount.is.null,amount.eq.0')
-        console.log('Bill payments update result:', { error: bpError?.message })
-      }
-
-      setShowEdit(false)
-      setEditingId(null)
-      loadData()
+    if (error) {
+      console.error('Update error:', error)
+      return
     }
+
+    // Also update any other recurring expenses with same name/profile (duplicates)
+    // that might be linked to bill_payments
+    if (currentProfile) {
+      const { error: dupError } = await supabase
+        .from('recurring_expenses')
+        .update({
+          amount: parsedAmount,
+          is_variable_amount: formData.is_variable_amount,
+        })
+        .eq('name', formData.name)
+        .eq('profile_id', currentProfile.id)
+        .neq('id', editingId)
+      
+      if (dupError) {
+        console.error('Duplicate update error:', dupError)
+      }
+    }
+    
+    // Update bill_payments for this recurring expense
+    if (parsedAmount != null) {
+      await supabase
+        .from('bill_payments')
+        .update({ amount: parsedAmount })
+        .eq('recurring_expense_id', editingId)
+        .eq('is_paid', false)
+        .or('amount.is.null,amount.eq.0')
+      
+      // Also update bill_payments linked to any duplicate records
+      if (currentProfile) {
+        const { data: duplicates } = await supabase
+          .from('recurring_expenses')
+          .select('id')
+          .eq('name', formData.name)
+          .eq('profile_id', currentProfile.id)
+          .neq('id', editingId)
+        
+        if (duplicates && duplicates.length > 0) {
+          for (const dup of duplicates) {
+            await supabase
+              .from('bill_payments')
+              .update({ amount: parsedAmount, recurring_expense_id: editingId })
+              .eq('recurring_expense_id', dup.id)
+              .eq('is_paid', false)
+          }
+        }
+      }
+    }
+
+    setShowEdit(false)
+    setEditingId(null)
+    loadData()
   }
 
   const selectPreset = (preset: typeof BILL_PRESETS[0]) => {
