@@ -132,7 +132,7 @@ export default function Dashboard() {
       const monthStart = formatDateLocal(start)
       const monthEnd = formatDateLocal(end)
 
-      const { data: unpaidVariable } = await supabase
+      const { data: unpaidVariable, error: varError } = await supabase
         .from('bill_payments')
         .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name)')
         .in('profile_id', profileIds)
@@ -140,6 +140,14 @@ export default function Dashboard() {
         .gte('due_date', monthStart)
         .lte('due_date', monthEnd)
         .order('due_date', { ascending: true })
+
+      console.log('Dashboard bills debug:', {
+        profileIds,
+        monthStart,
+        monthEnd,
+        unpaidVariableCount: unpaidVariable?.length ?? 0,
+        varError
+      })
 
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
