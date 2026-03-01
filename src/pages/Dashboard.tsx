@@ -129,7 +129,6 @@ export default function Dashboard() {
         .eq('month', month)
 
       // Pending bills - ONLY current month (from 1st to end), not next month
-      const today = formatDateLocal(new Date())
       const monthStart = formatDateLocal(start)
       const monthEnd = formatDateLocal(end)
 
