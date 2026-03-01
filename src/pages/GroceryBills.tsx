@@ -34,8 +34,8 @@ export default function GroceryBills() {
   const [selectedShop, setSelectedShop] = useState<string>('all')
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([])
   const [activeTab, setActiveTab] = useState<'bills' | 'compare'>('bills')
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth())
-  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
   // Reload bills when page becomes visible
   useEffect(() => {
@@ -116,12 +116,13 @@ export default function GroceryBills() {
   // Filter bills by selected month/year
   const filteredBills = bills.filter(bill => {
     const billDate = new Date(bill.bill_date || '')
-    const matchesMonth = billDate.getMonth() === selectedMonth && billDate.getFullYear() === selectedYear
+    const matchesMonth = selectedMonth === 'all' || billDate.getMonth() === selectedMonth
+    const matchesYear = selectedYear === 'all' || billDate.getFullYear() === selectedYear
     const matchesShop = selectedShop === 'all' || bill.shop_name === selectedShop
     const matchesSearch = 
       bill.shop_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bill.items?.some(item => item.item_name.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesMonth && matchesShop && matchesSearch
+    return matchesMonth && matchesYear && matchesShop && matchesSearch
   })
 
   if (loading) {
@@ -169,8 +170,9 @@ export default function GroceryBills() {
               <select
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2"
                 value={selectedMonth}
-                onChange={e => setSelectedMonth(Number(e.target.value))}
+                onChange={e => setSelectedMonth(e.target.value === 'all' ? 'all' : Number(e.target.value))}
               >
+                <option value="all">All Months</option>
                 {Array.from({ length: 12 }, (_, i) => (
                   <option key={i} value={i}>
                     {new Date(2000, i, 1).toLocaleString('default', { month: 'long' })}
@@ -180,11 +182,12 @@ export default function GroceryBills() {
               <select
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-2"
                 value={selectedYear}
-                onChange={e => setSelectedYear(Number(e.target.value))}
+                onChange={e => setSelectedYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
               >
-                {Array.from({ length: 5 }, (_, i) => (
-                  <option key={i} value={new Date().getFullYear() - 2 + i}>
-                    {new Date().getFullYear() - 2 + i}
+                <option value="all">All Years</option>
+                {Array.from({ length: 10 }, (_, i) => (
+                  <option key={i} value={new Date().getFullYear() - 5 + i}>
+                    {new Date().getFullYear() - 5 + i}
                   </option>
                 ))}
               </select>
