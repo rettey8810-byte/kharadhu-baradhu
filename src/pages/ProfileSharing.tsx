@@ -87,7 +87,19 @@ export default function ProfileSharing() {
           })
         
         if (error) throw error
-        setMessage(`Invitation sent to ${email}. They'll get access once they sign up.`)
+
+        const { error: emailError } = await supabase.functions.invoke('send-profile-invite', {
+          body: {
+            email,
+            shareAllProfiles,
+            profileId: shareAllProfiles ? null : selectedProfileId,
+            role: inviteRole
+          }
+        })
+
+        if (emailError) throw emailError
+
+        setMessage(`Invitation email sent to ${email}. They can sign up and then you can share again if needed.`)
       } else {
         // User exists - create direct share
         if (shareAllProfiles) {

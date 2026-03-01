@@ -78,6 +78,16 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Bill Reminders Page** - View all upcoming bills and income reminders, mark as read or dismiss
 - **Due Today Alerts** - Special highlighting for bills due today or overdue
 
+### Profile Sharing Email Invites (Setup)
+
+Profile Sharing can send email invitations using a Supabase Edge Function + Resend.
+
+- **Deploy Edge Function**: `supabase/functions/send-profile-invite/index.ts`
+- **Add Supabase Function Secrets**:
+  - `RESEND_API_KEY`
+  - `RESEND_FROM_EMAIL` (must be a verified sender in Resend)
+  - `APP_BASE_URL` (your deployed app URL, e.g. `https://yourapp.vercel.app`)
+
 ---
 
 ## Tech Stack
