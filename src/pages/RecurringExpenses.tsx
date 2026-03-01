@@ -4,7 +4,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { RecurringExpense, ExpenseCategory } from '../types'
 import { formatDateLocal } from '../utils/date'
-import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Zap, Droplets, Wifi, Tv, GraduationCap, Home, Smartphone, CreditCard, Bell } from 'lucide-react'
+import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Zap, Droplets, Wifi, Tv, GraduationCap, Home, Smartphone, CreditCard, Bell, X } from 'lucide-react'
 
 function formatMVR(value: number | null) {
   if (!value) return 'MVR --'
@@ -38,6 +38,8 @@ export default function RecurringExpenses() {
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null)
   const [paidStatus, setPaidStatus] = useState<Record<string, boolean>>({})
   const [showAdd, setShowAdd] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [showPresets, setShowPresets] = useState(true)
   
@@ -252,6 +254,39 @@ export default function RecurringExpenses() {
     if (!confirm(t('delete_recurring_bill') || 'Delete this recurring bill?')) return
     await supabase.from('recurring_expenses').delete().eq('id', id)
     loadData()
+  }
+
+  const openEditModal = (expense: RecurringExpense) => {
+    setEditingId(expense.id)
+    setFormData({
+      name: expense.name,
+      amount: expense.amount?.toString() || '',
+      is_variable_amount: expense.is_variable_amount || false,
+      category_id: expense.category_id || '',
+      frequency: expense.frequency || 'monthly',
+      start_date: expense.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    })
+    setShowEdit(true)
+  }
+
+  const updateExpense = async () => {
+    if (!editingId) return
+    const { error } = await supabase
+      .from('recurring_expenses')
+      .update({
+        name: formData.name,
+        amount: formData.is_variable_amount ? null : Number(formData.amount),
+        is_variable_amount: formData.is_variable_amount,
+        category_id: formData.category_id || null,
+        frequency: formData.frequency,
+      })
+      .eq('id', editingId)
+    
+    if (!error) {
+      setShowEdit(false)
+      setEditingId(null)
+      loadData()
+    }
   }
 
   const selectPreset = (preset: typeof BILL_PRESETS[0]) => {
@@ -528,6 +563,66 @@ export default function RecurringExpenses() {
         </div>
       )}
 
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Recurring Bill</h2>
+              <button 
+                onClick={() => setShowEdit(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); updateExpense(); }} className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600">Bill Name</label>
+                <input
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Amount (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  disabled={formData.is_variable_amount}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-variable"
+                  checked={formData.is_variable_amount}
+                  onChange={(e) => setFormData({...formData, is_variable_amount: e.target.checked, amount: e.target.checked ? '' : formData.amount})}
+                />
+                <label htmlFor="edit-variable" className="text-sm text-gray-600">Variable Amount (changes monthly)</label>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowEdit(false)}
+                  className="flex-1 py-2 rounded-lg border border-gray-200"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 py-2 rounded-lg bg-emerald-600 text-white">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="animate-pulse space-y-3">
           {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}
@@ -620,6 +715,13 @@ export default function RecurringExpenses() {
                         title={exp.is_active ? 'Active' : 'Paused'}
                       >
                         <CheckCircle2 size={16} className={exp.is_active ? 'text-emerald-600' : 'text-gray-400'} />
+                      </button>
+                      <button 
+                        onClick={() => openEditModal(exp)} 
+                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600"
+                        title="Edit"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                       </button>
                       <button 
                         onClick={() => deleteExpense(exp.id)} 
