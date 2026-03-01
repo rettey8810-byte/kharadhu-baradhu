@@ -34,9 +34,18 @@ export default function GroceryBills() {
   const [selectedShop, setSelectedShop] = useState<string>('all')
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([])
   const [activeTab, setActiveTab] = useState<'bills' | 'compare'>('bills')
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth())
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear())
 
+  // Reload bills when page becomes visible
   useEffect(() => {
-    loadBills()
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadBills()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [currentProfile])
 
   const loadBills = async () => {
@@ -101,12 +110,15 @@ export default function GroceryBills() {
 
   const uniqueShops = Array.from(new Set(bills.map(b => b.shop_name).filter(Boolean)))
 
+  // Filter bills by selected month/year
   const filteredBills = bills.filter(bill => {
+    const billDate = new Date(bill.bill_date || '')
+    const matchesMonth = billDate.getMonth() === selectedMonth && billDate.getFullYear() === selectedYear
     const matchesShop = selectedShop === 'all' || bill.shop_name === selectedShop
     const matchesSearch = 
       bill.shop_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bill.items?.some(item => item.item_name.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesShop && matchesSearch
+    return matchesMonth && matchesShop && matchesSearch
   })
 
   if (loading) {
@@ -149,6 +161,32 @@ export default function GroceryBills() {
         <>
           {/* Filters */}
           <div className="bg-white rounded-xl p-3 mb-4 space-y-3">
+            {/* Month/Year Selectors */}
+            <div className="flex gap-2">
+              <select
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2"
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(2000, i, 1).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2"
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => (
+                  <option key={i} value={new Date().getFullYear() - 2 + i}>
+                    {new Date().getFullYear() - 2 + i}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input

@@ -223,7 +223,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <X size={20} />
               </button>
             </div>
-            <nav className="py-2">
+            <nav className="py-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
               <NavItem to="/" label={t('menu_dashboard')} icon={Home} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/add" label={t('menu_add_transaction')} icon={PlusCircle} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/charts" label={t('menu_analytics')} icon={PieChart} onMenuClose={() => setMenuOpen(false)} />
