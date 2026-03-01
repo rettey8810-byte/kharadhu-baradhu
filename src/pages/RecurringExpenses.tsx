@@ -292,7 +292,14 @@ export default function RecurringExpenses() {
 
   const updateExpense = async () => {
     if (!editingId) return
+    console.log('updateExpense called with formData:', { 
+      name: formData.name, 
+      amount: formData.amount, 
+      is_variable_amount: formData.is_variable_amount 
+    })
     const parsedAmount = formData.amount.trim() === '' ? null : Number(formData.amount)
+    console.log('Parsed amount:', parsedAmount)
+    
     const { error } = await supabase
       .from('recurring_expenses')
       .update({
@@ -304,14 +311,17 @@ export default function RecurringExpenses() {
       })
       .eq('id', editingId)
     
+    console.log('Supabase update result:', { error: error?.message, editingId })
+    
     if (!error) {
       if (parsedAmount != null) {
-        await supabase
+        const { error: bpError } = await supabase
           .from('bill_payments')
           .update({ amount: parsedAmount })
           .eq('recurring_expense_id', editingId)
           .eq('is_paid', false)
           .or('amount.is.null,amount.eq.0')
+        console.log('Bill payments update result:', { error: bpError?.message })
       }
 
       setShowEdit(false)
