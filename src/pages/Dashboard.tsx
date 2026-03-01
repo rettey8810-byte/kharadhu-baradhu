@@ -49,6 +49,7 @@ export default function Dashboard() {
     const load = async () => {
       if (profiles.length === 0) return
       setLoading(true)
+      console.log('Dashboard loading for profiles:', profiles.map(p => ({id: p.id, name: p.name})))
 
       const profileIds = profiles.map(p => p.id)
       const start = new Date(year, month - 1, 1)
@@ -141,14 +142,6 @@ export default function Dashboard() {
         .lte('due_date', monthEnd)
         .order('due_date', { ascending: true })
 
-      console.log('Dashboard bills debug:', {
-        profileIds,
-        monthStart,
-        monthEnd,
-        unpaidVariableCount: unpaidVariable?.length ?? 0,
-        varError
-      })
-
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
         .select('id, profile_id, name, amount, next_due_date, is_variable_amount, profile:profile_id(name)')
@@ -158,6 +151,15 @@ export default function Dashboard() {
         .gte('next_due_date', monthStart)
         .lte('next_due_date', monthEnd)
         .order('next_due_date', { ascending: true })
+
+      console.log('Dashboard bills query:', {
+        profileIds,
+        monthStart,
+        monthEnd,
+        unpaidVariable: unpaidVariable?.length ?? 0,
+        varError: varError?.message,
+        upcomingFixed: upcomingFixed?.length ?? 0
+      })
 
       const pending: PendingBill[] = []
 
