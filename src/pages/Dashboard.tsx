@@ -158,12 +158,23 @@ export default function Dashboard() {
         .lte('due_date', monthEnd)
       console.log('Raw bill_payments:', rawBP?.map((b: any) => ({ id: b.id, recurring_expense_id: b.recurring_expense_id, amount: b.amount, due_date: b.due_date })))
 
-      // Debug: Check all STELCO recurring expenses
-      const { data: stelcoRecords } = await supabase
+      // Build a lookup of best amounts for each bill name (across all recurring expenses)
+      const { data: allRecurring } = await supabase
         .from('recurring_expenses')
-        .select('id, name, amount, is_variable_amount, profile_id')
-        .ilike('name', '%STELCO%')
-      console.log('All STELCO recurring_expenses:', stelcoRecords)
+        .select('name, amount, profile_id')
+        .in('profile_id', profileIds)
+      
+      const bestAmountByName: Record<string, number | null> = {}
+      ;(allRecurring ?? []).forEach((re: any) => {
+        const name = re.name
+        const amt = re.amount != null ? Number(re.amount) : null
+        if (amt != null && amt > 0) {
+          if (bestAmountByName[name] == null || amt > bestAmountByName[name]!) {
+            bestAmountByName[name] = amt
+          }
+        }
+      })
+      console.log('Best amounts by name:', bestAmountByName)
 
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
@@ -194,11 +205,16 @@ export default function Dashboard() {
 
       ;(unpaidVariable ?? []).forEach((row: any) => {
         const paymentAmount = row.amount == null ? null : Number(row.amount)
-        const defaultAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
+        const joinAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
+        // Use best amount from any recurring expense with same name (handles duplicate records)
+        const bestAmount = bestAmountByName[row.recurring_expense?.name] ?? null
+        const defaultAmount = bestAmount ?? joinAmount
         const effectiveAmount = paymentAmount == null || paymentAmount === 0 ? defaultAmount : paymentAmount
         console.log('Processing variable bill:', {
           name: row.recurring_expense?.name,
           paymentAmount,
+          joinAmount,
+          bestAmount,
           defaultAmount,
           effectiveAmount,
           row_amount: row.amount,
