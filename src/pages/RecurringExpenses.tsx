@@ -625,7 +625,6 @@ export default function RecurringExpenses() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
                   value={formData.amount}
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                  disabled={formData.is_variable_amount}
                 />
               </div>
               <div className="flex items-center gap-2">
