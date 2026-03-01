@@ -14,6 +14,13 @@ function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
 }
 
+function formatPendingAmount(value: number | null) {
+  if (value == null) return 'MVR --'
+  const n = Number(value)
+  if (!Number.isFinite(n) || n === 0) return 'MVR --'
+  return formatMVR(n)
+}
+
 interface ProfileSpending {
   profile: ExpenseProfile
   totalSpent: number
@@ -315,7 +322,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">Due: {b.due_date}{b.source === 'variable' ? ' • Variable' : ''}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{b.amount == null ? 'MVR --' : formatMVR(Number(b.amount))}</p>
+                  <p className="text-sm font-semibold text-gray-900">{formatPendingAmount(b.amount)}</p>
                 </div>
               </button>
             ))}

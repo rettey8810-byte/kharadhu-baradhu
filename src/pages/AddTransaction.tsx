@@ -35,9 +35,49 @@ export default function AddTransaction() {
   const [billShopName, setBillShopName] = useState('')
   const [billDate, setBillDate] = useState('')
   const [billGst, setBillGst] = useState('')
+  const [billGstPercent, setBillGstPercent] = useState('')
   const [billSubtotal, setBillSubtotal] = useState('')
   const [billTotal, setBillTotal] = useState('')
   const [billItems, setBillItems] = useState<Array<{ item_name: string; qty: string; unit_price: string; line_total: string }>>([])
+
+  const selectedCategory = categories.find(c => c.id === categoryId)
+  const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
+
+  useEffect(() => {
+    if (!isGroceries) return
+
+    const sum = billItems.reduce((acc, it) => {
+      const lt = it.line_total.trim() ? Number(it.line_total) : null
+      const qty = it.qty.trim() ? Number(it.qty) : null
+      const unit = it.unit_price.trim() ? Number(it.unit_price) : null
+      const derived = lt != null && Number.isFinite(lt)
+        ? lt
+        : (qty != null && unit != null && Number.isFinite(qty) && Number.isFinite(unit) ? qty * unit : null)
+      return acc + (derived != null && Number.isFinite(derived) ? derived : 0)
+    }, 0)
+
+    const subtotal = sum > 0 ? sum : 0
+    const pct = billGstPercent.trim() ? Number(billGstPercent) : null
+    const gstFromPct = pct != null && Number.isFinite(pct) && pct > 0 ? subtotal * (pct / 100) : null
+
+    if (!billSubtotal.trim() || Number(billSubtotal) === 0) {
+      setBillSubtotal(subtotal ? subtotal.toFixed(2) : '')
+    }
+
+    if (gstFromPct != null) {
+      setBillGst(gstFromPct.toFixed(2))
+    }
+
+    const gst = (gstFromPct != null)
+      ? gstFromPct
+      : (billGst.trim() ? Number(billGst) : 0)
+
+    const total = subtotal + (Number.isFinite(gst) ? gst : 0)
+    if (!billTotal.trim() || Number(billTotal) === 0) {
+      setBillTotal(total > 0 ? total.toFixed(2) : '')
+      if (total > 0) setAmount(total.toFixed(2))
+    }
+  }, [isGroceries, billItems, billGstPercent, billGst])
 
   useEffect(() => {
     const load = async () => {
@@ -66,9 +106,6 @@ export default function AddTransaction() {
     load()
   }, [currentProfile])
 
-  const selectedCategory = categories.find(c => c.id === categoryId)
-  const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -80,6 +117,7 @@ export default function AddTransaction() {
       setBillShopName('')
       setBillDate('')
       setBillGst('')
+      setBillGstPercent('')
       setBillSubtotal('')
       setBillTotal('')
       setBillItems([])
@@ -457,6 +495,7 @@ export default function AddTransaction() {
       setBillShopName('')
       setBillDate('')
       setBillGst('')
+      setBillGstPercent('')
       setBillSubtotal('')
       setBillTotal('')
       setBillItems([])
@@ -714,6 +753,13 @@ export default function AddTransaction() {
                   onChange={(e) => setBillGst(e.target.value)}
                   inputMode="decimal"
                   placeholder="0"
+                />
+                <input
+                  className="mt-2 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
+                  value={billGstPercent}
+                  onChange={(e) => setBillGstPercent(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="GST % (optional)"
                 />
               </div>
               <div>

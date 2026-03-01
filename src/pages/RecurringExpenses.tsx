@@ -633,7 +633,7 @@ export default function RecurringExpenses() {
                   type="checkbox"
                   id="edit-variable"
                   checked={formData.is_variable_amount}
-                  onChange={(e) => setFormData({...formData, is_variable_amount: e.target.checked, amount: e.target.checked ? '' : formData.amount})}
+                  onChange={(e) => setFormData({ ...formData, is_variable_amount: e.target.checked })}
                 />
                 <label htmlFor="edit-variable" className="text-sm text-gray-600">Variable Amount (changes monthly)</label>
               </div>
