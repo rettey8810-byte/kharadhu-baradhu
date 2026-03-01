@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +26,7 @@ export default function Login() {
         // Check for pending invite token and redirect
         const pendingToken = localStorage.getItem('pendingInviteToken')
         if (pendingToken) {
-          window.location.href = `/accept-invite?token=${pendingToken}`
+          navigate(`/accept-invite?token=${pendingToken}`)
           return
         }
       } else {
