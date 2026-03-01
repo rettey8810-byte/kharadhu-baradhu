@@ -164,7 +164,13 @@ export default function Dashboard() {
         monthEnd,
         unpaidVariable: unpaidVariable?.length ?? 0,
         varError: varError?.message,
-        upcomingFixed: upcomingFixed?.length ?? 0
+        upcomingFixed: upcomingFixed?.length ?? 0,
+        unpaidVariableData: unpaidVariable?.map((u: any) => ({
+          id: u.id,
+          amount: u.amount,
+          recurring_expense_id: u.recurring_expense_id,
+          recurring_expense: u.recurring_expense
+        }))
       })
 
       const pending: PendingBill[] = []

@@ -83,9 +83,8 @@ export default function AddTransaction() {
     const pct = billGstPercent.trim() ? Number(billGstPercent) : null
     const gstFromPct = pct != null && Number.isFinite(pct) && pct > 0 ? subtotal * (pct / 100) : null
 
-    if (!billSubtotal.trim() || Number(billSubtotal) === 0) {
-      setBillSubtotal(subtotal ? subtotal.toFixed(2) : '')
-    }
+    // Always update subtotal from items (POS style)
+    setBillSubtotal(subtotal > 0 ? subtotal.toFixed(2) : '')
 
     if (gstFromPct != null) {
       setBillGst(gstFromPct.toFixed(2))
@@ -96,10 +95,10 @@ export default function AddTransaction() {
       : (billGst.trim() ? Number(billGst) : 0)
 
     const total = subtotal + (Number.isFinite(gst) ? gst : 0)
-    if (!billTotal.trim() || Number(billTotal) === 0) {
-      setBillTotal(total > 0 ? total.toFixed(2) : '')
-      if (total > 0) setAmount(total.toFixed(2))
-    }
+    // Always update total from items
+    const totalStr = total > 0 ? total.toFixed(2) : ''
+    setBillTotal(totalStr)
+    if (total > 0) setAmount(totalStr)
   }, [isGroceries, billItems, billGstPercent, billGst])
 
   useEffect(() => {

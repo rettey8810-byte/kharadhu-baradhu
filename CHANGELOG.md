@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.4] - 2026-03-02
+
+### Fixed
+- **Grocery Auto-Calculation** - Fixed POS-style calculation: subtotal and total now always auto-update from line items (qty × unit_price). Removed stale value persistence.
+- **Variable Bill Amounts on Dashboard** - Variable bills like STELCO now show default amount from recurring_expense when bill_payments amount is empty. Shows "MVR --" only when truly unknown.
+- **STELCO Amount Editable** - Default amount field is now editable even when "Variable Amount" is checked, allowing estimated amounts for variable bills.
+- **Grocery Item Entry** - Added running totals: Total Qty and Total Value displayed below items list.
+- **GST Percentage Auto-Calc** - Optional GST % field auto-calculates GST amount from subtotal.
+
+### Added
+- **Manual Grocery Item Entry** - Can now add items manually without OCR receipt extraction.
+- **Grocery Price Comparison** - Search items across shops to compare prices.
+- **Recurring Bill Edit** - Edit button added to Recurring Bills page to modify bill details including default amounts.
+
+---
+
 ## [1.3.3] - 2026-03-01
 
 ### Added
