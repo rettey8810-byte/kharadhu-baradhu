@@ -43,12 +43,26 @@ export default function RecurringExpenses() {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [showPresets, setShowPresets] = useState(true)
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string
+    amount: string
+    is_variable_amount: boolean
+    category_id: string
+    frequency: RecurringExpense['frequency']
+    start_date: string
+    due_day_of_month: string
+    reminder_days: string
+    grace_period_days: string
+    bill_type: string
+    provider: string
+    account_number: string
+    meter_number: string
+  }>({
     name: '',
     amount: '',
     is_variable_amount: false,
     category_id: '',
-    frequency: 'monthly' as const,
+    frequency: 'monthly',
     start_date: new Date().toISOString().slice(0, 10),
     due_day_of_month: '',
     reminder_days: '3',
@@ -265,6 +279,13 @@ export default function RecurringExpenses() {
       category_id: expense.category_id || '',
       frequency: expense.frequency || 'monthly',
       start_date: expense.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+      due_day_of_month: expense.due_day_of_month == null ? '' : String(expense.due_day_of_month),
+      reminder_days: expense.reminder_days == null ? '3' : String(expense.reminder_days),
+      grace_period_days: expense.grace_period_days == null ? '5' : String(expense.grace_period_days),
+      bill_type: expense.bill_type ?? '',
+      provider: expense.provider ?? '',
+      account_number: expense.account_number ?? '',
+      meter_number: expense.meter_number ?? '',
     })
     setShowEdit(true)
   }
