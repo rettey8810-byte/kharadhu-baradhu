@@ -16,18 +16,28 @@ CREATE TABLE IF NOT EXISTS public.profile_shares (
 
 -- Server-side helper for looking up a user id by email.
 -- NOTE: auth.users is not exposed to the client, so this must be done via RPC.
+-- Using SECURITY DEFINER allows this function to bypass RLS on auth.users
 CREATE OR REPLACE FUNCTION public.get_user_id_by_email(p_email TEXT)
 RETURNS UUID
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
-STABLE
 SET search_path = public, auth
 AS $$
-  SELECT id
+DECLARE
+  v_user_id UUID;
+BEGIN
+  SELECT id INTO v_user_id
   FROM auth.users
   WHERE lower(email) = lower(p_email)
   LIMIT 1;
+  
+  RETURN v_user_id;
+END;
 $$;
+
+-- Grant execute to service_role (needed for function to access auth.users)
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO authenticated;
 
 -- Profile Share Invitations table (pending invites)
 CREATE TABLE IF NOT EXISTS public.profile_share_invitations (
@@ -182,6 +192,16 @@ GRANT ALL ON public.profile_shares TO authenticated;
 GRANT ALL ON public.profile_shares TO anon;
 GRANT ALL ON public.profile_share_invitations TO authenticated;
 GRANT ALL ON public.profile_share_invitations TO anon;
+
+-- Grant sequence permissions (needed for inserts)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon;
+
+-- Grant auth schema permissions for the function
+GRANT USAGE ON SCHEMA auth TO authenticated;
+
+-- Function grants
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.share_profile TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_share_invitation TO authenticated;

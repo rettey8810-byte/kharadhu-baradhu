@@ -195,9 +195,10 @@ export default function ProfileSharing() {
     }
   }
 
-  // Group shares by person for "Share All" view
+  // Group shares by person for "Share All" view (filter out null emails)
   const sharesByPerson = sharedProfiles.reduce((acc, share) => {
-    const key = share.shared_with_email
+    const key = share.shared_with_email || 'Pending'
+    if (key === 'Pending') return acc // Skip pending invitations in this view
     if (!acc[key]) {
       acc[key] = []
     }
