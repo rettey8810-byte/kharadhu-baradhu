@@ -1,12 +1,13 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
 import { useLanguage } from '../hooks/useLanguage.tsx'
+import { formatDateLocal } from '../utils/date'
 
-function NavItem({ to, label, icon: Icon, onMenuClose }: { to?: string; label: string; icon: any; onMenuClose?: () => void }) {
+function NavItem({ to, label, icon: Icon, badge, onMenuClose }: { to?: string; label: string; icon: any; badge?: number; onMenuClose?: () => void }) {
   const location = useLocation()
   const navigate = useNavigate()
   const active = to && location.pathname === to
@@ -25,8 +26,20 @@ function NavItem({ to, label, icon: Icon, onMenuClose }: { to?: string; label: s
       onClick={handleClick}
       className={`flex items-center gap-3 px-4 py-3 w-full text-left ${active ? 'bg-emerald-50 text-emerald-600' : 'text-gray-600 hover:bg-gray-50'}`}
     >
-      <Icon size={20} />
-      <span>{label}</span>
+      <div className="relative">
+        <Icon size={20} />
+        {(badge ?? 0) > 0 && (
+          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">
+            {badge}
+          </span>
+        )}
+      </div>
+      <span className="flex-1">{label}</span>
+      {(badge ?? 0) > 0 && (
+        <span className="bg-red-500 text-white text-[10px] leading-none px-2 py-1 rounded-full">
+          {badge}
+        </span>
+      )}
     </button>
   )
 }
@@ -37,6 +50,50 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { language, toggleLanguage, t } = useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const [reminderBadgeCount, setReminderBadgeCount] = useState(0)
+
+  const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
+
+  useEffect(() => {
+    const load = async () => {
+      if (profileIds.length === 0) return
+
+      await supabase.rpc('generate_bill_reminders_v2')
+      await supabase.rpc('generate_income_reminders')
+
+      const today = formatDateLocal(new Date())
+      const { data: reminders } = await supabase
+        .from('bill_reminders')
+        .select('id, title, due_date, is_read')
+        .in('profile_id', profileIds)
+        .eq('is_dismissed', false)
+        .lte('due_date', today)
+
+      const unread = (reminders ?? []).filter((r: any) => !r.is_read)
+      setReminderBadgeCount(unread.length)
+
+      if (unread.length > 0 && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        const key = `notified_reminders_${today}`
+        const prev = new Set<string>(JSON.parse(localStorage.getItem(key) ?? '[]'))
+        const toNotify = unread.filter((r: any) => !prev.has(r.id))
+        if (toNotify.length > 0) {
+          const title = toNotify.length === 1 ? 'Bill Reminder' : 'Bill Reminders'
+          const body = toNotify.length === 1 ? `${toNotify[0].title} due today` : `${toNotify.length} bills due today`
+          try {
+            new Notification(title, { body })
+          } catch {
+            // ignore
+          }
+          toNotify.forEach((r: any) => prev.add(r.id))
+          localStorage.setItem(key, JSON.stringify(Array.from(prev)))
+        }
+      }
+    }
+
+    load()
+    const id = window.setInterval(load, 5 * 60 * 1000)
+    return () => window.clearInterval(id)
+  }, [profileIds])
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -86,8 +143,25 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <Link to="/reminders" className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+            <Link
+              to="/reminders"
+              className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              onClick={async () => {
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+                  try {
+                    await Notification.requestPermission()
+                  } catch {
+                    // ignore
+                  }
+                }
+              }}
+            >
               <Bell size={20} />
+              {reminderBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">
+                  {reminderBadgeCount}
+                </span>
+              )}
             </Link>
             <button
               onClick={() => setMenuOpen(true)}
@@ -158,7 +232,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/category-budgets" label={t('menu_category_budgets')} icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring" label={t('menu_recurring_bills')} icon={Repeat} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring-income" label={t('menu_recurring_income')} icon={TrendingUp} onMenuClose={() => setMenuOpen(false)} />
-              <NavItem to="/reminders" label={t('menu_reminders')} icon={Bell} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/reminders" label={t('menu_reminders')} icon={Bell} badge={reminderBadgeCount} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/transactions" label={t('menu_all_transactions')} icon={List} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/grocery-bills" label={t('menu_grocery_bills')} icon={Receipt} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/search" label={t('menu_search')} icon={Search} onMenuClose={() => setMenuOpen(false)} />
