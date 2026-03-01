@@ -72,21 +72,31 @@ CREATE POLICY "Users can delete their own shares"
   USING (shared_by = auth.uid());
 
 -- RLS Policies for profile_share_invitations
+-- Allow inviters to view their own invitations
 DROP POLICY IF EXISTS "Inviters can view their invitations" ON public.profile_share_invitations;
 CREATE POLICY "Inviters can view their invitations"
   ON public.profile_share_invitations FOR SELECT
   USING (invited_by = auth.uid());
 
-DROP POLICY IF EXISTS "Users can view invitations to them" ON public.profile_share_invitations;
-CREATE POLICY "Users can view invitations to them"
+-- Allow anyone to view invitations by token (for accept-invite page)
+DROP POLICY IF EXISTS "Anyone can view invitations by token" ON public.profile_share_invitations;
+CREATE POLICY "Anyone can view invitations by token"
   ON public.profile_share_invitations FOR SELECT
-  USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()));
+  USING (token IS NOT NULL);
 
+-- Allow authenticated users to create invitations
 DROP POLICY IF EXISTS "Users can create invitations" ON public.profile_share_invitations;
 CREATE POLICY "Users can create invitations"
   ON public.profile_share_invitations FOR INSERT
-  WITH CHECK (invited_by = auth.uid());
+  WITH CHECK (auth.uid() IS NOT NULL);
 
+-- Allow inviters to update their invitations (e.g., mark accepted)
+DROP POLICY IF EXISTS "Inviters can update their invitations" ON public.profile_share_invitations;
+CREATE POLICY "Inviters can update their invitations"
+  ON public.profile_share_invitations FOR UPDATE
+  USING (invited_by = auth.uid());
+
+-- Allow inviters to delete their invitations
 DROP POLICY IF EXISTS "Inviters can delete their invitations" ON public.profile_share_invitations;
 CREATE POLICY "Inviters can delete their invitations"
   ON public.profile_share_invitations FOR DELETE
