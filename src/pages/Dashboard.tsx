@@ -127,8 +127,9 @@ export default function Dashboard() {
         .eq('year', year)
         .eq('month', month)
 
-      // Pending bills
+      // Pending bills - ONLY current month (from 1st to end), not next month
       const today = formatDateLocal(new Date())
+      const monthStart = formatDateLocal(start)
       const monthEnd = formatDateLocal(end)
 
       const { data: unpaidVariable } = await supabase
@@ -136,7 +137,7 @@ export default function Dashboard() {
         .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name)')
         .in('profile_id', profileIds)
         .eq('is_paid', false)
-        .gte('due_date', formatDateLocal(start))
+        .gte('due_date', monthStart)
         .lte('due_date', monthEnd)
         .order('due_date', { ascending: true })
 
@@ -146,7 +147,7 @@ export default function Dashboard() {
         .in('profile_id', profileIds)
         .eq('is_active', true)
         .eq('is_variable_amount', false)
-        .gte('next_due_date', today)
+        .gte('next_due_date', monthStart)
         .lte('next_due_date', monthEnd)
         .order('next_due_date', { ascending: true })
 
