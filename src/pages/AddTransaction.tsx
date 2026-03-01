@@ -350,8 +350,10 @@ export default function AddTransaction() {
 
     try {
       if (isGroceries) {
-        if (!receipt) throw new Error('Receipt photo is required for Groceries')
-        if (!ocrText) throw new Error('Please extract the bill first')
+        const hasAnyItem = billItems.some(i => i.item_name.trim())
+        if (!hasAnyItem) throw new Error('Please add at least 1 grocery item (manual or extracted)')
+        if (!billShopName.trim()) throw new Error('Please enter shop name')
+        if (!billDate) throw new Error('Please enter bill date')
       }
 
       const amt = Number(amount)
@@ -412,7 +414,7 @@ export default function AddTransaction() {
             subtotal: Number.isFinite(subtotalNum as any) ? subtotalNum : null,
             gst_amount: Number.isFinite(gstNum as any) ? gstNum : null,
             total: Number.isFinite(totalNum as any) ? totalNum : null,
-            raw_text: ocrText,
+            raw_text: ocrText || null,
           })
           .select()
           .single()
@@ -434,7 +436,11 @@ export default function AddTransaction() {
             item_name: i.item_name,
             qty: Number.isFinite(i.qty as any) ? i.qty : null,
             unit_price: Number.isFinite(i.unit_price as any) ? i.unit_price : null,
-            line_total: Number.isFinite(i.line_total as any) ? i.line_total : null,
+            line_total: Number.isFinite(i.line_total as any)
+              ? i.line_total
+              : (Number.isFinite(i.qty as any) && Number.isFinite(i.unit_price as any)
+                ? Number(i.qty) * Number(i.unit_price)
+                : null),
           }))
           const { error: itemsErr } = await supabase.from('grocery_bill_items').insert(rows)
           if (itemsErr) throw itemsErr
@@ -724,78 +730,79 @@ export default function AddTransaction() {
 
             <div>
               <div className="text-xs text-emerald-800 mb-2">{t('form_items')}</div>
-              {billItems.length === 0 ? (
+              {billItems.length === 0 && (
                 <div className="text-xs text-emerald-700">{t('form_extract_bill_hint')}</div>
-              ) : (
-                <div className="space-y-2">
-                  {billItems.map((it, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                      <input
-                        className="col-span-6 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
-                        value={it.item_name}
-                        onChange={(e) => {
-                          const next = [...billItems]
-                          next[idx] = { ...next[idx], item_name: e.target.value }
-                          setBillItems(next)
-                        }}
-                        placeholder={t('form_item_placeholder')}
-                      />
-                      <input
-                        className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
-                        value={it.qty}
-                        onChange={(e) => {
-                          const next = [...billItems]
-                          next[idx] = { ...next[idx], qty: e.target.value }
-                          setBillItems(next)
-                        }}
-                        placeholder={t('form_qty_placeholder')}
-                        inputMode="decimal"
-                      />
-                      <input
-                        className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
-                        value={it.unit_price}
-                        onChange={(e) => {
-                          const next = [...billItems]
-                          next[idx] = { ...next[idx], unit_price: e.target.value }
-                          setBillItems(next)
-                        }}
-                        placeholder={t('form_price_placeholder')}
-                        inputMode="decimal"
-                      />
-                      <div className="col-span-2 flex items-center gap-2">
-                        <input
-                          className="flex-1 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
-                          value={it.line_total}
-                          onChange={(e) => {
-                            const next = [...billItems]
-                            next[idx] = { ...next[idx], line_total: e.target.value }
-                            setBillItems(next)
-                          }}
-                          placeholder={t('form_line_total_placeholder')}
-                          inputMode="decimal"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = billItems.filter((_, i) => i !== idx)
-                            setBillItems(next)
-                          }}
-                          className="p-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-700"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setBillItems([...billItems, { item_name: '', qty: '', unit_price: '', line_total: '' }])}
-                    className="w-full py-2 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-sm font-semibold"
-                  >
-                    {t('form_add_item')}
-                  </button>
-                </div>
               )}
+
+              <div className="space-y-2">
+                {billItems.map((it, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                    <input
+                      className="col-span-6 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
+                      value={it.item_name}
+                      onChange={(e) => {
+                        const next = [...billItems]
+                        next[idx] = { ...next[idx], item_name: e.target.value }
+                        setBillItems(next)
+                      }}
+                      placeholder={t('form_item_placeholder')}
+                    />
+                    <input
+                      className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
+                      value={it.qty}
+                      onChange={(e) => {
+                        const next = [...billItems]
+                        next[idx] = { ...next[idx], qty: e.target.value }
+                        setBillItems(next)
+                      }}
+                      placeholder={t('form_qty_placeholder')}
+                      inputMode="decimal"
+                    />
+                    <input
+                      className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
+                      value={it.unit_price}
+                      onChange={(e) => {
+                        const next = [...billItems]
+                        next[idx] = { ...next[idx], unit_price: e.target.value }
+                        setBillItems(next)
+                      }}
+                      placeholder={t('form_price_placeholder')}
+                      inputMode="decimal"
+                    />
+                    <div className="col-span-2 flex items-center gap-2">
+                      <input
+                        className="flex-1 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
+                        value={it.line_total}
+                        onChange={(e) => {
+                          const next = [...billItems]
+                          next[idx] = { ...next[idx], line_total: e.target.value }
+                          setBillItems(next)
+                        }}
+                        placeholder={t('form_line_total_placeholder')}
+                        inputMode="decimal"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = billItems.filter((_, i) => i !== idx)
+                          setBillItems(next)
+                        }}
+                        className="p-1.5 rounded-lg bg-white border border-emerald-200 text-emerald-700"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setBillItems([...billItems, { item_name: '', qty: '', unit_price: '', line_total: '' }])}
+                  className="w-full py-2 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-sm font-semibold"
+                >
+                  {t('form_add_item')}
+                </button>
+              </div>
             </div>
           </div>
         )}
