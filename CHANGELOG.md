@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-03-01
+
+### Added
+- **Auto Reminder Generation** - Bill and income reminders generate automatically on app load
+- **Reminder Badge Counts** - Unread/due reminder badges on Bell icon and Reminders menu
+- **In-App Notifications** - Browser notifications for due reminders while PWA is open (optional)
+
+### Changed
+- **Pending Bills Dashboard** - Now shows Profile name + clickable navigation to Recurring Bills
+
+---
+
 ## [1.3.1] - 2026-03-01
 
 ### Added

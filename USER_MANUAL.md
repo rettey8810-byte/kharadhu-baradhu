@@ -399,7 +399,22 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
 
 ## Bill Reminders
 
-View all upcoming bills and due dates.
+View all upcoming bills and due dates. Reminders are automatically generated when you open the app.
+
+### How Reminders Work
+
+- **Auto Generation** - Reminders are created automatically when you open the app based on your recurring bills and income
+- **Badge Counts** - See the number of unread reminders on the Bell icon (header) and Reminders menu item
+- **Due Today / Overdue** - Special red highlighting for urgent reminders
+
+### Enable Notifications (Optional)
+
+For the best experience, allow notifications when prompted:
+1. Tap the **Bell icon** in the header
+2. Click **"Allow"** when the browser asks for notification permission
+3. You'll get popup notifications for due bills while the app is open
+
+**Note:** On the free Supabase plan, notifications work while the PWA is open. For notifications when the app is closed, you would need a paid plan with scheduled triggers.
 
 ### View Reminders
 
@@ -407,12 +422,23 @@ Go to **Reminders** from the header bell icon or side menu.
 
 ### Types of Reminders
 
-1. **Recurring Bill Reminders** - Auto-generated from your recurring expenses
-2. **Overdue Alerts** - When a bill is past due
+1. **Recurring Bill Reminders** - Auto-generated from your recurring expenses (electricity, water, rent, etc.)
+2. **Recurring Income Reminders** - Auto-generated from your recurring income (salary, allowances)
+3. **Overdue Alerts** - When a bill is past due (shown in red)
+4. **Due Today** - Bills due today (shown in yellow)
 
-### Dismiss Reminders
+### Managing Reminders
 
-Click the **X** to dismiss a reminder (won't show again for that bill).
+**Mark as Read:** Click the **checkmark** to mark a reminder as read (removes it from badge count).
+
+**Dismiss:** Click the **X** to permanently dismiss a reminder.
+
+**Bill Details:** Each reminder shows:
+- Bill name (e.g., "STELCO", "Rent")
+- Profile name (e.g., "Personal", "Family")
+- Due date
+- Amount (if set)
+- Status (Due today / Overdue / Upcoming)
 
 ---
 

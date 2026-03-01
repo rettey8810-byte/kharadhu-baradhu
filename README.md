@@ -70,6 +70,14 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Auto Processing** - Recurring expenses and income are processed automatically when you open the Dashboard
 - **Catch-up Support** - If you missed opening the app for a while, it will catch up due recurring items safely
 
+### Smart Reminders & Alerts
+
+- **Auto Reminder Generation** - Bill and income reminders generate automatically when you open the app
+- **Badge Counts** - See unread reminder count on the Bell icon and Reminders menu
+- **In-App Notifications** - Get browser notifications for due bills while the PWA is open (optional)
+- **Bill Reminders Page** - View all upcoming bills and income reminders, mark as read or dismiss
+- **Due Today Alerts** - Special highlighting for bills due today or overdue
+
 ---
 
 ## Tech Stack
