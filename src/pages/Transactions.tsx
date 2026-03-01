@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
-import { Edit2, Trash2, X, Check, ArrowUpCircle, ArrowDownCircle, Search } from 'lucide-react'
+import { Edit2, Trash2, X, Check, ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
+import { formatDateLocal } from '../utils/date'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -18,6 +19,10 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     amount: '',
@@ -29,17 +34,23 @@ export default function Transactions() {
 
   useEffect(() => {
     loadData()
-  }, [currentProfile])
+  }, [currentProfile, selectedMonth])
 
   const loadData = async () => {
     if (!currentProfile) return
     setLoading(true)
 
-    // Load transactions
+    const [year, month] = selectedMonth.split('-').map(Number)
+    const start = new Date(year, month - 1, 1)
+    const end = new Date(year, month, 0)
+
+    // Load transactions for current month only
     const { data: txData } = await supabase
       .from('transactions')
       .select('*, category:category_id(*), income_source:income_source_id(*)')
       .eq('profile_id', currentProfile.id)
+      .gte('transaction_date', formatDateLocal(start))
+      .lte('transaction_date', formatDateLocal(end))
       .order('transaction_date', { ascending: false })
 
     setTransactions(txData || [])
@@ -139,15 +150,26 @@ export default function Transactions() {
 
       {/* Search and Filter */}
       <div className="bg-white rounded-xl p-3 mb-4 space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder={t('placeholder_search_tx')}
-            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder={t('placeholder_search_tx')}
+              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="month"
+              className="pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm"
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+            />
+          </div>
         </div>
         
         <div className="flex gap-2">
