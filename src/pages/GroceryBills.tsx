@@ -39,6 +39,9 @@ export default function GroceryBills() {
 
   // Reload bills when page becomes visible
   useEffect(() => {
+    // Initial load
+    loadBills()
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         loadBills()

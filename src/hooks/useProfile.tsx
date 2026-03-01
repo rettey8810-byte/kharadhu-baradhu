@@ -22,15 +22,40 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data: profilesData } = await supabase
-      .from('expense_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('created_at')
+    // Use the RPC function to get all accessible profiles (owned + family group shared)
+    const { data: accessibleProfiles, error: rpcError } = await supabase
+      .rpc('get_accessible_profiles')
 
-    if (profilesData) {
-      setProfiles(profilesData)
+    if (rpcError) {
+      // Fallback to just own profiles if the function doesn't exist yet
+      const { data: profilesData } = await supabase
+        .from('expense_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at')
+
+      if (profilesData) {
+        setProfiles(profilesData)
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (settings?.default_profile_id) {
+          const defaultProfile = profilesData.find((p: ExpenseProfile) => p.id === settings.default_profile_id)
+          if (defaultProfile) {
+            setCurrentProfileState(defaultProfile)
+          } else if (profilesData.length > 0) {
+            setCurrentProfileState(profilesData[0])
+          }
+        } else if (profilesData.length > 0) {
+          setCurrentProfileState(profilesData[0])
+        }
+      }
+    } else if (accessibleProfiles) {
+      setProfiles(accessibleProfiles)
       
       // Get default profile from settings
       const { data: settings } = await supabase
@@ -40,14 +65,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .single()
 
       if (settings?.default_profile_id) {
-        const defaultProfile = profilesData.find((p: ExpenseProfile) => p.id === settings.default_profile_id)
+        const defaultProfile = accessibleProfiles.find((p: ExpenseProfile) => p.id === settings.default_profile_id)
         if (defaultProfile) {
           setCurrentProfileState(defaultProfile)
-        } else if (profilesData.length > 0) {
-          setCurrentProfileState(profilesData[0])
+        } else if (accessibleProfiles.length > 0) {
+          setCurrentProfileState(accessibleProfiles[0])
         }
-      } else if (profilesData.length > 0) {
-        setCurrentProfileState(profilesData[0])
+      } else if (accessibleProfiles.length > 0) {
+        setCurrentProfileState(accessibleProfiles[0])
       }
     }
     setLoading(false)

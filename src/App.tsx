@@ -23,6 +23,7 @@ import ExportReports from './pages/ExportReports'
 import QuickAdd from './pages/QuickAdd'
 import ProfileSharing from './pages/ProfileSharing'
 import GroceryBills from './pages/GroceryBills'
+import FamilyGroups from './pages/FamilyGroups'
 
 function App() {
   const { session, loading } = useAuth()
@@ -64,6 +65,7 @@ function App() {
             <Route path="/quick-add" element={<QuickAdd />} />
             <Route path="/profile-sharing" element={<ProfileSharing />} />
             <Route path="/grocery-bills" element={<GroceryBills />} />
+            <Route path="/family-groups" element={<FamilyGroups />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
