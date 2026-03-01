@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
@@ -21,6 +22,8 @@ interface ProfileSpending {
 
 interface PendingBill {
   id: string
+  profile_id: string
+  profile_name: string
   name: string
   due_date: string
   amount: number | null
@@ -28,8 +31,9 @@ interface PendingBill {
 }
 
 export default function Dashboard() {
-  const { profiles, currentProfile } = useProfile()
+  const { profiles, currentProfile, setCurrentProfile } = useProfile()
   const { t } = useLanguage()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
@@ -129,7 +133,7 @@ export default function Dashboard() {
 
       const { data: unpaidVariable } = await supabase
         .from('bill_payments')
-        .select('id, due_date, amount, recurring_expense:recurring_expense_id(name)')
+        .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name)')
         .in('profile_id', profileIds)
         .eq('is_paid', false)
         .gte('due_date', formatDateLocal(start))
@@ -138,7 +142,7 @@ export default function Dashboard() {
 
       const { data: upcomingFixed } = await supabase
         .from('recurring_expenses')
-        .select('id, name, amount, next_due_date, is_variable_amount')
+        .select('id, profile_id, name, amount, next_due_date, is_variable_amount, profile:profile_id(name)')
         .in('profile_id', profileIds)
         .eq('is_active', true)
         .eq('is_variable_amount', false)
@@ -151,6 +155,8 @@ export default function Dashboard() {
       ;(unpaidVariable ?? []).forEach((row: any) => {
         pending.push({
           id: row.id,
+          profile_id: row.profile_id,
+          profile_name: row.profile?.name ?? 'Profile',
           name: row.recurring_expense?.name ?? 'Bill',
           due_date: row.due_date,
           amount: row.amount == null ? null : Number(row.amount),
@@ -161,6 +167,8 @@ export default function Dashboard() {
       ;(upcomingFixed ?? []).forEach((row: any) => {
         pending.push({
           id: row.id,
+          profile_id: row.profile_id,
+          profile_name: row.profile?.name ?? 'Profile',
           name: row.name,
           due_date: row.next_due_date,
           amount: row.amount == null ? null : Number(row.amount),
@@ -279,15 +287,24 @@ export default function Dashboard() {
           </div>
           <div className="divide-y divide-gray-100">
             {pendingBills.slice(0, 8).map((b) => (
-              <div key={`${b.source}-${b.id}-${b.due_date}`} className="p-4 flex items-center justify-between">
+              <button
+                key={`${b.source}-${b.id}-${b.due_date}`}
+                type="button"
+                className="w-full text-left p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                onClick={async () => {
+                  const next = profiles.find(p => p.id === b.profile_id)
+                  if (next) await setCurrentProfile(next)
+                  navigate('/recurring')
+                }}
+              >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{b.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{b.profile_name} • {b.name}</p>
                   <p className="text-xs text-gray-500">Due: {b.due_date}{b.source === 'variable' ? ' • Variable' : ''}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">{b.amount == null ? 'MVR --' : formatMVR(Number(b.amount))}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
