@@ -101,70 +101,37 @@ export default function ProfileSharing() {
     
     try {
       const email = inviteEmail.trim()
-
-      // auth.users is not queryable from the client. Use RPC instead.
-      const { data: existingUserId, error: lookupError } = await supabase
-        .rpc('get_user_id_by_email', { p_email: email })
-
-      if (lookupError) throw lookupError
-
-      if (!existingUserId) {
-        // User doesn't exist - create a pending invitation with token
-        const token = crypto.randomUUID()
-        const { error } = await supabase
-          .from('profile_share_invitations')
-          .insert({
-            email,
-            profile_id: shareAllProfiles ? null : selectedProfileId,
-            share_all_profiles: shareAllProfiles,
-            role: inviteRole,
-            invited_by: (await supabase.auth.getUser()).data.user?.id,
-            token
-          })
-          .select()
-          .single()
-        
-        if (error) throw error
-        
-        // Generate invite link
-        const baseUrl = window.location.origin
-        const inviteLink = `${baseUrl}/accept-invite?token=${token}`
-        
-        // Copy to clipboard
-        await navigator.clipboard.writeText(inviteLink)
-        setCopiedToken(token)
-        
-        setMessage(`Invite link copied! Send it via WhatsApp/any app: ${inviteLink}`)
-      } else {
-        // User exists - create direct share
-        if (shareAllProfiles) {
-          // Share all profiles
-          const { data: { user } } = await supabase.auth.getUser()
-          const shares = profiles.map(p => ({
-            profile_id: p.id,
-            shared_with: existingUserId,
-            shared_by: user?.id,
-            role: inviteRole,
-            share_all_profiles: true
-          }))
-          
-          const { error } = await supabase.from('profile_shares').insert(shares)
-          if (error) throw error
-        } else {
-          // Share single profile
-          const { error } = await supabase.rpc('share_profile', {
-            p_profile_id: selectedProfileId,
-            p_shared_with: existingUserId,
-            p_role: inviteRole
-          })
-          if (error) throw error
-        }
-        
-        setMessage(`${shareAllProfiles ? 'All profiles' : 'Profile'} shared with ${email}`)
-      }
+      const token = crypto.randomUUID()
+      const { data: { user } } = await supabase.auth.getUser()
       
+      // Create pending invitation with token
+      const { error } = await supabase
+        .from('profile_share_invitations')
+        .insert({
+          email,
+          profile_id: shareAllProfiles ? null : selectedProfileId,
+          share_all_profiles: shareAllProfiles,
+          role: inviteRole,
+          invited_by: user?.id,
+          token
+        })
+        .select()
+        .single()
+      
+      if (error) throw error
+      
+      // Generate and copy invite link
+      const baseUrl = window.location.origin
+      const inviteLink = `${baseUrl}/accept-invite?token=${token}`
+      
+      await navigator.clipboard.writeText(inviteLink)
+      setCopiedToken(token)
+      
+      setMessage(`Invite link copied! Send it via WhatsApp/any app`)
+      
+      // Reload pending invitations
+      loadPendingInvitations()
       setInviteEmail('')
-      loadSharedProfiles()
     } catch (error: any) {
       setMessage(error.message || 'Failed to send invitation')
     } finally {
