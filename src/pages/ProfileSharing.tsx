@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
-import { useLanguage } from '../hooks/useLanguage'
 import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound } from 'lucide-react'
 
 interface SharedProfile {
@@ -17,7 +16,6 @@ interface SharedProfile {
 
 export default function ProfileSharing() {
   const { profiles, currentProfile } = useProfile()
-  const { t } = useLanguage()
   const [sharedProfiles, setSharedProfiles] = useState<SharedProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'all' | 'individual'>('all')
@@ -146,15 +144,6 @@ export default function ProfileSharing() {
       case 'admin': return <Shield size={16} className="text-emerald-600" />
       case 'member': return <UserPlus size={16} className="text-blue-600" />
       default: return <User size={16} className="text-gray-600" />
-    }
-  }
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin': return 'Admin (Full Access)'
-      case 'member': return 'Member (Add/Edit)'
-      case 'viewer': return 'Viewer (View Only)'
-      default: return role
     }
   }
 
