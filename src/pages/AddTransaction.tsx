@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
@@ -42,6 +42,29 @@ export default function AddTransaction() {
 
   const selectedCategory = categories.find(c => c.id === categoryId)
   const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
+
+  const getNumeric = (v: string) => {
+    const n = v.trim() ? Number(v) : NaN
+    return Number.isFinite(n) ? n : null
+  }
+
+  const groceryTotals = useMemo(() => {
+    const totalQty = billItems.reduce((acc, it) => acc + (getNumeric(it.qty) ?? 0), 0)
+
+    const totalValue = billItems.reduce((acc, it) => {
+      const lt = getNumeric(it.line_total)
+      if (lt != null) return acc + lt
+      const qty = getNumeric(it.qty)
+      const unit = getNumeric(it.unit_price)
+      if (qty != null && unit != null) return acc + qty * unit
+      return acc
+    }, 0)
+
+    return {
+      totalQty,
+      totalValue,
+    }
+  }, [billItems])
 
   useEffect(() => {
     if (!isGroceries) return
@@ -780,6 +803,13 @@ export default function AddTransaction() {
                 <div className="text-xs text-emerald-700">{t('form_extract_bill_hint')}</div>
               )}
 
+              {billItems.length > 0 && (
+                <div className="flex items-center justify-between text-xs text-emerald-800 mb-2">
+                  <span>Total Qty: {groceryTotals.totalQty.toFixed(2)}</span>
+                  <span>Total Value: {groceryTotals.totalValue.toFixed(2)}</span>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {billItems.map((it, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center">
@@ -798,7 +828,12 @@ export default function AddTransaction() {
                       value={it.qty}
                       onChange={(e) => {
                         const next = [...billItems]
-                        next[idx] = { ...next[idx], qty: e.target.value }
+                        const qty = e.target.value
+                        const unit = next[idx]?.unit_price ?? ''
+                        const qn = qty.trim() ? Number(qty) : NaN
+                        const un = unit.trim() ? Number(unit) : NaN
+                        const lineTotal = Number.isFinite(qn) && Number.isFinite(un) ? (qn * un).toFixed(2) : ''
+                        next[idx] = { ...next[idx], qty, line_total: lineTotal }
                         setBillItems(next)
                       }}
                       placeholder={t('form_qty_placeholder')}
@@ -809,7 +844,12 @@ export default function AddTransaction() {
                       value={it.unit_price}
                       onChange={(e) => {
                         const next = [...billItems]
-                        next[idx] = { ...next[idx], unit_price: e.target.value }
+                        const unit_price = e.target.value
+                        const qty = next[idx]?.qty ?? ''
+                        const qn = qty.trim() ? Number(qty) : NaN
+                        const un = unit_price.trim() ? Number(unit_price) : NaN
+                        const lineTotal = Number.isFinite(qn) && Number.isFinite(un) ? (qn * un).toFixed(2) : ''
+                        next[idx] = { ...next[idx], unit_price, line_total: lineTotal }
                         setBillItems(next)
                       }}
                       placeholder={t('form_price_placeholder')}
