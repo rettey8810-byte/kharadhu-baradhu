@@ -343,7 +343,7 @@ export default function ProfileSharing() {
                 <p className="text-xs text-amber-600">
                   Share this link via WhatsApp/Messenger: 
                   <span className="font-mono bg-white px-1 py-0.5 rounded ml-1">
-                    {window.location.origin}/accept-invite?token={invite.token.slice(0, 8)}...
+                    {window.location.origin}/accept-invite?token={invite.token?.slice(0, 8) ?? '...'}...
                   </span>
                 </p>
               </div>
