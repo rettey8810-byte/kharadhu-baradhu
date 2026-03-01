@@ -66,10 +66,10 @@ export default function ProfileSharing() {
     setMessage(null)
     
     try {
-      // Find user by email
+      // Find user by email in auth.users
       const { data: userData, error: userError } = await supabase
-        .from('user_settings')
-        .select('user_id')
+        .from('auth.users')
+        .select('id, email')
         .eq('email', inviteEmail.trim())
         .single()
 
@@ -94,7 +94,7 @@ export default function ProfileSharing() {
           const { data: { user } } = await supabase.auth.getUser()
           const shares = profiles.map(p => ({
             profile_id: p.id,
-            shared_with: userData.user_id,
+            shared_with: userData.id,
             shared_by: user?.id,
             role: inviteRole,
             share_all_profiles: true
@@ -106,7 +106,7 @@ export default function ProfileSharing() {
           // Share single profile
           const { error } = await supabase.rpc('share_profile', {
             p_profile_id: selectedProfileId,
-            p_shared_with: userData.user_id,
+            p_shared_with: userData.id,
             p_role: inviteRole
           })
           if (error) throw error
