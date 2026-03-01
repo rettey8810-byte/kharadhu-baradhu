@@ -134,7 +134,7 @@ export default function Dashboard() {
 
       const { data: unpaidVariable, error: varError } = await supabase
         .from('bill_payments')
-        .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name)')
+        .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name, amount)')
         .in('profile_id', profileIds)
         .eq('is_paid', false)
         .gte('due_date', monthStart)
@@ -163,13 +163,16 @@ export default function Dashboard() {
       const pending: PendingBill[] = []
 
       ;(unpaidVariable ?? []).forEach((row: any) => {
+        const paymentAmount = row.amount == null ? null : Number(row.amount)
+        const defaultAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
+        const effectiveAmount = paymentAmount == null || paymentAmount === 0 ? defaultAmount : paymentAmount
         pending.push({
           id: row.id,
           profile_id: row.profile_id,
           profile_name: row.profile?.name ?? 'Profile',
           name: row.recurring_expense?.name ?? 'Bill',
           due_date: row.due_date,
-          amount: row.amount == null ? null : Number(row.amount),
+          amount: effectiveAmount,
           source: 'variable',
         })
       })
