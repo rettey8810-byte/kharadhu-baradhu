@@ -66,19 +66,20 @@ export default function ProfileSharing() {
     setMessage(null)
     
     try {
-      // Find user by email in auth.users
-      const { data: userData, error: userError } = await supabase
-        .from('auth.users')
-        .select('id, email')
-        .eq('email', inviteEmail.trim())
-        .single()
+      const email = inviteEmail.trim()
 
-      if (userError || !userData) {
+      // auth.users is not queryable from the client. Use RPC instead.
+      const { data: existingUserId, error: lookupError } = await supabase
+        .rpc('get_user_id_by_email', { p_email: email })
+
+      if (lookupError) throw lookupError
+
+      if (!existingUserId) {
         // User doesn't exist - create a pending invitation
         const { error } = await supabase
           .from('profile_share_invitations')
           .insert({
-            email: inviteEmail.trim(),
+            email,
             profile_id: shareAllProfiles ? null : selectedProfileId,
             share_all_profiles: shareAllProfiles,
             role: inviteRole,
@@ -86,7 +87,7 @@ export default function ProfileSharing() {
           })
         
         if (error) throw error
-        setMessage(`Invitation sent to ${inviteEmail}. They'll get access once they sign up.`)
+        setMessage(`Invitation sent to ${email}. They'll get access once they sign up.`)
       } else {
         // User exists - create direct share
         if (shareAllProfiles) {
@@ -94,7 +95,7 @@ export default function ProfileSharing() {
           const { data: { user } } = await supabase.auth.getUser()
           const shares = profiles.map(p => ({
             profile_id: p.id,
-            shared_with: userData.id,
+            shared_with: existingUserId,
             shared_by: user?.id,
             role: inviteRole,
             share_all_profiles: true
@@ -106,13 +107,13 @@ export default function ProfileSharing() {
           // Share single profile
           const { error } = await supabase.rpc('share_profile', {
             p_profile_id: selectedProfileId,
-            p_shared_with: userData.id,
+            p_shared_with: existingUserId,
             p_role: inviteRole
           })
           if (error) throw error
         }
         
-        setMessage(`${shareAllProfiles ? 'All profiles' : 'Profile'} shared with ${inviteEmail}`)
+        setMessage(`${shareAllProfiles ? 'All profiles' : 'Profile'} shared with ${email}`)
       }
       
       setInviteEmail('')

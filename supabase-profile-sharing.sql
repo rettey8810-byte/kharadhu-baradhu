@@ -14,6 +14,21 @@ CREATE TABLE IF NOT EXISTS public.profile_shares (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Server-side helper for looking up a user id by email.
+-- NOTE: auth.users is not exposed to the client, so this must be done via RPC.
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(p_email TEXT)
+RETURNS UUID
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, auth
+AS $$
+  SELECT id
+  FROM auth.users
+  WHERE lower(email) = lower(p_email)
+  LIMIT 1;
+$$;
+
 -- Profile Share Invitations table (pending invites)
 CREATE TABLE IF NOT EXISTS public.profile_share_invitations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,35 +46,43 @@ ALTER TABLE public.profile_shares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profile_share_invitations ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profile_shares
+DROP POLICY IF EXISTS "Users can view shares they created" ON public.profile_shares;
 CREATE POLICY "Users can view shares they created"
   ON public.profile_shares FOR SELECT
   USING (shared_by = auth.uid());
 
+DROP POLICY IF EXISTS "Users can view shares they received" ON public.profile_shares;
 CREATE POLICY "Users can view shares they received"
   ON public.profile_shares FOR SELECT
   USING (shared_with = auth.uid());
 
+DROP POLICY IF EXISTS "Users can create shares" ON public.profile_shares;
 CREATE POLICY "Users can create shares"
   ON public.profile_shares FOR INSERT
   WITH CHECK (shared_by = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete their own shares" ON public.profile_shares;
 CREATE POLICY "Users can delete their own shares"
   ON public.profile_shares FOR DELETE
   USING (shared_by = auth.uid());
 
 -- RLS Policies for profile_share_invitations
+DROP POLICY IF EXISTS "Inviters can view their invitations" ON public.profile_share_invitations;
 CREATE POLICY "Inviters can view their invitations"
   ON public.profile_share_invitations FOR SELECT
   USING (invited_by = auth.uid());
 
+DROP POLICY IF EXISTS "Users can view invitations to them" ON public.profile_share_invitations;
 CREATE POLICY "Users can view invitations to them"
   ON public.profile_share_invitations FOR SELECT
   USING (email = (SELECT email FROM auth.users WHERE id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can create invitations" ON public.profile_share_invitations;
 CREATE POLICY "Users can create invitations"
   ON public.profile_share_invitations FOR INSERT
   WITH CHECK (invited_by = auth.uid());
 
+DROP POLICY IF EXISTS "Inviters can delete their invitations" ON public.profile_share_invitations;
 CREATE POLICY "Inviters can delete their invitations"
   ON public.profile_share_invitations FOR DELETE
   USING (invited_by = auth.uid());
@@ -144,5 +167,6 @@ GRANT ALL ON public.profile_shares TO authenticated;
 GRANT ALL ON public.profile_shares TO anon;
 GRANT ALL ON public.profile_share_invitations TO authenticated;
 GRANT ALL ON public.profile_share_invitations TO anon;
+GRANT EXECUTE ON FUNCTION public.get_user_id_by_email(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.share_profile TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_share_invitation TO authenticated;
