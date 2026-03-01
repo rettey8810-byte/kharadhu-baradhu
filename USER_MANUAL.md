@@ -756,34 +756,60 @@ Hands-free expense entry - just speak your expense details!
 
 ## Profile Sharing (Multi-User Access)
 
-Share your Family profile with spouse, parents, or household members for collaborative expense tracking.
+Share your profiles with family members. Two sharing options available:
+- **Family Group** - Share ALL profiles at once (perfect for spouse/partner)
+- **Individual** - Share only specific profiles (perfect for kids' own expenses)
 
 ### Access Profile Sharing
 
 1. Go to **Profile Sharing** from side menu
-2. View current members and their roles
-3. Invite new family members
+2. Choose your sharing mode:
+   - **Family Group** tab - Share everything
+   - **Individual** tab - Share one profile
+
+### Sharing Options
+
+**Family Group Sharing (Share All Profiles):**
+- One invitation gives access to ALL your profiles
+- Perfect for spouse/partner who manages finances together
+- They can switch between all profiles
+- Real-time sync across all shared profiles
+
+**Individual Sharing (Share One Profile):**
+- Share only a specific profile
+- Perfect for kids to see only their own expenses
+- They only see what's explicitly shared
+- Can revoke access per-profile
 
 ### Member Roles
 
-- **Owner** - Full control, can delete profile, manage all members
-- **Admin** - Can add/edit transactions, invite members, manage settings
-- **Member** - Can add transactions and view reports only
+- **Admin** - Full access to add, edit, and manage everything
+- **Member** - Can add and edit transactions
+- **Viewer** - Can only view reports, cannot add/edit
 
-### Inviting Family Members
+### How to Share
 
+**Family Group (All Profiles):**
 1. Go to **Profile Sharing**
-2. Enter **Email Address** of family member
-3. Select **Role** (Member or Admin)
-4. Click **"Send Invitation"**
-5. They receive email with acceptance link
+2. Select **Family Group** tab
+3. Enter **Email Address** of family member
+4. Select **Access Level**
+5. Click **"Share All Profiles"**
+
+**Individual Profile:**
+1. Go to **Profile Sharing**
+2. Select **Individual** tab
+3. Select which **Profile** to share
+4. Enter **Email Address**
+5. Select **Access Level**
+6. Click **"Share This Profile"**
 
 ### Accepting Invitations
 
 1. Check your email for invitation
 2. Click **Accept Invitation** link
 3. Sign in (or create account if new)
-4. Profile appears in your profile selector
+4. Shared profile(s) appear in your profile selector
 
 ### Real-time Sync
 
@@ -792,11 +818,31 @@ Share your Family profile with spouse, parents, or household members for collabo
 - Works across all devices
 - Changes are live for everyone
 
-### Managing Members
+### Managing Access
 
-- **Remove Member** - Click trash icon (Owner/Admin only)
-- **Change Role** - Contact Owner to upgrade/downgrade
-- **Leave Profile** - Switch to another profile, contact Owner to remove you
+**Family Group Members:**
+- View all family members in the Family Group tab
+- See which profiles each person can access
+- Click trash icon to remove someone completely
+
+**Individual Shares:**
+- View each individual share in Individual tab
+- Revoke specific profile shares independently
+- Mix and match access levels per profile
+
+### Examples
+
+**Sharing with Spouse:**
+- Use **Family Group** tab
+- Share ALL profiles
+- Give Admin access
+- They see everything, can manage together
+
+**Sharing with Kids:**
+- Use **Individual** tab
+- Select only their profile (e.g., "Teen's Expenses")
+- Give Member or Viewer access
+- They only see their own transactions
 
 ---
 

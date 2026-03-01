@@ -46,7 +46,7 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Smart Insights** - AI-powered spending alerts and predictions
 - **Cash Flow Forecast** - Predict if you'll run out of money
 - **Voice Input** - Hands-free expense entry with speech recognition
-- **Profile Sharing** - Multi-user access for family expense tracking
+- **Profile Sharing** - Two sharing options: Family Group (share ALL profiles at once) or Individual (share specific profiles only)
 - **Offline Mode** - Work offline with auto-sync when connected
 
 ### Enhanced Recurring Bills (NEW!)

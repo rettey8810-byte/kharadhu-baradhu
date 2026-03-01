@@ -243,7 +243,6 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/export-reports" label={t('menu_export_reports')} icon={Download} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/quick-add" label={t('menu_quick_add')} icon={Zap} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profile-sharing" label={t('menu_profile_sharing')} icon={UserPlus} onMenuClose={() => setMenuOpen(false)} />
-              <NavItem to="/family-groups" label={t('menu_family_groups') || 'Family Groups'} icon={Users} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profiles" label={t('menu_profiles')} icon={Users} onMenuClose={() => setMenuOpen(false)} />
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">

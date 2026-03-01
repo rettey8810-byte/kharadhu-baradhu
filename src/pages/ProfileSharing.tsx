@@ -2,78 +2,123 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
-import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle } from 'lucide-react'
+import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound } from 'lucide-react'
 
-interface ProfileMember {
+interface SharedProfile {
   id: string
   profile_id: string
-  user_id: string | null
-  role: 'owner' | 'admin' | 'member'
-  invitation_accepted: boolean
-  invitation_email: string | null
+  profile_name: string
+  shared_with_email: string
+  shared_with_user_id: string | null
+  role: 'admin' | 'member' | 'viewer'
+  share_all_profiles: boolean
   created_at: string
-  user?: {
-    email: string
-  }
 }
 
 export default function ProfileSharing() {
-  const { currentProfile } = useProfile()
+  const { profiles, currentProfile } = useProfile()
   const { t } = useLanguage()
-  const [members, setMembers] = useState<ProfileMember[]>([])
+  const [sharedProfiles, setSharedProfiles] = useState<SharedProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'all' | 'individual'>('all')
+  
+  // Form state
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member')
+  const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'viewer'>('member')
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('')
+  const [shareAllProfiles, setShareAllProfiles] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
+    // Update shareAllProfiles based on active tab
+    setShareAllProfiles(activeTab === 'all')
+  }, [activeTab])
+
+  useEffect(() => {
+    loadSharedProfiles()
     if (currentProfile) {
-      loadMembers()
+      setSelectedProfileId(currentProfile.id)
     }
   }, [currentProfile])
 
-  const loadMembers = async () => {
+  const loadSharedProfiles = async () => {
     setLoading(true)
-    
-    // For now, show current user as owner
-    // In full implementation, this would fetch from profile_members table
-    const mockMembers: ProfileMember[] = [
-      {
-        id: '1',
-        profile_id: currentProfile?.id || '',
-        user_id: null,
-        role: 'owner',
-        invitation_accepted: true,
-        invitation_email: null,
-        created_at: new Date().toISOString(),
-        user: { email: 'You (Owner)' }
-      }
-    ]
-    
-    setMembers(mockMembers)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
+    // Load all profiles shared by this user
+    const { data } = await supabase
+      .from('profile_shares')
+      .select('*')
+      .eq('shared_by', user.id)
+      .order('created_at', { ascending: false })
+
+    setSharedProfiles(data || [])
     setLoading(false)
   }
 
   const sendInvitation = async () => {
-    if (!inviteEmail || !currentProfile) return
+    if (!inviteEmail) return
     
     setSending(true)
     setMessage(null)
     
     try {
-      // Call the Supabase function to invite member
-      const { error } = await supabase.rpc('invite_profile_member', {
-        p_profile_id: currentProfile.id,
-        p_email: inviteEmail,
-        p_role: inviteRole
-      })
+      // Find user by email
+      const { data: userData, error: userError } = await supabase
+        .from('user_settings')
+        .select('user_id')
+        .eq('email', inviteEmail.trim())
+        .single()
+
+      if (userError || !userData) {
+        // User doesn't exist - create a pending invitation
+        const { error } = await supabase
+          .from('profile_share_invitations')
+          .insert({
+            email: inviteEmail.trim(),
+            profile_id: shareAllProfiles ? null : selectedProfileId,
+            share_all_profiles: shareAllProfiles,
+            role: inviteRole,
+            invited_by: (await supabase.auth.getUser()).data.user?.id
+          })
+        
+        if (error) throw error
+        setMessage(`Invitation sent to ${inviteEmail}. They'll get access once they sign up.`)
+      } else {
+        // User exists - create direct share
+        if (shareAllProfiles) {
+          // Share all profiles
+          const { data: { user } } = await supabase.auth.getUser()
+          const shares = profiles.map(p => ({
+            profile_id: p.id,
+            shared_with: userData.user_id,
+            shared_by: user?.id,
+            role: inviteRole,
+            share_all_profiles: true
+          }))
+          
+          const { error } = await supabase.from('profile_shares').insert(shares)
+          if (error) throw error
+        } else {
+          // Share single profile
+          const { error } = await supabase.rpc('share_profile', {
+            p_profile_id: selectedProfileId,
+            p_shared_with: userData.user_id,
+            p_role: inviteRole
+          })
+          if (error) throw error
+        }
+        
+        setMessage(`${shareAllProfiles ? 'All profiles' : 'Profile'} shared with ${inviteEmail}`)
+      }
       
-      if (error) throw error
-      
-      setMessage(`Invitation sent to ${inviteEmail}`)
       setInviteEmail('')
-      loadMembers()
+      loadSharedProfiles()
     } catch (error: any) {
       setMessage(error.message || 'Failed to send invitation')
     } finally {
@@ -81,75 +126,161 @@ export default function ProfileSharing() {
     }
   }
 
+  const revokeShare = async (shareId: string) => {
+    await supabase.from('profile_shares').delete().eq('id', shareId)
+    loadSharedProfiles()
+  }
+
+  const revokeAllSharesForUser = async (email: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase
+      .from('profile_shares')
+      .delete()
+      .eq('shared_by', user?.id)
+      .eq('shared_with_email', email)
+    loadSharedProfiles()
+  }
+
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner': return <Shield size={16} className="text-emerald-600" />
-      case 'admin': return <UserPlus size={16} className="text-blue-600" />
+      case 'admin': return <Shield size={16} className="text-emerald-600" />
+      case 'member': return <UserPlus size={16} className="text-blue-600" />
       default: return <User size={16} className="text-gray-600" />
     }
   }
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'owner': return 'Owner'
-      case 'admin': return 'Admin'
-      default: return 'Member'
+      case 'admin': return 'Admin (Full Access)'
+      case 'member': return 'Member (Add/Edit)'
+      case 'viewer': return 'Viewer (View Only)'
+      default: return role
     }
   }
 
+  // Group shares by person for "Share All" view
+  const sharesByPerson = sharedProfiles.reduce((acc, share) => {
+    const key = share.shared_with_email
+    if (!acc[key]) {
+      acc[key] = []
+    }
+    acc[key].push(share)
+    return acc
+  }, {} as Record<string, SharedProfile[]>)
+
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">{t('page_profile_sharing')}</h2>
+    <div className="p-4 pb-24">
+      {/* Header */}
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-gray-900">Profile Sharing</h1>
+        <p className="text-sm text-gray-500">Share your profiles with family members</p>
       </div>
 
-      <p className="text-gray-600 text-sm">
-        Share access to your <strong>{currentProfile?.name}</strong> profile with family members. They can add expenses and income in real-time.
-      </p>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`flex-1 py-2 text-sm rounded-lg flex items-center justify-center gap-2 ${
+            activeTab === 'all' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          <UsersRound size={16} />
+          Family Group
+        </button>
+        <button
+          onClick={() => setActiveTab('individual')}
+          className={`flex-1 py-2 text-sm rounded-lg flex items-center justify-center gap-2 ${
+            activeTab === 'individual' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          <Home size={16} />
+          Individual
+        </button>
+      </div>
 
       {/* Info Card */}
-      <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700">
-        <p className="font-medium mb-2">How it works:</p>
+      <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-700 mb-4">
+        <p className="font-medium mb-2">
+          {activeTab === 'all' ? 'Family Group Sharing:' : 'Individual Profile Sharing:'}
+        </p>
         <ul className="list-disc list-inside space-y-1 text-blue-600">
-          <li><strong>Owner:</strong> Full control, can manage members</li>
-          <li><strong>Admin:</strong> Can add/edit transactions and invite members</li>
-          <li><strong>Member:</strong> Can add transactions and view reports</li>
+          {activeTab === 'all' ? (
+            <>
+              <li>Share ALL your profiles with one invitation</li>
+              <li>Perfect for spouses/partners who manage finances together</li>
+              <li>They can see everything and switch between all profiles</li>
+            </>
+          ) : (
+            <>
+              <li>Share only ONE specific profile</li>
+              <li>Perfect for kids to see only their own expenses</li>
+              <li>They only see what's shared with them</li>
+            </>
+          )}
         </ul>
       </div>
 
+      {/* Message */}
+      {message && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${
+          message.includes('sent') || message.includes('shared') 
+            ? 'bg-emerald-50 text-emerald-600' 
+            : 'bg-red-50 text-red-600'
+        }`}>
+          {message}
+        </div>
+      )}
+
       {/* Invite Form */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
-        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+      <div className="bg-white rounded-xl p-4 border border-gray-200 mb-4">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
           <UserPlus size={20} className="text-emerald-600" />
-          Invite Family Member
+          {activeTab === 'all' ? 'Invite Family Member' : 'Share Profile'}
         </h3>
         
         <div className="space-y-3">
+          {/* Email */}
           <div>
             <label className="text-sm font-medium text-gray-700">Email Address</label>
-            <div className="flex gap-2 mt-1">
-              <div className="relative flex-1">
-                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="spouse@example.com"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
-                />
-              </div>
+            <div className="relative mt-1">
+              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder={activeTab === 'all' ? "spouse@example.com" : "child@example.com"}
+                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
+              />
             </div>
           </div>
-          
+
+          {/* Profile Selection (only for individual tab) */}
+          {activeTab === 'individual' && (
+            <div>
+              <label className="text-sm font-medium text-gray-700">Select Profile to Share</label>
+              <select
+                value={selectedProfileId}
+                onChange={(e) => setSelectedProfileId(e.target.value)}
+                className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
+              >
+                {profiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Role */}
           <div>
-            <label className="text-sm font-medium text-gray-700">Role</label>
+            <label className="text-sm font-medium text-gray-700">Access Level</label>
             <select
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member')}
+              onChange={(e) => setInviteRole(e.target.value as 'admin' | 'member' | 'viewer')}
               className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
             >
-              <option value="member">Member (can add transactions)</option>
-              <option value="admin">Admin (can manage everything)</option>
+              <option value="admin">Admin - Full access to add, edit, and manage</option>
+              <option value="member">Member - Can add and edit transactions</option>
+              <option value="viewer">Viewer - Can only view, cannot add/edit</option>
             </select>
           </div>
           
@@ -161,25 +292,19 @@ export default function ProfileSharing() {
             {sending ? 'Sending...' : (
               <>
                 <UserPlus size={18} />
-                Send Invitation
+                {activeTab === 'all' ? 'Share All Profiles' : 'Share This Profile'}
               </>
             )}
           </button>
-          
-          {message && (
-            <p className={`text-sm text-center ${message.includes('sent') ? 'text-emerald-600' : 'text-red-600'}`}>
-              {message}
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Current Members */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* Currently Shared */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-900 flex items-center gap-2">
             <Users size={18} className="text-emerald-600" />
-            Current Members
+            {activeTab === 'all' ? 'Family Members' : 'Individual Shares'}
           </h3>
         </div>
         
@@ -187,57 +312,81 @@ export default function ProfileSharing() {
           <div className="p-8 text-center text-gray-500">
             <div className="animate-pulse">Loading...</div>
           </div>
-        ) : members.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            <Users size={40} className="mx-auto mb-3 opacity-50" />
-            <p>No members yet</p>
-            <p className="text-sm mt-1">Invite family members to share this profile</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {members.map((member) => (
-              <div key={member.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <User size={20} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {member.user?.email || member.invitation_email || 'Unknown'}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {getRoleIcon(member.role)}
-                      <span className="text-xs text-gray-500">{getRoleLabel(member.role)}</span>
-                      {!member.invitation_accepted && (
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
-                          Pending
-                        </span>
-                      )}
+        ) : activeTab === 'all' ? (
+          // Family Group View - grouped by person
+          Object.keys(sharesByPerson).length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <UsersRound size={48} className="mx-auto mb-3 opacity-50" />
+              <p>No family members yet</p>
+              <p className="text-sm mt-1">Invite your spouse to share all profiles</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {Object.entries(sharesByPerson).map(([email, shares]) => (
+                <div key={email} className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <User size={16} className="text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{email}</p>
+                        <p className="text-xs text-gray-500">
+                          {shares.length} profile{shares.length > 1 ? 's' : ''} shared
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => revokeAllSharesForUser(email)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="ml-10 space-y-1">
+                    {shares.map(share => (
+                      <div key={share.id} className="flex items-center gap-2 text-sm text-gray-600">
+                        <CheckCircle size={12} className="text-emerald-500" />
+                        {share.profile_name}
+                      </div>
+                    ))}
                   </div>
                 </div>
-                
-                {member.role !== 'owner' && (
-                  <button
-                    onClick={() => {/* Remove member */}}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    title="Remove member"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
+        ) : (
+          // Individual View - list all individual shares
+          sharedProfiles.filter(s => !s.share_all_profiles).length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <Home size={48} className="mx-auto mb-3 opacity-50" />
+              <p>No individual shares yet</p>
+              <p className="text-sm mt-1">Share specific profiles with individual family members</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {sharedProfiles
+                .filter(s => !s.share_all_profiles)
+                .map(share => (
+                  <div key={share.id} className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {getRoleIcon(share.role)}
+                      <div>
+                        <p className="font-medium text-gray-900">{share.profile_name}</p>
+                        <p className="text-sm text-gray-500">Shared with {share.shared_with_email}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => revokeShare(share.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )
         )}
-      </div>
-
-      {/* Pending Invitations Note */}
-      <div className="bg-yellow-50 rounded-xl p-4 text-sm text-yellow-700">
-        <p className="flex items-center gap-2">
-          <CheckCircle size={16} />
-          <strong>Note:</strong> Invited members will receive an email. They need to accept to access the profile.
-        </p>
       </div>
     </div>
   )

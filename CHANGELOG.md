@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-03-01
+
+### Added
+- **Simplified Profile Sharing** - Two options: Share ALL profiles (Family Group) or share individual profiles
+- **Grocery Bills Month Selector** - Browse grocery bills from any month/year
+
+### Changed
+- **Profile Sharing UI** - New tabbed interface for Family Group vs Individual sharing
+- Removed complex Family Groups feature in favor of simpler sharing model
+
+---
+
 ## [1.3.2] - 2026-03-01
 
 ### Added
