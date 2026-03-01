@@ -11,7 +11,7 @@ function formatMVR(value: number) {
 }
 
 export default function Transactions() {
-  const { currentProfile } = useProfile()
+  const { profiles, currentProfile } = useProfile()
   const { t } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
@@ -34,31 +34,32 @@ export default function Transactions() {
 
   useEffect(() => {
     loadData()
-  }, [currentProfile, selectedMonth])
+  }, [profiles, selectedMonth])
 
   const loadData = async () => {
-    if (!currentProfile) return
+    if (profiles.length === 0) return
     setLoading(true)
 
+    const profileIds = profiles.map(p => p.id)
     const [year, month] = selectedMonth.split('-').map(Number)
     const start = new Date(year, month - 1, 1)
     const end = new Date(year, month, 0)
 
-    // Load transactions for current month only
+    // Load transactions for ALL profiles for current month only
     const { data: txData } = await supabase
       .from('transactions')
-      .select('*, category:category_id(*), income_source:income_source_id(*)')
-      .eq('profile_id', currentProfile.id)
+      .select('*, category:category_id(*), income_source:income_source_id(*), profile:profile_id(name)')
+      .in('profile_id', profileIds)
       .gte('transaction_date', formatDateLocal(start))
       .lte('transaction_date', formatDateLocal(end))
       .order('transaction_date', { ascending: false })
 
     setTransactions(txData || [])
 
-    // Load categories and income sources for editing
+    // Load categories and income sources from all profiles for editing
     const [{ data: cats }, { data: sources }] = await Promise.all([
-      supabase.from('expense_categories').select('*').eq('profile_id', currentProfile.id).eq('is_archived', false),
-      supabase.from('income_sources').select('*').eq('profile_id', currentProfile.id)
+      supabase.from('expense_categories').select('*').in('profile_id', profileIds).eq('is_archived', false),
+      supabase.from('income_sources').select('*').in('profile_id', profileIds)
     ])
 
     setCategories(cats || [])
@@ -302,7 +303,7 @@ export default function Transactions() {
                       <div>
                         <p className="font-medium text-gray-900">{getTransactionName(tx)}</p>
                         <p className="text-xs text-gray-500">
-                          {tx.transaction_date} {tx.description && `• ${tx.description}`}
+                          {(tx.profile as any)?.name || 'Profile'} • {tx.transaction_date} {tx.description && `• ${tx.description}`}
                         </p>
                       </div>
                     </div>
