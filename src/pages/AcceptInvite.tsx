@@ -9,6 +9,7 @@ export default function AcceptInvite() {
   const token = searchParams.get('token')
   
   const [loading, setLoading] = useState(true)
+  const [needsLogin, setNeedsLogin] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [inviteDetails, setInviteDetails] = useState<{
@@ -24,14 +25,17 @@ export default function AcceptInvite() {
       return
     }
 
+    // Store token in localStorage for after-login processing
+    localStorage.setItem('pendingInviteToken', token)
+
     const processInvitation = async () => {
       try {
         // Get current user
         const { data: { user } } = await supabase.auth.getUser()
         
         if (!user) {
-          // User not logged in - redirect to login with return URL
-          setError('Please sign in or create an account to accept this invitation')
+          // User not logged in - show login button instead of error
+          setNeedsLogin(true)
           setLoading(false)
           return
         }
@@ -102,6 +106,9 @@ export default function AcceptInvite() {
           })
         }
 
+        // Clear pending token
+        localStorage.removeItem('pendingInviteToken')
+        
         setSuccess(true)
         setLoading(false)
 
@@ -125,6 +132,42 @@ export default function AcceptInvite() {
         <div className="text-center">
           <Loader2 size={48} className="mx-auto mb-4 animate-spin text-emerald-600" />
           <p className="text-gray-600">Processing your invitation...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (needsLogin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white rounded-2xl p-6 border border-gray-200">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={32} className="text-amber-600" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Accept Invitation</h1>
+            <p className="text-gray-600 mt-2">
+              Please sign in or create an account to accept this invitation.
+            </p>
+            <p className="text-sm text-amber-600 mt-2">
+              Use the same email address that received the invitation.
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full bg-white border border-emerald-600 text-emerald-600 py-3 rounded-xl font-semibold"
+            >
+              Create Account
+            </button>
+          </div>
         </div>
       </div>
     )

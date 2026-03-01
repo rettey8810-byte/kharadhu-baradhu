@@ -20,12 +20,26 @@ export default function Login() {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         setMessage('Signed in successfully.')
+        
+        // Check for pending invite token and redirect
+        const pendingToken = localStorage.getItem('pendingInviteToken')
+        if (pendingToken) {
+          window.location.href = `/accept-invite?token=${pendingToken}`
+          return
+        }
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
 
         if (data.session) {
           setMessage('Account created and signed in.')
+          
+          // Check for pending invite token and redirect
+          const pendingToken = localStorage.getItem('pendingInviteToken')
+          if (pendingToken) {
+            window.location.href = `/accept-invite?token=${pendingToken}`
+            return
+          }
         } else {
           setMessage('Account created. Check your email to confirm your account, then come back and sign in.')
         }
