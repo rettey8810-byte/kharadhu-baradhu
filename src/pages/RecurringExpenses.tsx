@@ -80,46 +80,60 @@ export default function RecurringExpenses() {
   const loadData = async () => {
     if (!currentProfile) return
     setLoading(true)
+    
+    const { data: expensesData, error } = await supabase
+      .from('recurring_expenses')
+      .select('*, category:category_id(name)')
+      .eq('profile_id', currentProfile.id)
+      .order('name', { ascending: true })
 
-    const { data: cats } = await supabase
+    // Debug: show all recurring expenses with IDs to find duplicates
+    console.log('All recurring expenses:', expensesData?.map((e: any) => ({ id: e.id, name: e.name, amount: e.amount, next_due_date: e.next_due_date })))
+    
+    // Find duplicates by name
+    const nameCount: Record<string, number> = {}
+    expensesData?.forEach((e: any) => {
+      nameCount[e.name] = (nameCount[e.name] || 0) + 1
+    })
+    const duplicates = Object.entries(nameCount).filter(([_name, count]) => count > 1)
+    if (duplicates.length > 0) {
+      console.log('DUPLICATE BILLS FOUND:', duplicates)
+    }
+
+    if (!error && expensesData) {
+      setExpenses(expensesData as any)
+      
+      // Check paid status for variable bills
+      const variableBills = expensesData.filter((e: any) => e.is_variable_amount)
+      if (variableBills.length > 0) {
+        const { data: payments } = await supabase
+          .from('bill_payments')
+          .select('recurring_expense_id, due_date, is_paid')
+          .eq('profile_id', currentProfile.id)
+          .eq('is_paid', true)
+          .in('recurring_expense_id', variableBills.map((e: any) => e.id))
+        
+        const status: Record<string, boolean> = {}
+        payments?.forEach((p: any) => {
+          status[`${p.recurring_expense_id}|${p.due_date}`] = true
+        })
+        setPaidStatus(status)
+      }
+    }
+    
+    // Load categories for the add form
+    const { data: catData } = await supabase
       .from('expense_categories')
       .select('*')
       .eq('profile_id', currentProfile.id)
-      .eq('is_archived', false)
-
-    setCategories(cats || [])
-
-    const { data } = await supabase
-      .from('recurring_expenses')
-      .select('*, category:category_id(*)')
-      .eq('profile_id', currentProfile.id)
-      .eq('is_active', true)
-      .order('next_due_date')
-
-    setExpenses((data || []) as any)
-
-    const ids = (data || []).map((d: any) => d.id)
-    if (ids.length > 0) {
-      const dueDates = Array.from(new Set((data || []).map((d: any) => d.next_due_date)))
-
-      const { data: payments } = await supabase
-        .from('bill_payments')
-        .select('recurring_expense_id, due_date, is_paid')
-        .eq('profile_id', currentProfile.id)
-        .in('recurring_expense_id', ids)
-        .in('due_date', dueDates)
-
-      const map: Record<string, boolean> = {}
-      ;(payments || []).forEach((p: any) => {
-        map[`${p.recurring_expense_id}|${p.due_date}`] = Boolean(p.is_paid)
-      })
-      setPaidStatus(map)
-    } else {
-      setPaidStatus({})
-    }
-
+    setCategories(catData || [])
+    
     setLoading(false)
   }
+
+  useEffect(() => {
+    loadData()
+  }, [currentProfile])
 
   const clampDayOfMonth = (year: number, monthIndex0: number, day: number) => {
     const lastDay = new Date(year, monthIndex0 + 1, 0).getDate()
