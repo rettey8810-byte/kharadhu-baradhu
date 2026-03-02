@@ -195,7 +195,10 @@ export default function Dashboard() {
         upcomingFixed: upcomingFixed?.length ?? 0,
         unpaidVariableData: unpaidVariable?.map((u: any) => ({
           id: u.id,
+          name: u.recurring_expense?.name,
           amount: u.amount,
+          is_paid: u.is_paid,
+          due_date: u.due_date,
           recurring_expense_id: u.recurring_expense_id,
           recurring_expense: u.recurring_expense
         }))
