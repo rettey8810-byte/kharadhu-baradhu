@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { supabase } from '../lib/supabase'
-import { Car, Plus, Wallet, ArrowUpCircle, ArrowDownCircle, X } from 'lucide-react'
+import { Car, Plus, ArrowUpCircle, ArrowDownCircle, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 function formatMVR(value: number) {
@@ -246,8 +246,19 @@ export default function Taxi() {
   }
 
   const summary = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
     const monthKey = new Date().toISOString().slice(0, 7)
+    const yearKey = new Date().toISOString().slice(0, 4)
 
+    // Day to Date
+    const dayIncome = trips
+      .filter(t => t.trip_date === today)
+      .reduce((sum, it) => sum + Number(it.total_income), 0)
+    const dayExpense = expenses
+      .filter(e => e.expense_date === today)
+      .reduce((sum, it) => sum + Number(it.amount), 0)
+
+    // Month to Date
     const monthlyIncome = trips
       .filter(t => t.trip_date.startsWith(monthKey))
       .reduce((sum, it) => sum + Number(it.total_income), 0)
@@ -255,13 +266,28 @@ export default function Taxi() {
       .filter(e => e.expense_date.startsWith(monthKey))
       .reduce((sum, it) => sum + Number(it.amount), 0)
 
+    // Year to Date
+    const yearlyIncome = trips
+      .filter(t => t.trip_date.startsWith(yearKey))
+      .reduce((sum, it) => sum + Number(it.total_income), 0)
+    const yearlyExpense = expenses
+      .filter(e => e.expense_date.startsWith(yearKey))
+      .reduce((sum, it) => sum + Number(it.amount), 0)
+
+    // Overall (all time)
     const overallIncome = trips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const overallExpense = expenses.reduce((sum, it) => sum + Number(it.amount), 0)
 
     return {
+      dayIncome,
+      dayExpense,
+      dayProfit: dayIncome - dayExpense,
       monthlyIncome,
       monthlyExpense,
       monthlyProfit: monthlyIncome - monthlyExpense,
+      yearlyIncome,
+      yearlyExpense,
+      yearlyProfit: yearlyIncome - yearlyExpense,
       overallIncome,
       overallExpense,
       overallProfit: overallIncome - overallExpense,
@@ -487,38 +513,103 @@ export default function Taxi() {
 
       {/* Profit summary */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="bg-emerald-50 rounded-xl p-3">
-            <Wallet size={20} className="text-emerald-600" />
+        {/* Day to Date */}
+        <div className="mb-4 pb-4 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Day to Date</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <ArrowUpCircle size={12} /> Revenue
+              </p>
+              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.dayIncome)}</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-xs text-red-700 flex items-center gap-1">
+                <ArrowDownCircle size={12} /> Cost
+              </p>
+              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.dayExpense)}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-500">Monthly Profit</p>
-            <p className="text-xl font-semibold text-gray-900">{formatMVR(summary.monthlyProfit)}</p>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-            <p className="text-xs text-blue-700 flex items-center gap-1">
-              <ArrowUpCircle size={14} /> Income
+          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
+            <p className="text-xs text-gray-500">Profit</p>
+            <p className={`text-sm font-semibold ${summary.dayProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatMVR(summary.dayProfit)}
             </p>
-            <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.monthlyIncome)}</p>
-          </div>
-          <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-            <p className="text-xs text-red-700 flex items-center gap-1">
-              <ArrowDownCircle size={14} /> Expenses
-            </p>
-            <p className="text-sm font-semibold text-red-900">{formatMVR(summary.monthlyExpense)}</p>
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-            <p className="text-xs text-gray-600">Overall Profit</p>
-            <p className="text-sm font-semibold text-gray-900">{formatMVR(summary.overallProfit)}</p>
+        {/* Month to Date */}
+        <div className="mb-4 pb-4 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Month to Date</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <ArrowUpCircle size={12} /> Revenue
+              </p>
+              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.monthlyIncome)}</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-xs text-red-700 flex items-center gap-1">
+                <ArrowDownCircle size={12} /> Cost
+              </p>
+              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.monthlyExpense)}</p>
+            </div>
           </div>
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-            <p className="text-xs text-gray-600">Overall Income / Expenses</p>
-            <p className="text-sm font-semibold text-gray-900">{formatMVR(summary.overallIncome)} / {formatMVR(summary.overallExpense)}</p>
+          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
+            <p className="text-xs text-gray-500">Profit</p>
+            <p className={`text-sm font-semibold ${summary.monthlyProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatMVR(summary.monthlyProfit)}
+            </p>
+          </div>
+        </div>
+
+        {/* Year to Date */}
+        <div className="mb-4 pb-4 border-b border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Year to Date</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <ArrowUpCircle size={12} /> Revenue
+              </p>
+              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.yearlyIncome)}</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-xs text-red-700 flex items-center gap-1">
+                <ArrowDownCircle size={12} /> Cost
+              </p>
+              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.yearlyExpense)}</p>
+            </div>
+          </div>
+          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
+            <p className="text-xs text-gray-500">Profit</p>
+            <p className={`text-sm font-semibold ${summary.yearlyProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatMVR(summary.yearlyProfit)}
+            </p>
+          </div>
+        </div>
+
+        {/* Overall */}
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Overall (All Time)</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <ArrowUpCircle size={12} /> Revenue
+              </p>
+              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.overallIncome)}</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-xs text-red-700 flex items-center gap-1">
+                <ArrowDownCircle size={12} /> Cost
+              </p>
+              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.overallExpense)}</p>
+            </div>
+          </div>
+          <div className="mt-2 bg-emerald-50 rounded-xl p-2 text-center">
+            <p className="text-xs text-gray-500">Total Profit</p>
+            <p className={`text-sm font-semibold ${summary.overallProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatMVR(summary.overallProfit)}
+            </p>
           </div>
         </div>
       </div>
