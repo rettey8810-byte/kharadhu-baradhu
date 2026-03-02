@@ -55,6 +55,7 @@ export default function Taxi() {
   const [trips, setTrips] = useState<TaxiTrip[]>([])
   const [expenses, setExpenses] = useState<TaxiVehicleExpense[]>([])
   const [taxiExpenseCategoryId, setTaxiExpenseCategoryId] = useState<string | null>(null)
+  const [taxiIncomeSourceId, setTaxiIncomeSourceId] = useState<string | null>(null)
 
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string }>({
@@ -125,6 +126,46 @@ export default function Taxi() {
     }
 
     ensureTaxiCategory()
+  }, [currentProfile])
+
+  useEffect(() => {
+    const ensureTaxiIncomeSource = async () => {
+      if (!currentProfile) return
+      try {
+        const { data: sources, error: sourcesErr } = await supabase
+          .from('income_sources')
+          .select('id, name')
+          .eq('profile_id', currentProfile.id)
+          .eq('is_archived', false)
+
+        if (sourcesErr) throw sourcesErr
+
+        const existing = (sources ?? []).find((s: any) => (s.name ?? '').trim().toLowerCase() === 'taxi')
+        if (existing?.id) {
+          setTaxiIncomeSourceId(existing.id)
+          return
+        }
+
+        const { data: created, error: createErr } = await supabase
+          .from('income_sources')
+          .insert({
+            profile_id: currentProfile.id,
+            name: 'Taxi',
+            color: '#3b82f6',
+            icon: 'Car',
+            is_archived: false,
+          })
+          .select('id')
+          .single()
+
+        if (createErr) throw createErr
+        setTaxiIncomeSourceId(created?.id ?? null)
+      } catch {
+        setTaxiIncomeSourceId(null)
+      }
+    }
+
+    ensureTaxiIncomeSource()
   }, [currentProfile])
 
   useEffect(() => {
@@ -267,6 +308,11 @@ export default function Taxi() {
 
     const total = count * rate
 
+    const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId)
+    const vehicleLabel = selectedVehicle
+      ? `${selectedVehicle.name}${selectedVehicle.plate_number ? ` (${selectedVehicle.plate_number})` : ''}`
+      : selectedVehicleId
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
@@ -278,11 +324,13 @@ export default function Taxi() {
           profile_id: currentProfile.id,
           type: 'income',
           amount: total,
-          description: 'Taxi income',
-          notes: tripForm.notes.trim() ? `Vehicle: ${selectedVehicleId}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}` : `Vehicle: ${selectedVehicleId}\nTrips: ${count}\nRate: ${rate}`,
+          description: `Taxi income - ${vehicleLabel}`,
+          notes: tripForm.notes.trim()
+            ? `Vehicle: ${vehicleLabel}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}`
+            : `Vehicle: ${vehicleLabel}\nTrips: ${count}\nRate: ${rate}`,
           transaction_date: tripForm.trip_date,
           category_id: null,
-          income_source_id: null,
+          income_source_id: taxiIncomeSourceId,
         })
         .select()
         .single()
@@ -319,6 +367,11 @@ export default function Taxi() {
     const amt = Number(expenseForm.amount)
     if (!Number.isFinite(amt) || amt <= 0) return
 
+    const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId)
+    const vehicleLabel = selectedVehicle
+      ? `${selectedVehicle.name}${selectedVehicle.plate_number ? ` (${selectedVehicle.plate_number})` : ''}`
+      : selectedVehicleId
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
@@ -329,8 +382,8 @@ export default function Taxi() {
           profile_id: currentProfile.id,
           type: 'expense',
           amount: amt,
-          description: `Taxi expense - ${expenseForm.expense_type}`,
-          notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
+          description: `Taxi expense - ${expenseForm.expense_type} - ${vehicleLabel}`,
+          notes: expenseForm.notes.trim() ? `Vehicle: ${vehicleLabel}\n${expenseForm.notes.trim()}` : `Vehicle: ${vehicleLabel}`,
           transaction_date: expenseForm.expense_date,
           category_id: taxiExpenseCategoryId,
           income_source_id: null,
