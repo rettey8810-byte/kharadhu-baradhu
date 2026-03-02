@@ -54,6 +54,14 @@ export default function Transactions() {
       .lte('transaction_date', formatDateLocal(end))
       .order('transaction_date', { ascending: false })
 
+    console.log('Transactions query:', {
+      profileIds,
+      monthStart: formatDateLocal(start),
+      monthEnd: formatDateLocal(end),
+      count: txData?.length ?? 0,
+      transactions: txData?.map((t: any) => ({ id: t.id, profile_id: t.profile_id, profile_name: t.profile?.name, amount: t.amount, date: t.transaction_date }))
+    })
+
     setTransactions(txData || [])
 
     // Load categories and income sources from all profiles for editing
