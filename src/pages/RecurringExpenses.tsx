@@ -231,7 +231,7 @@ export default function RecurringExpenses() {
         if (payErr) throw payErr
       }
 
-      // 3) Advance next due date
+      // 3) Advance next due date and create next month's bill payment
       if (dueDateToPay === exp.next_due_date) {
         const nextDue = calcNextDueDate(exp)
         const { error: updErr } = await supabase
@@ -239,6 +239,19 @@ export default function RecurringExpenses() {
           .update({ next_due_date: nextDue })
           .eq('id', exp.id)
         if (updErr) throw updErr
+
+        // Create bill_payments row for next month so it appears on dashboard
+        const { error: nextBpErr } = await supabase
+          .from('bill_payments')
+          .insert({
+            recurring_expense_id: exp.id,
+            profile_id: currentProfile.id,
+            due_date: nextDue,
+            amount: exp.amount,
+            is_paid: false,
+          })
+        // Ignore conflict error if row already exists
+        if (nextBpErr && !nextBpErr.message?.includes('duplicate')) throw nextBpErr
       }
 
       await loadData()
