@@ -342,7 +342,6 @@ export default function Loans() {
                 <LoanCard
                   key={loan.id}
                   loan={loan}
-                  payments={payments[loan.id] || []}
                   onPay={() => setShowPay(loan.id)}
                   onDetails={() => setShowDetails(loan.id)}
                   onDelete={() => deleteLoan(loan.id)}
@@ -359,7 +358,6 @@ export default function Loans() {
                 <LoanCard
                   key={loan.id}
                   loan={loan}
-                  payments={payments[loan.id] || []}
                   onPay={() => setShowPay(loan.id)}
                   onDetails={() => setShowDetails(loan.id)}
                   onDelete={() => deleteLoan(loan.id)}
@@ -376,7 +374,6 @@ export default function Loans() {
                 <LoanCard
                   key={loan.id}
                   loan={loan}
-                  payments={payments[loan.id] || []}
                   onPay={() => {}}
                   onDetails={() => setShowDetails(loan.id)}
                   onDelete={() => deleteLoan(loan.id)}
@@ -423,13 +420,11 @@ export default function Loans() {
 // Loan Card Component
 function LoanCard({
   loan,
-  payments,
   onPay,
   onDetails,
   onDelete
 }: {
   loan: Loan
-  payments: LoanPayment[]
   onPay: () => void
   onDetails: () => void
   onDelete: () => void
