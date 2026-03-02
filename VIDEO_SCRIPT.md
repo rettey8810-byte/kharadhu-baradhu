@@ -53,27 +53,32 @@
 **Text:** "Taxi Profit Tracking"
 **Voiceover:** "Drive a taxi? Track trips and vehicle expenses like petrol and service, and see monthly profit automatically. Everything is connected to your main transactions."
 
-**Feature 5 - Budget & Goals (45-52 sec)**
+**Feature 4D - MetaTrader 5 (62-67 sec)**
+**Visual:** MT5 page: add trade (EURUSD buy, lots, entry/exit prices), auto-calculated P/L, add expense (commission), profit summary (Day/Month/Year/Overall), "View in All Transactions" filtered list
+**Text:** "Forex Trading Tracker"
+**Voiceover:** "Trade forex on MetaTrader 5? Track every trade with automatic profit/loss calculation. Monitor trading expenses like commissions and VPS. See your trading performance alongside your personal finances."
+
+**Feature 5 - Budget & Goals (67-74 sec)**
 **Visual:** Budget progress bar, savings goals with colorful cards
 **Text:** "Budgets & Savings Goals"
 **Voiceover:** "Set budgets, track savings goals, and stay on top of your finances."
 
-**Feature 6 - All Transactions (52-57 sec)**
+**Feature 6 - All Transactions (74-79 sec)**
 **Visual:** Transaction list with edit/delete buttons, search and filter
 **Text:** "Manage All Transactions"
 **Voiceover:** "View, edit, and delete all your expenses and income in one place with powerful search and filters."
 
-**Feature 7 - Dark Mode (57-62 sec)**
+**Feature 7 - Dark Mode (79-84 sec)**
 **Visual:** App switching from light to dark mode, toggle button
 **Text:** "Dark Mode"
 **Voiceover:** "Easy on the eyes day or night. Switch between light and dark themes with one tap."
 
-**Feature 8 - Quick Add Widget (62-67 sec)**
+**Feature 8 - Quick Add Widget (84-89 sec)**
 **Visual:** Quick add screen, tapping presets (Coffee, Lunch), instant save
 **Text:** "Add in Seconds"
 **Voiceover:** "Track expenses instantly with Quick Add. One tap for common expenses, no navigation needed."
 
-### SCENE 4: Call to Action (67-75 sec)
+### SCENE 4: Call to Action (89-97 sec)
 **Visual:** App running on phone, "Download Now" button
 **Text:** "Free to Use | Install as an App (PWA)"
 **Voiceover:** "Kharadhu Baradhu - track family expenses the smart way. Install it as an app on your phone, it's free!"
@@ -245,6 +250,11 @@
 **Visual:** Airplane mode on, adding transaction, connection restored, auto-sync
 **Text:** "Works offline, syncs later."
 **Caption:** "Work offline - auto-sync when connected 📲✈️ #OfflineMode #PWA"
+
+### Clip 13: MT5 Trading (15 sec)
+**Visual:** MT5 page showing trade entry (EURUSD, lots, prices), P/L calculation, profit summary cards
+**Text:** "Track your forex trades."
+**Caption:** "MetaTrader 5 traders - track every trade & expense automatically 📈 #Forex #Trading #MT5 #Maldives"
 
 ---
 

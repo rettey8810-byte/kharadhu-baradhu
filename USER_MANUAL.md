@@ -19,7 +19,9 @@ Complete guide to using the Family Expense Tracker.
 11. [Bill Reminders](#bill-reminders)
 12. [Loans](#loans)
 13. [Search & Filter](#search--filter)
-14. [Tips & Best Practices](#tips--best-practices)
+14. [Taxi](#taxi)
+15. [MetaTrader 5 (MT5)](#metatrader-5-mt5)
+16. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -296,6 +298,74 @@ Taxi page shows:
 ### View Taxi Transactions
 
 Tap **View in All Transactions** to open All Transactions filtered to Taxi income/expenses.
+
+## MetaTrader 5 (MT5)
+
+Track your forex trading profits, losses, and expenses. Perfect for MetaTrader 5 traders who want to monitor their trading performance alongside their personal finances.
+
+### Record a Trade
+
+1. Open **MetaTrader 5** from the side menu
+2. Tap **Add Trade**
+3. Fill in trade details:
+   - **Date** - Trade execution date
+   - **Symbol** - Currency pair (e.g., EURUSD, GBPUSD)
+   - **Type** - Buy or Sell
+   - **Lot Size** - Position size (e.g., 0.10, 0.50, 1.00)
+   - **Entry Price** - Price where you entered the trade
+   - **Exit Price** - Price where you closed the trade
+   - **Notes** - Optional (strategy, setup, etc.)
+4. Tap **Add Trade**
+
+**Profit/Loss is calculated automatically** using the formula: `(Exit - Entry) × Lot Size × 100,000`
+
+### Record Trading Expenses
+
+1. In **MT5**, tap **Add Expense**
+2. Choose expense type:
+   - Account Fees
+   - Commission
+   - Spread Costs
+   - VPS/Hosting
+   - Trading Signals
+   - Education/Courses
+   - Trading Tools
+   - Other
+3. Enter amount and optional notes
+4. Tap **Add Expense**
+
+### Profit Summary
+
+The MT5 page shows comprehensive profit tracking:
+
+- **Day-to-Date** - Today's trades P/L
+- **Month-to-Date** - Current month trades P/L
+- **Year-to-Date** - Current year trades P/L
+- **Overall (All Time)** - Total trading P/L since you started tracking
+
+Each section shows:
+- Profit (green)
+- Loss (red)
+- Net P/L (combined)
+
+### View MT5 Transactions
+
+Tap **View in All Transactions** to see all MT5 trades and expenses in the main transaction list.
+
+### How It Connects
+
+Like the Taxi module, all MT5 trades and expenses create linked transactions:
+- **Profitable trades** → Income transactions (linked to "MT5" income source)
+- **Losing trades** → Expense transactions (linked to "MT5" category)
+- **Expenses** → Expense transactions (linked to "MT5" category)
+
+This means your trading activity is included in:
+- Dashboard totals
+- Budget calculations
+- Reports and analytics
+- Monthly/Yearly summaries
+
+---
 
 ## Loans
 

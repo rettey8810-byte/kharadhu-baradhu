@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Recurring Bills Mark-as-Paid Modal** - Replaced browser prompt with a modal that captures paid amount, paid date, and notes.
 - **Taxi Module** - Add vehicles, record trip income (trip count × rate), log vehicle expenses, and track monthly + overall profit (creates linked transactions).
 - **Taxi Transactions Filter** - Taxi page can open All Transactions filtered to Taxi income/expenses.
+- **MT5 Module** - Track MetaTrader 5 forex trades with symbol, buy/sell, lot size, entry/exit prices. Auto-calculates profit/loss.
+- **MT5 Expenses** - Track trading-related expenses: account fees, commission, VPS, signals, education, tools.
+- **MT5 Profit Summary** - Day-to-Date, Month-to-Date, Year-to-Date, and Overall profit/loss tracking.
+- **MT5 Transactions Filter** - MT5 page can open All Transactions filtered to MT5 trades/expenses.
 
 ### Changed
 - **Bottom Navigation** - Savings moved to side menu, Taxi added to bottom navigation.
@@ -99,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Multi-User Access (Profile Sharing)
 - **Family Sharing** - Invite members to shared profiles
-- **Role Management** - Owner, Admin, Member permissions
+- **Owner, Admin, Member permissions** - Role-based access control
 - **Real-time Sync** - All members see updates instantly
 - **Invitation System** - Email-based invites with acceptance
 - **Access Control** - `/profile-sharing` page to manage members
@@ -303,7 +307,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bill_reminders` - Generated reminders
 - `receipts` - Receipt metadata
 - `grocery_bills` - Structured grocery receipt data
-- `grocery_bill_items` - Line items from grocery receipts
+- `mt5_trades` - MetaTrader 5 forex trades
+- `mt5_expenses` - MT5-related expenses (fees, commission, VPS, etc.)
 
 #### Security Features
 - All tables have RLS enabled

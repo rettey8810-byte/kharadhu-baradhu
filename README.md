@@ -74,6 +74,13 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Profit Tracking** - Monthly and overall profit shown on Taxi page
 - **Connected to Main System** - Taxi items also create normal transactions, so budgets/charts/reports include them
 
+### MetaTrader 5 (MT5) (NEW!)
+- **Trade Tracking** - Record forex trades with symbol, buy/sell, lot size, entry/exit prices
+- **Auto P/L Calculation** - Automatically calculates profit/loss from trade details
+- **Expense Tracking** - Track account fees, commission, VPS, trading signals, education, tools
+- **Profit Summary** - Day-to-Date, Month-to-Date, Year-to-Date, and Overall profit/loss
+- **Connected to Main System** - Trades and expenses create linked transactions for full reporting
+
 ### Grocery Receipt OCR
 - **Supabase Auth** - Email/password and OAuth sign-in
 - **Row Level Security** - Your data is private and secure
@@ -166,6 +173,7 @@ Run these SQL files in Supabase SQL Editor:
 5. **Loans** - `supabase-loans.sql` (NEW!)
 
 6. **Taxi** - `supabase-taxi.sql` (NEW!)
+7. **MetaTrader 5** - `supabase-mt5.sql` (NEW!)
 
 Optional / advanced (only if you use these features):
 
@@ -272,6 +280,9 @@ You will also see an **Install banner** at the top of the Dashboard when your de
 - [x] **Recurring income tracking** (NEW!)
 - [x] **Export reports (CSV/JSON)** (NEW!)
 - [x] **Quick add widget** (NEW!)
+- [x] **Loans tracking** (NEW!)
+- [x] **Taxi management** (NEW!)
+- [x] **MetaTrader 5 trading** (NEW!)
 
 ### Upcoming
 - [ ] Multi-currency support
