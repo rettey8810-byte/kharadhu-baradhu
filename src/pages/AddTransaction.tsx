@@ -39,9 +39,41 @@ export default function AddTransaction() {
   const [billSubtotal, setBillSubtotal] = useState('')
   const [billTotal, setBillTotal] = useState('')
   const [billItems, setBillItems] = useState<Array<{ item_name: string; qty: string; unit_price: string; line_total: string }>>([])
+  const [groceryItemHistory, setGroceryItemHistory] = useState<string[]>([])
+  const [activeAutocompleteIndex, setActiveAutocompleteIndex] = useState<number | null>(null)
+  const [autocompleteQuery, setAutocompleteQuery] = useState<string>('')
 
   const selectedCategory = categories.find(c => c.id === categoryId)
   const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
+
+  // Load grocery item history when in groceries mode
+  useEffect(() => {
+    const loadGroceryHistory = async () => {
+      if (!isGroceries) {
+        setGroceryItemHistory([])
+        return
+      }
+      const { data, error } = await supabase
+        .from('grocery_item_history')
+        .select('item_name')
+        .order('last_used_at', { ascending: false })
+        .limit(100)
+      
+      if (!error && data) {
+        setGroceryItemHistory(data.map(d => d.item_name))
+      }
+    }
+    loadGroceryHistory()
+  }, [isGroceries])
+
+  // Filtered autocomplete suggestions
+  const getAutocompleteSuggestions = (query: string) => {
+    if (!query.trim()) return groceryItemHistory.slice(0, 10)
+    const lowerQuery = query.toLowerCase()
+    return groceryItemHistory
+      .filter(item => item.toLowerCase().includes(lowerQuery))
+      .slice(0, 10)
+  }
 
   const getNumeric = (v: string) => {
     const n = v.trim() ? Number(v) : NaN
@@ -504,6 +536,17 @@ export default function AddTransaction() {
           }))
           const { error: itemsErr } = await supabase.from('grocery_bill_items').insert(rows)
           if (itemsErr) throw itemsErr
+
+          // Save items to history for autocomplete
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            for (const item of cleanedItems) {
+              await supabase.rpc('upsert_grocery_item_history', {
+                p_user_id: user.id,
+                p_item_name: item.item_name
+              })
+            }
+          }
         }
       }
 
@@ -810,18 +853,52 @@ export default function AddTransaction() {
               )}
 
               <div className="space-y-2">
-                {billItems.map((it, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                    <input
-                      className="col-span-6 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
-                      value={it.item_name}
-                      onChange={(e) => {
-                        const next = [...billItems]
-                        next[idx] = { ...next[idx], item_name: e.target.value }
-                        setBillItems(next)
-                      }}
-                      placeholder={t('form_item_placeholder')}
-                    />
+                {billItems.map((it, idx) => {
+                  const suggestions = activeAutocompleteIndex === idx 
+                    ? getAutocompleteSuggestions(autocompleteQuery) 
+                    : []
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-start">
+                      <div className="col-span-6 relative">
+                        <input
+                          className="w-full border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
+                          value={it.item_name}
+                          onChange={(e) => {
+                            const next = [...billItems]
+                            next[idx] = { ...next[idx], item_name: e.target.value }
+                            setBillItems(next)
+                            setActiveAutocompleteIndex(idx)
+                            setAutocompleteQuery(e.target.value)
+                          }}
+                          onFocus={() => {
+                            setActiveAutocompleteIndex(idx)
+                            setAutocompleteQuery(it.item_name)
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => setActiveAutocompleteIndex(null), 200)
+                          }}
+                          placeholder={t('form_item_placeholder')}
+                        />
+                        {suggestions.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-emerald-200 rounded-lg shadow-lg max-h-40 overflow-auto">
+                            {suggestions.map((suggestion, sIdx) => (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                onClick={() => {
+                                  const next = [...billItems]
+                                  next[idx] = { ...next[idx], item_name: suggestion }
+                                  setBillItems(next)
+                                  setActiveAutocompleteIndex(null)
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 focus:bg-emerald-50"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     <input
                       className="col-span-2 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
                       value={it.qty}
@@ -877,8 +954,9 @@ export default function AddTransaction() {
                         <X size={14} />
                       </button>
                     </div>
-                  </div>
-                ))}
+                    </div>
+                  )
+                })}
 
                 <button
                   type="button"
