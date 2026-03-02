@@ -11,7 +11,7 @@ function formatMVR(value: number) {
 }
 
 export default function Transactions() {
-  const { profiles, currentProfile } = useProfile()
+  const { profiles } = useProfile()
   const { t } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
