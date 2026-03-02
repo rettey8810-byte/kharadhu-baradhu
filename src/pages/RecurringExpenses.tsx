@@ -157,6 +157,7 @@ export default function RecurringExpenses() {
   }
 
   const markAsPaid = async (exp: RecurringExpense & { category: ExpenseCategory }) => {
+    console.log('markAsPaid called for:', exp.name, 'id:', exp.id, 'is_variable:', exp.is_variable_amount)
     if (!currentProfile) return
     if (markingPaidId) return
 
@@ -169,6 +170,8 @@ export default function RecurringExpenses() {
       .order('due_date', { ascending: true })
       .limit(1)
       .maybeSingle()
+    
+    console.log('Unpaid bill_payments for', exp.name, ':', unpaidBp)
 
     const dueDateToPay = unpaidBp?.due_date ?? exp.next_due_date
 
@@ -208,6 +211,7 @@ export default function RecurringExpenses() {
       if (existingErr) throw existingErr
 
       if (existingPayment?.id) {
+        console.log('Updating existing payment:', existingPayment.id)
         const { error: payErr } = await supabase
           .from('bill_payments')
           .update({
@@ -217,7 +221,9 @@ export default function RecurringExpenses() {
           })
           .eq('id', existingPayment.id)
         if (payErr) throw payErr
+        console.log('Payment updated successfully')
       } else {
+        console.log('Inserting new paid bill_payments for due date:', dueDateToPay)
         const { error: payErr } = await supabase
           .from('bill_payments')
           .insert({
@@ -229,6 +235,7 @@ export default function RecurringExpenses() {
             is_paid: true,
           })
         if (payErr) throw payErr
+        console.log('New payment inserted successfully')
       }
 
       // 3) Advance next due date and create next month's bill payment
