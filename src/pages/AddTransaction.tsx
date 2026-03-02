@@ -546,6 +546,15 @@ export default function AddTransaction() {
                 p_item_name: item.item_name
               })
             }
+            // Reload history so new items appear in autocomplete immediately
+            const { data: freshHistory } = await supabase
+              .from('grocery_item_history')
+              .select('item_name')
+              .order('last_used_at', { ascending: false })
+              .limit(100)
+            if (freshHistory) {
+              setGroceryItemHistory(freshHistory.map(d => d.item_name))
+            }
           }
         }
       }
