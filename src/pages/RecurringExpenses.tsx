@@ -196,21 +196,40 @@ export default function RecurringExpenses() {
         })
       if (txErr) throw txErr
 
-      // 2) Upsert bill_payments
-      const { error: payErr } = await supabase
+      // 2) Update existing bill_payments row (if it exists), otherwise insert a new one.
+      // Some databases may not have the unique constraint needed for UPSERT on (recurring_expense_id, due_date).
+      const { data: existingPayment, error: existingErr } = await supabase
         .from('bill_payments')
-        .upsert(
-          {
+        .select('id')
+        .eq('profile_id', currentProfile.id)
+        .eq('recurring_expense_id', exp.id)
+        .eq('due_date', dueDateToPay)
+        .maybeSingle()
+      if (existingErr) throw existingErr
+
+      if (existingPayment?.id) {
+        const { error: payErr } = await supabase
+          .from('bill_payments')
+          .update({
+            paid_date: formatDateLocal(new Date()),
+            amount: num,
+            is_paid: true,
+          })
+          .eq('id', existingPayment.id)
+        if (payErr) throw payErr
+      } else {
+        const { error: payErr } = await supabase
+          .from('bill_payments')
+          .insert({
             recurring_expense_id: exp.id,
             profile_id: currentProfile.id,
             due_date: dueDateToPay,
             paid_date: formatDateLocal(new Date()),
             amount: num,
             is_paid: true,
-          },
-          { onConflict: 'recurring_expense_id,due_date' }
-        )
-      if (payErr) throw payErr
+          })
+        if (payErr) throw payErr
+      }
 
       // 3) Advance next due date
       if (dueDateToPay === exp.next_due_date) {
