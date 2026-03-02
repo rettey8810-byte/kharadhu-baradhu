@@ -10,6 +10,7 @@ type TranslationKey =
   | 'nav_add'
   | 'nav_charts'
   | 'nav_savings'
+  | 'nav_loans'
   | 'nav_profiles'
   | 'common_income'
   | 'common_expense'
@@ -77,6 +78,7 @@ type TranslationKey =
   | 'menu_category_budgets'
   | 'menu_recurring_bills'
   | 'menu_recurring_income'
+  | 'menu_loans'
   | 'menu_reminders'
   | 'menu_all_transactions'
   | 'menu_search'
@@ -219,6 +221,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_add: 'Add',
     nav_charts: 'Charts',
     nav_savings: 'Savings',
+    nav_loans: 'Loans',
     nav_profiles: 'Profiles',
     common_income: 'Income',
     common_expense: 'Expense',
@@ -286,6 +289,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     menu_category_budgets: 'Category Budgets',
     menu_recurring_bills: 'Recurring Bills',
     menu_recurring_income: 'Recurring Income',
+    menu_loans: 'Loans',
     menu_reminders: 'Reminders',
     menu_all_transactions: 'All Transactions',
     menu_search: 'Search',
@@ -427,6 +431,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_add: 'އެޑް',
     nav_charts: 'ޗާޓްސް',
     nav_savings: 'ސޭވިންގސް',
+    nav_loans: 'ލޯންސް',
     nav_profiles: 'ޕްރޮފައިލްސް',
     common_income: 'އިންކަމް',
     common_expense: 'ހޭދަ',
@@ -494,6 +499,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     menu_category_budgets: 'ކެޓަގަރީ ބަޖެޓްސް',
     menu_recurring_bills: 'ރިކަރިންގ ބިލްސް',
     menu_recurring_income: 'ރިކަރިންގ އިންކަމް',
+    menu_loans: 'ލޯންސް',
     menu_reminders: 'ރިމައިންޑަރސް',
     menu_all_transactions: 'ހުރިހާ ޓްރާންޒެކްޝަންސް',
     menu_search: 'ސާރޗް',

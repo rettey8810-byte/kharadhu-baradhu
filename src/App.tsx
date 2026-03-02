@@ -23,6 +23,7 @@ import ExportReports from './pages/ExportReports'
 import QuickAdd from './pages/QuickAdd'
 import ProfileSharing from './pages/ProfileSharing'
 import GroceryBills from './pages/GroceryBills'
+import Loans from './pages/Loans'
 import AcceptInvite from './pages/AcceptInvite'
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
                   <Route path="/yearly" element={<YearlyView />} />
                   <Route path="/profiles" element={<Profiles />} />
                   <Route path="/savings" element={<SavingsGoals />} />
+                  <Route path="/loans" element={<Loans />} />
                   <Route path="/reminders" element={<BillReminders />} />
                   <Route path="/charts" element={<Charts />} />
                   <Route path="/category-budgets" element={<CategoryBudgets />} />

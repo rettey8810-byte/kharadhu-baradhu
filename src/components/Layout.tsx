@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -197,6 +197,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             <TrendingUp size={22} />
             <span>{t('nav_savings')}</span>
           </Link>
+          <Link to="/loans" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/loans' ? 'text-emerald-600' : 'text-gray-500'}`}>
+            <HandCoins size={22} />
+            <span>{t('nav_loans')}</span>
+          </Link>
           <Link to="/profiles" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/profiles' ? 'text-emerald-600' : 'text-gray-500'}`}>
             <Users size={22} />
             <span>{t('nav_profiles')}</span>
@@ -232,6 +236,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/category-budgets" label={t('menu_category_budgets')} icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring" label={t('menu_recurring_bills')} icon={Repeat} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring-income" label={t('menu_recurring_income')} icon={TrendingUp} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/loans" label={t('menu_loans')} icon={HandCoins} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/reminders" label={t('menu_reminders')} icon={Bell} badge={reminderBadgeCount} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/transactions" label={t('menu_all_transactions')} icon={List} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/grocery-bills" label={t('menu_grocery_bills')} icon={Receipt} onMenuClose={() => setMenuOpen(false)} />
