@@ -160,6 +160,18 @@ export default function RecurringExpenses() {
     if (!currentProfile) return
     if (markingPaidId) return
 
+    const { data: unpaidBp } = await supabase
+      .from('bill_payments')
+      .select('due_date')
+      .eq('profile_id', currentProfile.id)
+      .eq('recurring_expense_id', exp.id)
+      .eq('is_paid', false)
+      .order('due_date', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    const dueDateToPay = unpaidBp?.due_date ?? exp.next_due_date
+
     const defaultAmount = exp.amount ?? ''
     const input = window.prompt(t('enter_paid_amount') || 'Enter paid amount (MVR)', defaultAmount === null ? '' : String(defaultAmount))
     if (input === null) return
@@ -172,7 +184,7 @@ export default function RecurringExpenses() {
     setMarkingPaidId(exp.id)
     try {
       // 1) Create transaction
-      const { data: tx, error: txErr } = await supabase
+      const { error: txErr } = await supabase
         .from('transactions')
         .insert({
           profile_id: currentProfile.id,
@@ -180,10 +192,8 @@ export default function RecurringExpenses() {
           type: 'expense',
           amount: num,
           description: exp.name,
-          transaction_date: exp.next_due_date,
+          transaction_date: dueDateToPay,
         })
-        .select('id')
-        .single()
       if (txErr) throw txErr
 
       // 2) Upsert bill_payments
@@ -193,8 +203,7 @@ export default function RecurringExpenses() {
           {
             recurring_expense_id: exp.id,
             profile_id: currentProfile.id,
-            transaction_id: tx.id,
-            due_date: exp.next_due_date,
+            due_date: dueDateToPay,
             paid_date: formatDateLocal(new Date()),
             amount: num,
             is_paid: true,
@@ -204,12 +213,14 @@ export default function RecurringExpenses() {
       if (payErr) throw payErr
 
       // 3) Advance next due date
-      const nextDue = calcNextDueDate(exp)
-      const { error: updErr } = await supabase
-        .from('recurring_expenses')
-        .update({ next_due_date: nextDue })
-        .eq('id', exp.id)
-      if (updErr) throw updErr
+      if (dueDateToPay === exp.next_due_date) {
+        const nextDue = calcNextDueDate(exp)
+        const { error: updErr } = await supabase
+          .from('recurring_expenses')
+          .update({ next_due_date: nextDue })
+          .eq('id', exp.id)
+        if (updErr) throw updErr
+      }
 
       await loadData()
     } catch (e: any) {
