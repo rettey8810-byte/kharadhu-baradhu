@@ -281,7 +281,8 @@ Track money you **borrowed** (you owe) and money you **lended** (others owe you)
 
 1. On the loan card, tap **Pay**
 2. Enter payment amount and payment date
-3. Tap **Record Payment**
+3. (Borrowed loans) Select a **Category** so the payment is tracked correctly in budgets and charts
+4. Tap **Record Payment**
 
 **Note:** Recording a loan payment creates a linked **transaction** so your budget and reports stay accurate.
 
@@ -297,6 +298,13 @@ Tap a loan card to open **Loan Details**, where you can see:
 1. On the loan card, tap the **pencil icon**
 2. Update the fields you want (party, amounts, dates, description, etc.)
 3. Tap **Save Changes**
+
+### Due Soon / Overdue Alerts
+
+If you set a **Due Date** on a loan, the app will show alerts:
+
+- **On the Loans page:** “Overdue Loans” and “Due Soon (Next 7 Days)” sections appear at the top.
+- **On the Dashboard:** a Loans summary card shows quick counts for overdue and due-soon loans.
 
 ---
 
@@ -411,6 +419,8 @@ Set up automatic tracking for bills that repeat monthly/weekly. Perfect for trac
 - **Manual Mark as Paid** (Recommended):
   - When bill is due, click **"Mark Paid"** button
   - Enter the amount you paid (for variable bills)
+  - Choose the **Paid Date** (defaults to today)
+  - Add optional **Notes**
   - App creates expense transaction automatically
   - Next due date advances automatically
   - Bill shows **"Paid"** badge until next cycle

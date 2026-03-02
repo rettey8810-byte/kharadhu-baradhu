@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Grocery Price Comparison** - Search items across shops to compare prices.
 - **Recurring Bill Edit** - Edit button added to Recurring Bills page to modify bill details including default amounts.
 - **Loans** - Track borrowed and lended money, record loan payments (linked transactions), view details, and edit loan info.
+- **Dashboard Loans Summary** - New Loans card shows borrowed remaining, lended outstanding, net position, and due/overdue indicators.
+- **Loan Payment Category Selection** - Borrowed-loan payments can be assigned an expense category so budget tracking stays accurate.
+- **Recurring Bills Mark-as-Paid Modal** - Replaced browser prompt with a modal that captures paid amount, paid date, and notes.
 
 ---
 

@@ -41,12 +41,12 @@
 **Feature 4 - Smart Recurring Bills (45-52 sec)**
 **Visual:** Bill preset selection (STELCO, MWSC), variable amount toggle, due date calendar, grace period setting
 **Text:** "Smart Bill Tracking"
-**Voiceover:** "Set up recurring bills with smart presets for STELCO, MWSC, and more. Handle variable amounts, set due dates, grace periods, and get reminded before bills are due."
+**Voiceover:** "Set up recurring bills with smart presets for STELCO, MWSC, and more. Handle variable amounts, set due dates, grace periods, and get reminded before bills are due. Mark bills as paid with a simple modal for amount, paid date, and notes."
 
 **Feature 4B - Loans (52-57 sec)**
-**Visual:** Loans page showing borrowed vs lended summary cards, recording a payment, loan progress bar
+**Visual:** Dashboard loans card + Loans page showing borrowed vs lended summary cards, due-soon/overdue alerts, recording a payment with category selection, loan progress bar
 **Text:** "Loan Tracking"
-**Voiceover:** "Track your loans too. See what you owe, what others owe you, and record payments with full history."
+**Voiceover:** "Track your loans too. See what you owe, what others owe you, and get due-soon or overdue alerts. Record payments with the right category so budgets and charts stay accurate."
 
 **Feature 5 - Budget & Goals (45-52 sec)**
 **Visual:** Budget progress bar, savings goals with colorful cards

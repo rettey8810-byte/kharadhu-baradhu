@@ -53,8 +53,10 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Borrowed & Lended Tracking** - Track money you owe and money others owe you
 - **Loan Summary** - Total, paid, remaining, and net position at a glance
 - **Record Payments** - Add installment payments (creates linked budget transaction)
+- **Budget Category for Payments** - Choose an expense category for borrowed-loan payments so budgets and charts stay accurate
 - **Loan Details** - View payment history and loan breakdown
 - **Edit Loans** - Update loan details after creating (party name, amounts, dates, etc.)
+- **Due Soon / Overdue Alerts** - See overdue and upcoming loan due dates (Loans page + Dashboard indicator)
 
 ### Enhanced Recurring Bills (NEW!)
 - **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
@@ -63,6 +65,7 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Smart Reminders** - Get reminded X days before due date
 - **Pause/Resume** - Temporarily disable bills without deleting
 - **Account Numbers** - Store meter numbers, account IDs for reference
+- **Mark as Paid Modal** - Mark bills as paid with amount, paid date, and notes (instead of a browser prompt)
 
 ### Grocery Receipt OCR
 - **Supabase Auth** - Email/password and OAuth sign-in
