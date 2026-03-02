@@ -17,8 +17,9 @@ Complete guide to using the Family Expense Tracker.
 9. [Reports & Analytics](#reports--analytics)
 10. [Recurring Expenses](#recurring-expenses)
 11. [Bill Reminders](#bill-reminders)
-12. [Search & Filter](#search--filter)
-13. [Tips & Best Practices](#tips--best-practices)
+12. [Loans](#loans)
+13. [Search & Filter](#search--filter)
+14. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -255,6 +256,47 @@ When you reach your target:
 1. Find the goal
 2. Click the **checkmark icon**
 3. The goal moves to "Completed" section
+
+---
+
+## Loans
+
+Track money you **borrowed** (you owe) and money you **lended** (others owe you).
+
+### Add a Loan
+
+1. Open **Loans** from the bottom navigation
+2. Tap **Add Loan**
+3. Choose:
+   - **You Borrowed** (borrowed loan)
+   - **You Lended** (lended loan)
+4. Fill in:
+   - **Category** (Bank / Individual / Credit Card / Family / Friend / Other)
+   - **Lender/Bank Name** or **Borrower Name**
+   - **Principal Amount**
+   - Optional: interest, EMI amount, installments, due date, description
+5. Tap **Add Loan**
+
+### Record a Payment
+
+1. On the loan card, tap **Pay**
+2. Enter payment amount and payment date
+3. Tap **Record Payment**
+
+**Note:** Recording a loan payment creates a linked **transaction** so your budget and reports stay accurate.
+
+### View Details
+
+Tap a loan card to open **Loan Details**, where you can see:
+- principal, interest, total
+- paid vs remaining
+- payment history
+
+### Edit a Loan
+
+1. On the loan card, tap the **pencil icon**
+2. Update the fields you want (party, amounts, dates, description, etc.)
+3. Tap **Save Changes**
 
 ---
 

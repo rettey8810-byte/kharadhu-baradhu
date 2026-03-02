@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Manual Grocery Item Entry** - Can now add items manually without OCR receipt extraction.
 - **Grocery Price Comparison** - Search items across shops to compare prices.
 - **Recurring Bill Edit** - Edit button added to Recurring Bills page to modify bill details including default amounts.
+- **Loans** - Track borrowed and lended money, record loan payments (linked transactions), view details, and edit loan info.
 
 ---
 

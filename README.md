@@ -49,6 +49,13 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Profile Sharing** - Share profiles via **Copy Invite Link** (100% free, no email provider needed). Invite family members by sending them a unique link via WhatsApp/Messenger. Two modes: Family Group (share ALL profiles) or Individual (share specific profiles only)
 - **Offline Mode** - Work offline with auto-sync when connected
 
+### Loans (NEW!)
+- **Borrowed & Lended Tracking** - Track money you owe and money others owe you
+- **Loan Summary** - Total, paid, remaining, and net position at a glance
+- **Record Payments** - Add installment payments (creates linked budget transaction)
+- **Loan Details** - View payment history and loan breakdown
+- **Edit Loans** - Update loan details after creating (party name, amounts, dates, etc.)
+
 ### Enhanced Recurring Bills (NEW!)
 - **Bill Type Presets** - Quick-setup for STELCO, MWSC, Dhiraagu, Ooredoo, Medianet, Netflix, etc.
 - **Variable Amounts** - Handle bills that change monthly (electricity, water)
@@ -146,6 +153,13 @@ Run these SQL files in Supabase SQL Editor:
 2. **Additional Tables** - `supabase-expense-schema-additions.sql`
 3. **Enhanced Recurring Bills** - `supabase-recurring-bills-enhancement.sql` (NEW!)
 4. **Recurring Income** - `supabase-recurring-income.sql` (NEW!)
+5. **Loans** - `supabase-loans.sql` (NEW!)
+
+Optional / advanced (only if you use these features):
+
+6. **Profile Sharing** - `supabase-profile-sharing.sql`
+7. **Multi-user Access** - `supabase-multi-user-access.sql`
+8. **Storage Setup** - `supabase-storage-setup.sql`
 
 ### Grocery Bills Migration
 
