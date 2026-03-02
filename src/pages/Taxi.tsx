@@ -54,6 +54,7 @@ export default function Taxi() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
   const [trips, setTrips] = useState<TaxiTrip[]>([])
   const [expenses, setExpenses] = useState<TaxiVehicleExpense[]>([])
+  const [taxiExpenseCategoryId, setTaxiExpenseCategoryId] = useState<string | null>(null)
 
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string }>({
@@ -83,6 +84,47 @@ export default function Taxi() {
   useEffect(() => {
     if (!currentProfile) return
     load()
+  }, [currentProfile])
+
+  useEffect(() => {
+    const ensureTaxiCategory = async () => {
+      if (!currentProfile) return
+      try {
+        const { data: cats, error: catsErr } = await supabase
+          .from('expense_categories')
+          .select('id, name')
+          .eq('profile_id', currentProfile.id)
+          .eq('is_archived', false)
+
+        if (catsErr) throw catsErr
+
+        const existing = (cats ?? []).find((c: any) => (c.name ?? '').trim().toLowerCase() === 'taxi')
+        if (existing?.id) {
+          setTaxiExpenseCategoryId(existing.id)
+          return
+        }
+
+        const { data: created, error: createErr } = await supabase
+          .from('expense_categories')
+          .insert({
+            profile_id: currentProfile.id,
+            name: 'Taxi',
+            color: '#f59e0b',
+            icon: 'Car',
+            is_default: false,
+            sort_order: 0,
+          })
+          .select('id')
+          .single()
+
+        if (createErr) throw createErr
+        setTaxiExpenseCategoryId(created?.id ?? null)
+      } catch {
+        setTaxiExpenseCategoryId(null)
+      }
+    }
+
+    ensureTaxiCategory()
   }, [currentProfile])
 
   useEffect(() => {
@@ -281,7 +323,6 @@ export default function Taxi() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // Category: optional. We'll store uncategorized by default.
       const { data: txData, error: txErr } = await supabase
         .from('transactions')
         .insert({
@@ -291,7 +332,7 @@ export default function Taxi() {
           description: `Taxi expense - ${expenseForm.expense_type}`,
           notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
           transaction_date: expenseForm.expense_date,
-          category_id: null,
+          category_id: taxiExpenseCategoryId,
           income_source_id: null,
         })
         .select()
