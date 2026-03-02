@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { supabase } from '../lib/supabase'
-import { Car, Plus, ArrowUpCircle, ArrowDownCircle, X } from 'lucide-react'
+import { Car, Plus, ArrowUpCircle, ArrowDownCircle, X, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 function formatMVR(value: number) {
@@ -643,7 +643,17 @@ export default function Taxi() {
                       <p className="text-sm font-medium text-gray-900">{tr.trip_date} • {tr.trip_count} trips × {formatMVR(Number(tr.rate))}</p>
                       <p className="text-xs text-gray-500">{tr.notes ?? ''}</p>
                     </div>
-                    <span className="text-sm font-semibold text-blue-700">{formatMVR(Number(tr.total_income))}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-blue-700">{formatMVR(Number(tr.total_income))}</span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/transactions?taxi=1&month=${tr.trip_date.slice(0, 7)}&edit=${tr.transaction_id}`)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        title="Edit transaction"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -662,7 +672,17 @@ export default function Taxi() {
                       <p className="text-sm font-medium text-gray-900">{ex.expense_date} • {ex.expense_type}</p>
                       <p className="text-xs text-gray-500">{ex.notes ?? ''}</p>
                     </div>
-                    <span className="text-sm font-semibold text-red-700">-{formatMVR(Number(ex.amount))}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-red-700">-{formatMVR(Number(ex.amount))}</span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/transactions?taxi=1&month=${ex.expense_date.slice(0, 7)}&edit=${ex.transaction_id}`)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        title="Edit transaction"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

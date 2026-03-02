@@ -30,6 +30,7 @@ export default function Transactions() {
     const params = new URLSearchParams(location.search)
     return params.get('taxi') === '1'
   }, [location.search])
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     amount: '',
@@ -84,6 +85,18 @@ export default function Transactions() {
       income_source_id: tx.income_source_id || ''
     })
   }
+
+  // Support auto-edit mode via query param (e.g., from Taxi page)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const editId = params.get('edit')
+    if (editId && transactions.length > 0) {
+      const tx = transactions.find(t => t.id === editId)
+      if (tx) {
+        handleEdit(tx)
+      }
+    }
+  }, [transactions, location.search])
 
   const handleSave = async (id: string) => {
     const updateData: any = {
