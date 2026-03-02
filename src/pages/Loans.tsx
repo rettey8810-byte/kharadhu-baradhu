@@ -13,6 +13,14 @@ const formatMVR = (amount: number) => {
   }).format(amount)
 }
 
+interface ExpenseCategory {
+  id: string
+  name: string
+  profile_id: string
+  is_archived?: boolean
+  sort_order?: number | null
+}
+
 function EditLoanModal({
   formData,
   setFormData,
@@ -33,7 +41,6 @@ function EditLoanModal({
             <X size={20} />
           </button>
         </div>
-
         <form onSubmit={onSubmit} className="p-4 space-y-4">
           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
             <button
@@ -276,6 +283,7 @@ export default function Loans() {
   const { currentProfile } = useProfile()
   const [loans, setLoans] = useState<Loan[]>([])
   const [payments, setPayments] = useState<Record<string, LoanPayment[]>>({})
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [showPay, setShowPay] = useState<string | null>(null)
@@ -320,10 +328,27 @@ export default function Loans() {
     amount: '',
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
+    category_id: '',
   })
 
   useEffect(() => {
     loadLoans()
+  }, [currentProfile])
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!currentProfile) return
+      const { data: cats } = await supabase
+        .from('expense_categories')
+        .select('id, name, profile_id, is_archived, sort_order')
+        .eq('profile_id', currentProfile.id)
+        .eq('is_archived', false)
+        .order('sort_order')
+
+      setCategories((cats ?? []) as any)
+    }
+
+    loadCategories()
   }, [currentProfile])
 
   const loadLoans = async () => {
@@ -504,7 +529,7 @@ export default function Loans() {
         amount: amount,
         description: `${loan.loan_type === 'borrowed' ? 'Loan Payment' : 'Loan Repayment'} - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
         transaction_date: paymentForm.payment_date,
-        category_id: null,
+        category_id: paymentForm.category_id || null,
       })
       .select()
       .single()
@@ -531,6 +556,7 @@ export default function Loans() {
         amount: '',
         payment_date: new Date().toISOString().slice(0, 10),
         notes: '',
+        category_id: '',
       })
       loadLoans()
     } else {
@@ -558,6 +584,19 @@ export default function Loans() {
   const totalLended = lendedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
   const totalLendedReceived = lendedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
   const totalLendedOutstanding = lendedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const dueSoonThresholdStr = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7)
+    .toISOString()
+    .slice(0, 10)
+
+  const overdueLoans = loans
+    .filter(l => l.status === 'active')
+    .filter(l => !!l.due_date && l.due_date < todayStr)
+
+  const dueSoonLoans = loans
+    .filter(l => l.status === 'active')
+    .filter(l => !!l.due_date && l.due_date >= todayStr && l.due_date <= dueSoonThresholdStr)
 
   return (
     <div className="space-y-4">
@@ -615,6 +654,58 @@ export default function Loans() {
           </span>
         </div>
       </div>
+
+      {(overdueLoans.length > 0 || dueSoonLoans.length > 0) && (
+        <div className="space-y-3">
+          {overdueLoans.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-red-900">Overdue Loans</h3>
+              <div className="mt-2 space-y-2">
+                {overdueLoans.slice(0, 3).map((loan: Loan) => (
+                  <button
+                    key={loan.id}
+                    type="button"
+                    className="w-full text-left flex items-center justify-between bg-white/70 rounded-lg p-3 hover:bg-white"
+                    onClick={() => setShowDetails(loan.id)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}
+                      </p>
+                      <p className="text-xs text-gray-600">Due: {loan.due_date}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-red-700">{formatMVR(loan.total_amount - loan.amount_paid)}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {dueSoonLoans.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-yellow-900">Due Soon (Next 7 Days)</h3>
+              <div className="mt-2 space-y-2">
+                {dueSoonLoans.slice(0, 3).map((loan: Loan) => (
+                  <button
+                    key={loan.id}
+                    type="button"
+                    className="w-full text-left flex items-center justify-between bg-white/70 rounded-lg p-3 hover:bg-white"
+                    onClick={() => setShowDetails(loan.id)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}
+                      </p>
+                      <p className="text-xs text-gray-600">Due: {loan.due_date}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-yellow-800">{formatMVR(loan.total_amount - loan.amount_paid)}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Loans List */}
       {loading ? (
@@ -707,6 +798,7 @@ export default function Loans() {
       {showPay && (
         <PaymentModal
           loan={loans.find(l => l.id === showPay)!}
+          categories={categories}
           formData={paymentForm}
           setFormData={setPaymentForm}
           onSubmit={handlePayment}
@@ -1041,12 +1133,14 @@ function AddLoanModal({
 // Payment Modal
 function PaymentModal({
   loan,
+  categories,
   formData,
   setFormData,
   onSubmit,
   onClose
 }: {
   loan: Loan
+  categories: ExpenseCategory[]
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
@@ -1107,6 +1201,25 @@ function PaymentModal({
               rows={2}
             />
           </div>
+
+          {loan.loan_type === 'borrowed' && (
+            <div>
+              <label className="text-sm text-gray-600">Category (for budget)</label>
+              <select
+                value={formData.category_id}
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              >
+                <option value="">Uncategorized</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">This category is used for expense budgets and charts.</p>
+            </div>
+          )}
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-700 flex items-center gap-2">

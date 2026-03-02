@@ -37,6 +37,16 @@ export default function RecurringExpenses() {
   const [loading, setLoading] = useState(true)
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null)
   const [paidStatus, setPaidStatus] = useState<Record<string, boolean>>({})
+  const [showMarkPaid, setShowMarkPaid] = useState(false)
+  const [markPaidContext, setMarkPaidContext] = useState<{
+    exp: (RecurringExpense & { category: ExpenseCategory }) | null
+    dueDateToPay: string
+  }>({ exp: null, dueDateToPay: '' })
+  const [markPaidForm, setMarkPaidForm] = useState<{ amount: string; paid_date: string; notes: string }>({
+    amount: '',
+    paid_date: new Date().toISOString().slice(0, 10),
+    notes: '',
+  })
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -189,14 +199,28 @@ export default function RecurringExpenses() {
 
     const dueDateToPay = unpaidBp?.due_date ?? exp.next_due_date
 
-    const defaultAmount = exp.amount ?? ''
-    const input = window.prompt(t('enter_paid_amount') || 'Enter paid amount (MVR)', defaultAmount === null ? '' : String(defaultAmount))
-    if (input === null) return
-    const num = Number(input)
+    setMarkPaidContext({ exp, dueDateToPay })
+    setMarkPaidForm({
+      amount: exp.amount == null ? '' : String(exp.amount),
+      paid_date: new Date().toISOString().slice(0, 10),
+      notes: '',
+    })
+    setShowMarkPaid(true)
+  }
+
+  const confirmMarkAsPaid = async () => {
+    if (!currentProfile) return
+    const exp = markPaidContext.exp
+    if (!exp) return
+    if (markingPaidId) return
+
+    const num = Number(markPaidForm.amount)
     if (!Number.isFinite(num) || num <= 0) {
       window.alert(t('enter_valid_amount') || 'Please enter a valid amount')
       return
     }
+
+    const dueDateToPay = markPaidContext.dueDateToPay || exp.next_due_date
 
     setMarkingPaidId(exp.id)
     try {
@@ -209,7 +233,8 @@ export default function RecurringExpenses() {
           type: 'expense',
           amount: num,
           description: exp.name,
-          transaction_date: dueDateToPay,
+          notes: markPaidForm.notes || null,
+          transaction_date: markPaidForm.paid_date,
         })
       if (txErr) throw txErr
 
@@ -247,7 +272,7 @@ export default function RecurringExpenses() {
         const { error: payErr } = await supabase
           .from('bill_payments')
           .update({
-            paid_date: formatDateLocal(new Date()),
+            paid_date: markPaidForm.paid_date,
             amount: num,
             is_paid: true,
             recurring_expense_id: exp.id, // Link to active recurring expense
@@ -263,7 +288,7 @@ export default function RecurringExpenses() {
             recurring_expense_id: exp.id,
             profile_id: currentProfile.id,
             due_date: dueDateToPay,
-            paid_date: formatDateLocal(new Date()),
+            paid_date: markPaidForm.paid_date,
             amount: num,
             is_paid: true,
           })
@@ -294,6 +319,8 @@ export default function RecurringExpenses() {
         if (nextBpErr && !nextBpErr.message?.includes('duplicate')) throw nextBpErr
       }
 
+      setShowMarkPaid(false)
+      setMarkPaidContext({ exp: null, dueDateToPay: '' })
       await loadData()
     } catch (e: any) {
       window.alert(e?.message ?? (t('failed_mark_paid') || 'Failed to mark as paid'))
@@ -506,6 +533,84 @@ export default function RecurringExpenses() {
 
   return (
     <div className="space-y-5">
+      {showMarkPaid && markPaidContext.exp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Mark as Paid</h2>
+                <p className="text-xs text-gray-500 mt-1">{markPaidContext.exp.name} • Due: {markPaidContext.dueDateToPay}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMarkPaid(false)
+                  setMarkPaidContext({ exp: null, dueDateToPay: '' })
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-sm text-gray-600">Paid Amount (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={markPaidForm.amount}
+                  onChange={(e) => setMarkPaidForm({ ...markPaidForm, amount: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Paid Date</label>
+                <input
+                  type="date"
+                  value={markPaidForm.paid_date}
+                  onChange={(e) => setMarkPaidForm({ ...markPaidForm, paid_date: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Notes</label>
+                <textarea
+                  value={markPaidForm.notes}
+                  onChange={(e) => setMarkPaidForm({ ...markPaidForm, notes: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  rows={2}
+                  placeholder="Optional"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMarkPaid(false)
+                    setMarkPaidContext({ exp: null, dueDateToPay: '' })
+                  }}
+                  className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmMarkAsPaid}
+                  disabled={!!markingPaidId}
+                  className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {markingPaidId ? 'Saving...' : 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-900">{t('recurring_bills_title')}</h2>

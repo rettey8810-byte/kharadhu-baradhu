@@ -37,6 +37,19 @@ interface PendingBill {
   source: 'variable' | 'fixed'
 }
 
+interface DashboardLoan {
+  id: string
+  profile_id: string
+  loan_type: 'borrowed' | 'lended'
+  lender_name: string | null
+  borrower_name: string | null
+  due_date: string | null
+  total_amount: number
+  amount_paid: number
+  status: string
+  profile?: { name?: string } | null
+}
+
 export default function Dashboard() {
   const { profiles, currentProfile, setCurrentProfile } = useProfile()
   const { t } = useLanguage()
@@ -46,6 +59,13 @@ export default function Dashboard() {
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
   const [pendingBills, setPendingBills] = useState<PendingBill[]>([])
+  const [loansSummary, setLoansSummary] = useState<{
+    borrowedRemaining: number
+    lendedOutstanding: number
+    net: number
+    dueSoonCount: number
+    overdueCount: number
+  } | null>(null)
 
   const processedRecurringRef = useRef<string>('')
 
@@ -248,6 +268,35 @@ export default function Dashboard() {
 
       setPendingBills(pending)
 
+      // Loans summary (across all profiles)
+      const todayStr = formatDateLocal(new Date())
+      const dueSoonThreshold = formatDateLocal(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7))
+
+      const { data: loansData } = await supabase
+        .from('loans')
+        .select('id, profile_id, loan_type, lender_name, borrower_name, due_date, total_amount, amount_paid, status, profile:profile_id(name)')
+        .in('profile_id', profileIds)
+        .eq('status', 'active')
+
+      const loans = (loansData ?? []) as any as DashboardLoan[]
+      const borrowedRemaining = loans
+        .filter(l => l.loan_type === 'borrowed')
+        .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
+      const lendedOutstanding = loans
+        .filter(l => l.loan_type === 'lended')
+        .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
+
+      const dueSoonCount = loans.filter(l => !!l.due_date && l.due_date >= todayStr && l.due_date <= dueSoonThreshold).length
+      const overdueCount = loans.filter(l => !!l.due_date && l.due_date < todayStr).length
+
+      setLoansSummary({
+        borrowedRemaining,
+        lendedOutstanding,
+        net: lendedOutstanding - borrowedRemaining,
+        dueSoonCount,
+        overdueCount,
+      })
+
       setTransactions(tx ?? [])
       setBudgets(b ?? [])
 
@@ -378,6 +427,46 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+      )}
+
+      {loansSummary && (
+        <button
+          type="button"
+          className="w-full text-left bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
+          onClick={() => navigate('/loans')}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900">Loans</h3>
+              <p className="text-xs text-gray-500 mt-1">Borrowed & lended overview</p>
+            </div>
+            {(loansSummary.overdueCount > 0 || loansSummary.dueSoonCount > 0) && (
+              <div className="text-right">
+                {loansSummary.overdueCount > 0 && (
+                  <p className="text-xs font-semibold text-red-600">{loansSummary.overdueCount} overdue</p>
+                )}
+                {loansSummary.dueSoonCount > 0 && (
+                  <p className="text-xs font-semibold text-yellow-600">{loansSummary.dueSoonCount} due soon</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+              <p className="text-[10px] sm:text-xs text-red-700">You Owe</p>
+              <p className="text-sm sm:text-base font-semibold text-red-900 break-words whitespace-normal">{formatMVR(loansSummary.borrowedRemaining)}</p>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+              <p className="text-[10px] sm:text-xs text-emerald-700">Owed to You</p>
+              <p className="text-sm sm:text-base font-semibold text-emerald-900 break-words whitespace-normal">{formatMVR(loansSummary.lendedOutstanding)}</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+              <p className="text-[10px] sm:text-xs text-blue-700">Net</p>
+              <p className="text-sm sm:text-base font-semibold text-blue-900 break-words whitespace-normal">{formatMVR(loansSummary.net)}</p>
+            </div>
+          </div>
+        </button>
       )}
 
       <SmartInsights />
