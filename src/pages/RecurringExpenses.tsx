@@ -200,15 +200,33 @@ export default function RecurringExpenses() {
       if (txErr) throw txErr
 
       // 2) Update existing bill_payments row (if it exists), otherwise insert a new one.
-      // Some databases may not have the unique constraint needed for UPSERT on (recurring_expense_id, due_date).
-      const { data: existingPayment, error: existingErr } = await supabase
-        .from('bill_payments')
+      // Also check for bill_payments linked to duplicate recurring expenses with same name.
+      const { data: duplicateIds } = await supabase
+        .from('recurring_expenses')
         .select('id')
+        .eq('name', exp.name)
         .eq('profile_id', currentProfile.id)
-        .eq('recurring_expense_id', exp.id)
-        .eq('due_date', dueDateToPay)
-        .maybeSingle()
-      if (existingErr) throw existingErr
+        .neq('id', exp.id)
+      
+      const allRecurringIds = [exp.id, ...(duplicateIds || []).map((d: any) => d.id)]
+      console.log('Looking for bill_payments with recurring_expense_ids:', allRecurringIds)
+
+      // Try to find existing unpaid bill_payment for any of these recurring expense IDs
+      let existingPayment: { id: string } | null = null
+      for (const rid of allRecurringIds) {
+        const { data: ep } = await supabase
+          .from('bill_payments')
+          .select('id')
+          .eq('profile_id', currentProfile.id)
+          .eq('recurring_expense_id', rid)
+          .eq('due_date', dueDateToPay)
+          .maybeSingle()
+        if (ep?.id) {
+          existingPayment = ep
+          console.log('Found existing payment for recurring_id', rid, ':', ep.id)
+          break
+        }
+      }
 
       if (existingPayment?.id) {
         console.log('Updating existing payment:', existingPayment.id)
@@ -218,6 +236,7 @@ export default function RecurringExpenses() {
             paid_date: formatDateLocal(new Date()),
             amount: num,
             is_paid: true,
+            recurring_expense_id: exp.id, // Link to active recurring expense
           })
           .eq('id', existingPayment.id)
         if (payErr) throw payErr
