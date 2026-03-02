@@ -3,6 +3,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { supabase } from '../lib/supabase'
 import { Car, Plus, Wallet, ArrowUpCircle, ArrowDownCircle, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -49,6 +50,7 @@ type TaxiVehicleExpense = {
 export default function Taxi() {
   const { currentProfile } = useProfile()
   const { t } = useLanguage()
+  const navigate = useNavigate()
 
   const [vehicles, setVehicles] = useState<TaxiVehicle[]>([])
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
@@ -472,6 +474,14 @@ export default function Taxi() {
               Add Expense
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate('/transactions?taxi=1')}
+            className="mt-2 w-full border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+          >
+            View in All Transactions
+          </button>
         </div>
       )}
 

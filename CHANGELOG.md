@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dashboard Loans Summary** - New Loans card shows borrowed remaining, lended outstanding, net position, and due/overdue indicators.
 - **Loan Payment Category Selection** - Borrowed-loan payments can be assigned an expense category so budget tracking stays accurate.
 - **Recurring Bills Mark-as-Paid Modal** - Replaced browser prompt with a modal that captures paid amount, paid date, and notes.
+- **Taxi Module** - Add vehicles, record trip income (trip count × rate), log vehicle expenses, and track monthly + overall profit (creates linked transactions).
+- **Taxi Transactions Filter** - Taxi page can open All Transactions filtered to Taxi income/expenses.
+
+### Changed
+- **Bottom Navigation** - Savings moved to side menu, Taxi added to bottom navigation.
 
 ---
 

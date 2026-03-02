@@ -234,7 +234,7 @@ Track progress toward financial goals.
 
 ### Create a Savings Goal
 
-1. Go to **Savings** from bottom navigation
+1. Go to **Savings** from the side menu
 2. Click **"Add Goal"**
 3. Enter:
    - **Goal Name** (e.g., "New Phone", "Hajj Fund", "Emergency Fund")
@@ -258,6 +258,44 @@ When you reach your target:
 3. The goal moves to "Completed" section
 
 ---
+
+## Taxi
+
+Track taxi income and vehicle-related expenses, and automatically calculate profit.
+
+### Add Your First Vehicle
+
+1. Tap **Taxi** from the bottom navigation
+2. Tap **Add Vehicle**
+3. Select **Car** or **Bike**
+4. Enter a **Name** (and optional plate number)
+
+### Record Trip Income
+
+1. In **Taxi**, select your vehicle
+2. Tap **Add Trip**
+3. Fill:
+   - Date
+   - How many trips
+   - Rate per trip
+4. Total income is calculated automatically and saved
+
+### Record Vehicle Expenses
+
+1. In **Taxi**, select your vehicle
+2. Tap **Add Expense**
+3. Choose expense type (Petrol, Insurance, Service, Maintenance, Engine oil, Washing, Road worthiness, Annual fee, etc.)
+4. Enter amount and optional notes
+
+### Profit (Monthly + Overall)
+
+Taxi page shows:
+- **Monthly Profit** = monthly income - monthly expenses
+- **Overall Profit** = all-time income - all-time expenses
+
+### View Taxi Transactions
+
+Tap **View in All Transactions** to open All Transactions filtered to Taxi income/expenses.
 
 ## Loans
 

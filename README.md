@@ -67,6 +67,13 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Account Numbers** - Store meter numbers, account IDs for reference
 - **Mark as Paid Modal** - Mark bills as paid with amount, paid date, and notes (instead of a browser prompt)
 
+### Taxi (NEW!)
+- **Vehicle Setup** - Add your car/bike and track taxi activity per vehicle
+- **Trip Income** - Record trip count and rate (auto-calculates total income)
+- **Vehicle Expenses** - Petrol, insurance, road worthiness, service, maintenance, washing, engine oil, etc.
+- **Profit Tracking** - Monthly and overall profit shown on Taxi page
+- **Connected to Main System** - Taxi items also create normal transactions, so budgets/charts/reports include them
+
 ### Grocery Receipt OCR
 - **Supabase Auth** - Email/password and OAuth sign-in
 - **Row Level Security** - Your data is private and secure
@@ -158,11 +165,13 @@ Run these SQL files in Supabase SQL Editor:
 4. **Recurring Income** - `supabase-recurring-income.sql` (NEW!)
 5. **Loans** - `supabase-loans.sql` (NEW!)
 
+6. **Taxi** - `supabase-taxi.sql` (NEW!)
+
 Optional / advanced (only if you use these features):
 
-6. **Profile Sharing** - `supabase-profile-sharing.sql`
-7. **Multi-user Access** - `supabase-multi-user-access.sql`
-8. **Storage Setup** - `supabase-storage-setup.sql`
+7. **Profile Sharing** - `supabase-profile-sharing.sql`
+8. **Multi-user Access** - `supabase-multi-user-access.sql`
+9. **Storage Setup** - `supabase-storage-setup.sql`
 
 ### Grocery Bills Migration
 

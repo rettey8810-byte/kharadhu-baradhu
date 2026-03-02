@@ -48,6 +48,11 @@
 **Text:** "Loan Tracking"
 **Voiceover:** "Track your loans too. See what you owe, what others owe you, and get due-soon or overdue alerts. Record payments with the right category so budgets and charts stay accurate."
 
+**Feature 4C - Taxi (57-62 sec)**
+**Visual:** Taxi page: add vehicle, add trip (trips × rate), add petrol expense, monthly profit summary, then "View in All Transactions" showing filtered list
+**Text:** "Taxi Profit Tracking"
+**Voiceover:** "Drive a taxi? Track trips and vehicle expenses like petrol and service, and see monthly profit automatically. Everything is connected to your main transactions."
+
 **Feature 5 - Budget & Goals (45-52 sec)**
 **Visual:** Budget progress bar, savings goals with colorful cards
 **Text:** "Budgets & Savings Goals"

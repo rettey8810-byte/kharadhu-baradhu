@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
 import { Edit2, Trash2, X, Check, ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
 import { formatDateLocal } from '../utils/date'
+import { useLocation } from 'react-router-dom'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -13,6 +14,7 @@ function formatMVR(value: number) {
 export default function Transactions() {
   const { profiles } = useProfile()
   const { t } = useLanguage()
+  const location = useLocation()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
@@ -23,6 +25,11 @@ export default function Transactions() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
+
+  const isTaxiOnly = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('taxi') === '1'
+  }, [location.search])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     amount: '',
@@ -118,11 +125,17 @@ export default function Transactions() {
 
   const filteredTransactions = transactions.filter(tx => {
     const matchesFilter = filter === 'all' || tx.type === filter
-    const matchesSearch = 
+    const matchesSearch =
       tx.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (tx.category?.name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (tx.income_source?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    return matchesFilter && matchesSearch
+
+    const taxiByCategory = (tx.category?.name ?? '').trim().toLowerCase() === 'taxi'
+    const taxiBySource = (tx.income_source?.name ?? '').trim().toLowerCase() === 'taxi'
+    const taxiByDesc = (tx.description ?? '').trim().toLowerCase().startsWith('taxi ')
+    const matchesTaxi = !isTaxiOnly || taxiByCategory || taxiBySource || taxiByDesc
+
+    return matchesFilter && matchesSearch && matchesTaxi
   })
 
   const getTransactionName = (tx: Transaction) => {
