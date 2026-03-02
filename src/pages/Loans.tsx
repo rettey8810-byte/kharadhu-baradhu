@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { supabase } from '../lib/supabase'
-import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X } from 'lucide-react'
+import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil } from 'lucide-react'
 
 // Format currency as MVR
 const formatMVR = (amount: number) => {
@@ -11,6 +11,220 @@ const formatMVR = (amount: number) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount)
+}
+
+function EditLoanModal({
+  formData,
+  setFormData,
+  onSubmit,
+  onClose
+}: {
+  formData: any
+  setFormData: (data: any) => void
+  onSubmit: (e: React.FormEvent) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-bold">Edit Loan</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="p-4 space-y-4">
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, loan_type: 'borrowed' })}
+              className={`flex-1 py-2 text-sm rounded-md ${formData.loan_type === 'borrowed' ? 'bg-white shadow-sm text-red-600' : 'text-gray-500'}`}
+            >
+              You Borrowed
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, loan_type: 'lended' })}
+              className={`flex-1 py-2 text-sm rounded-md ${formData.loan_type === 'lended' ? 'bg-white shadow-sm text-emerald-600' : 'text-gray-500'}`}
+            >
+              You Lended
+            </button>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Category</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+            >
+              <option value="individual">Individual (Personal)</option>
+              <option value="bank">Bank Loan</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="family">Family</option>
+              <option value="friend">Friend</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">
+              {formData.loan_type === 'borrowed' ? 'Lender/Bank Name' : 'Borrower Name'}
+            </label>
+            <input
+              type="text"
+              value={formData.party_name}
+              onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Principal Amount (MVR)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.principal_amount}
+              onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-600">Interest Rate (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.interest_rate}
+                onChange={(e) => setFormData({ ...formData, interest_rate: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Interest Type</label>
+              <select
+                value={formData.interest_type}
+                onChange={(e) => setFormData({ ...formData, interest_type: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              >
+                <option value="none">None</option>
+                <option value="simple">Simple</option>
+                <option value="compound">Compound</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Total Amount to Pay (MVR)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.total_amount}
+              onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-600">EMI Amount (Optional)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.emi_amount}
+                onChange={(e) => setFormData({ ...formData, emi_amount: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Total Installments</label>
+              <input
+                type="number"
+                value={formData.total_installments}
+                onChange={(e) => setFormData({ ...formData, total_installments: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-600">Loan Date</label>
+              <input
+                type="date"
+                value={formData.loan_date}
+                onChange={(e) => setFormData({ ...formData, loan_date: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Due Date (Optional)</label>
+              <input
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              rows={2}
+            />
+          </div>
+
+          {formData.category === 'bank' && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-600">Bank Name</label>
+                <input
+                  type="text"
+                  value={formData.bank_name}
+                  onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Account Number</label>
+                <input
+                  type="text"
+                  value={formData.account_number}
+                  onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 border border-gray-200 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
 }
 
 interface Loan {
@@ -66,6 +280,7 @@ export default function Loans() {
   const [showAdd, setShowAdd] = useState(false)
   const [showPay, setShowPay] = useState<string | null>(null)
   const [showDetails, setShowDetails] = useState<string | null>(null)
+  const [showEdit, setShowEdit] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     loan_type: 'borrowed' as 'borrowed' | 'lended',
@@ -82,6 +297,23 @@ export default function Loans() {
     description: '',
     account_number: '',
     bank_name: '',
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    loan_type: 'borrowed' as 'borrowed' | 'lended',
+    category: 'individual',
+    party_name: '',
+    principal_amount: '',
+    interest_rate: '0',
+    interest_type: 'none',
+    loan_date: new Date().toISOString().slice(0, 10),
+    due_date: '',
+    total_amount: '',
+    emi_amount: '',
+    total_installments: '',
+    description: '',
+    account_number: '',
+    bank_name: ''
   })
 
   const [paymentForm, setPaymentForm] = useState({
@@ -186,6 +418,71 @@ export default function Loans() {
       loadLoans()
     } else {
       alert('Failed to add loan: ' + error.message)
+    }
+  }
+
+  const openEdit = (loan: Loan) => {
+    setEditFormData({
+      loan_type: loan.loan_type,
+      category: loan.category || 'individual',
+      party_name: loan.loan_type === 'borrowed' ? (loan.lender_name || '') : (loan.borrower_name || ''),
+      principal_amount: String(loan.principal_amount ?? ''),
+      interest_rate: String(loan.interest_rate ?? '0'),
+      interest_type: loan.interest_type || 'none',
+      loan_date: loan.loan_date,
+      due_date: loan.due_date || '',
+      total_amount: String(loan.total_amount ?? ''),
+      emi_amount: loan.emi_amount != null ? String(loan.emi_amount) : '',
+      total_installments: loan.total_installments != null ? String(loan.total_installments) : '',
+      description: loan.description || '',
+      account_number: loan.account_number || '',
+      bank_name: loan.bank_name || ''
+    })
+    setShowEdit(loan.id)
+  }
+
+  const handleUpdateLoan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!currentProfile || !showEdit) return
+
+    const principal = Number(editFormData.principal_amount)
+    const interestRate = Number(editFormData.interest_rate)
+    let totalAmount = Number(editFormData.total_amount) || principal
+
+    if (!editFormData.total_amount && interestRate > 0 && editFormData.interest_type === 'simple') {
+      const years = 1
+      totalAmount = principal + (principal * interestRate * years / 100)
+    }
+
+    const updateData = {
+      loan_type: editFormData.loan_type,
+      category: editFormData.category,
+      lender_name: editFormData.loan_type === 'borrowed' ? editFormData.party_name : null,
+      borrower_name: editFormData.loan_type === 'lended' ? editFormData.party_name : null,
+      principal_amount: principal,
+      interest_rate: interestRate,
+      interest_type: editFormData.interest_type,
+      loan_date: editFormData.loan_date,
+      due_date: editFormData.due_date || null,
+      total_amount: totalAmount,
+      emi_amount: editFormData.emi_amount ? Number(editFormData.emi_amount) : null,
+      total_installments: editFormData.total_installments ? Number(editFormData.total_installments) : null,
+      description: editFormData.description || null,
+      account_number: editFormData.account_number || null,
+      bank_name: editFormData.bank_name || null
+    }
+
+    const { error } = await supabase
+      .from('loans')
+      .update(updateData)
+      .eq('id', showEdit)
+      .eq('profile_id', currentProfile.id)
+
+    if (!error) {
+      setShowEdit(null)
+      loadLoans()
+    } else {
+      alert('Failed to update loan: ' + error.message)
     }
   }
 
@@ -344,6 +641,7 @@ export default function Loans() {
                   loan={loan}
                   onPay={() => setShowPay(loan.id)}
                   onDetails={() => setShowDetails(loan.id)}
+                  onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
                 />
               ))}
@@ -360,6 +658,7 @@ export default function Loans() {
                   loan={loan}
                   onPay={() => setShowPay(loan.id)}
                   onDetails={() => setShowDetails(loan.id)}
+                  onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
                 />
               ))}
@@ -376,6 +675,7 @@ export default function Loans() {
                   loan={loan}
                   onPay={() => {}}
                   onDetails={() => setShowDetails(loan.id)}
+                  onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
                 />
               ))}
@@ -391,6 +691,15 @@ export default function Loans() {
           setFormData={setFormData}
           onSubmit={handleAddLoan}
           onClose={() => setShowAdd(false)}
+        />
+      )}
+
+      {showEdit && (
+        <EditLoanModal
+          formData={editFormData}
+          setFormData={setEditFormData}
+          onSubmit={handleUpdateLoan}
+          onClose={() => setShowEdit(null)}
         />
       )}
 
@@ -422,11 +731,13 @@ function LoanCard({
   loan,
   onPay,
   onDetails,
+  onEdit,
   onDelete
 }: {
   loan: Loan
   onPay: () => void
   onDetails: () => void
+  onEdit: () => void
   onDelete: () => void
 }) {
   const remaining = loan.total_amount - loan.amount_paid
@@ -479,6 +790,12 @@ function LoanCard({
               Pay
             </button>
           )}
+          <button
+            onClick={onEdit}
+            className="mt-2 ml-1 p-1 text-gray-600 hover:bg-gray-50 rounded"
+          >
+            <Pencil size={16} />
+          </button>
           <button
             onClick={onDelete}
             className="mt-2 ml-1 p-1 text-red-600 hover:bg-red-50 rounded"
