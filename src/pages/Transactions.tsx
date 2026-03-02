@@ -31,6 +31,11 @@ export default function Transactions() {
     return params.get('taxi') === '1'
   }, [location.search])
 
+  const isMt5Only = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('mt5') === '1'
+  }, [location.search])
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     amount: '',
@@ -148,7 +153,12 @@ export default function Transactions() {
     const taxiByDesc = (tx.description ?? '').trim().toLowerCase().startsWith('taxi ')
     const matchesTaxi = !isTaxiOnly || taxiByCategory || taxiBySource || taxiByDesc
 
-    return matchesFilter && matchesSearch && matchesTaxi
+    const mt5ByCategory = (tx.category?.name ?? '').trim().toLowerCase() === 'mt5'
+    const mt5BySource = (tx.income_source?.name ?? '').trim().toLowerCase() === 'mt5'
+    const mt5ByDesc = (tx.description ?? '').trim().toLowerCase().startsWith('mt5 ')
+    const matchesMt5 = !isMt5Only || mt5ByCategory || mt5BySource || mt5ByDesc
+
+    return matchesFilter && matchesSearch && matchesTaxi && matchesMt5
   })
 
   const getTransactionName = (tx: Transaction) => {

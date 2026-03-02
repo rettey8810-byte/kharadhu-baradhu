@@ -80,6 +80,7 @@ type TranslationKey =
   | 'menu_recurring_bills'
   | 'menu_recurring_income'
   | 'menu_loans'
+  | 'menu_mt5'
   | 'menu_reminders'
   | 'menu_all_transactions'
   | 'menu_search'
@@ -292,6 +293,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     menu_recurring_bills: 'Recurring Bills',
     menu_recurring_income: 'Recurring Income',
     menu_loans: 'Loans',
+    menu_mt5: 'MetaTrader 5',
     menu_reminders: 'Reminders',
     menu_all_transactions: 'All Transactions',
     menu_search: 'Search',
@@ -503,6 +505,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     menu_recurring_bills: 'ރިކަރިންގ ބިލްސް',
     menu_recurring_income: 'ރިކަރިންގ އިންކަމް',
     menu_loans: 'ލޯންސް',
+    menu_mt5: 'މެޓަޓްރޭޑަރ 5',
     menu_reminders: 'ރިމައިންޑަރސް',
     menu_all_transactions: 'ހުރިހާ ޓްރާންޒެކްޝަންސް',
     menu_search: 'ސާރޗް',

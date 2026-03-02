@@ -237,6 +237,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/recurring" label={t('menu_recurring_bills')} icon={Repeat} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/recurring-income" label={t('menu_recurring_income')} icon={TrendingUp} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/loans" label={t('menu_loans')} icon={HandCoins} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/mt5" label={t('menu_mt5')} icon={BarChart3} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/reminders" label={t('menu_reminders')} icon={Bell} badge={reminderBadgeCount} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/transactions" label={t('menu_all_transactions')} icon={List} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/grocery-bills" label={t('menu_grocery_bills')} icon={Receipt} onMenuClose={() => setMenuOpen(false)} />

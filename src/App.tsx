@@ -26,6 +26,7 @@ import GroceryBills from './pages/GroceryBills'
 import Loans from './pages/Loans'
 import AcceptInvite from './pages/AcceptInvite'
 import Taxi from './pages/Taxi'
+import MT5 from './pages/MT5'
 
 function App() {
   const { session, loading } = useAuth()
@@ -58,6 +59,7 @@ function App() {
                   <Route path="/profiles" element={<Profiles />} />
                   <Route path="/savings" element={<SavingsGoals />} />
                   <Route path="/taxi" element={<Taxi />} />
+                  <Route path="/mt5" element={<MT5 />} />
                   <Route path="/loans" element={<Loans />} />
                   <Route path="/reminders" element={<BillReminders />} />
                   <Route path="/charts" element={<Charts />} />
