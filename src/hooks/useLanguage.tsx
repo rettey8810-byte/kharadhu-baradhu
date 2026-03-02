@@ -10,6 +10,7 @@ type TranslationKey =
   | 'nav_add'
   | 'nav_charts'
   | 'nav_savings'
+  | 'nav_taxi'
   | 'nav_loans'
   | 'nav_profiles'
   | 'common_income'
@@ -221,6 +222,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_add: 'Add',
     nav_charts: 'Charts',
     nav_savings: 'Savings',
+    nav_taxi: 'Taxi',
     nav_loans: 'Loans',
     nav_profiles: 'Profiles',
     common_income: 'Income',
@@ -431,6 +433,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     nav_add: 'އެޑް',
     nav_charts: 'ޗާޓްސް',
     nav_savings: 'ސޭވިންގސް',
+    nav_taxi: 'ޓެކްސީ',
     nav_loans: 'ލޯންސް',
     nav_profiles: 'ޕްރޮފައިލްސް',
     common_income: 'އިންކަމް',

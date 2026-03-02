@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -193,9 +193,9 @@ export default function Layout({ children }: { children: ReactNode }) {
             <PieChart size={22} />
             <span>{t('nav_charts')}</span>
           </Link>
-          <Link to="/savings" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/savings' ? 'text-emerald-600' : 'text-gray-500'}`}>
-            <TrendingUp size={22} />
-            <span>{t('nav_savings')}</span>
+          <Link to="/taxi" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/taxi' ? 'text-emerald-600' : 'text-gray-500'}`}>
+            <Car size={22} />
+            <span>{t('nav_taxi')}</span>
           </Link>
           <Link to="/loans" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/loans' ? 'text-emerald-600' : 'text-gray-500'}`}>
             <HandCoins size={22} />

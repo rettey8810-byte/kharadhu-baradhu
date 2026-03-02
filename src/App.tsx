@@ -25,6 +25,7 @@ import ProfileSharing from './pages/ProfileSharing'
 import GroceryBills from './pages/GroceryBills'
 import Loans from './pages/Loans'
 import AcceptInvite from './pages/AcceptInvite'
+import Taxi from './pages/Taxi'
 
 function App() {
   const { session, loading } = useAuth()
@@ -56,6 +57,7 @@ function App() {
                   <Route path="/yearly" element={<YearlyView />} />
                   <Route path="/profiles" element={<Profiles />} />
                   <Route path="/savings" element={<SavingsGoals />} />
+                  <Route path="/taxi" element={<Taxi />} />
                   <Route path="/loans" element={<Loans />} />
                   <Route path="/reminders" element={<BillReminders />} />
                   <Route path="/charts" element={<Charts />} />
