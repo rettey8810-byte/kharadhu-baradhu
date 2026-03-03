@@ -213,6 +213,18 @@ type TranslationKey =
   | 'by_buying_at'
   | 'nav_grocery_bills'
   | 'menu_grocery_bills'
+  | 'menu_qr_code'
+  | 'qr_code_title'
+  | 'qr_code_description'
+  | 'app_url'
+  | 'copy_link'
+  | 'copied'
+  | 'share'
+  | 'share_app_text'
+  | 'how_to_use'
+  | 'qr_step_1'
+  | 'qr_step_2'
+  | 'qr_step_3'
 
 const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -426,6 +438,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     by_buying_at: 'by buying at',
     nav_grocery_bills: 'Grocery Bills',
     menu_grocery_bills: 'Grocery Bills',
+    menu_qr_code: 'Share App',
+    qr_code_title: 'Share App',
+    qr_code_description: 'Scan this QR code with your phone to open the app',
+    app_url: 'App URL',
+    copy_link: 'Copy Link',
+    copied: 'Copied!',
+    share: 'Share',
+    share_app_text: 'Track your expenses with Kharadhu Baradhu',
+    how_to_use: 'How to use',
+    qr_step_1: 'Open your phone camera or QR scanner',
+    qr_step_2: 'Point it at the QR code above',
+    qr_step_3: 'Tap the link to open the app',
   },
   dv: {
     app_name: 'ކަރަދު ބަރަދު',
@@ -638,6 +662,18 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     by_buying_at: 'ގަންނަން',
     nav_grocery_bills: 'ގުރޮސަރީ ބިލްސް',
     menu_grocery_bills: 'ގުރޮސަރީ ބިލްސް',
+    menu_qr_code: 'އެޕް ޝެއާރ',
+    qr_code_title: 'އެޕް ޝެއާރ',
+    qr_code_description: 'އެޕް އޮޕަން ކުރުމަށް މޮބައިލް ކެމެރާއިން މި QR ކޯޑް ސްކެން ކުރޭ',
+    app_url: 'އެޕް ޔޫއާރްއެލް',
+    copy_link: 'ލިންކު ކޮޕީ',
+    copied: 'ކޮޕީވެއްޖެ!',
+    share: 'ޝެއާރ',
+    share_app_text: 'ކަރަދު ބަރަދުން ހޭދާ ޓްރެކް ކުރޭ',
+    how_to_use: 'ބޭނުން ކުރާ ގޮތް',
+    qr_step_1: 'މޮބައިލް ކެމެރާ ނުވަތަ QR ސްކެނަރ އޮޕަން ކުރޭ',
+    qr_step_2: 'މައްޗަށް ދައްކާ QR ކޯޑާ ނަގާ',
+    qr_step_3: 'ލިންކަށް ޓެޕް ކޮށް އެޕް އޮޕަން ކުރޭ',
   },
 }
 
