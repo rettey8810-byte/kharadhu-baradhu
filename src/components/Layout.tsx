@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
 import { useLanguage } from '../hooks/useLanguage.tsx'
+import { usePageTracking } from '../hooks/usePageTracking'
 import { formatDateLocal } from '../utils/date'
 
 function NavItem({ to, label, icon: Icon, badge, onMenuClose }: { to?: string; label: string; icon: any; badge?: number; onMenuClose?: () => void }) {
@@ -51,6 +52,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const [reminderBadgeCount, setReminderBadgeCount] = useState(0)
+
+  // Track page views for Google Analytics
+  usePageTracking()
 
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
 
