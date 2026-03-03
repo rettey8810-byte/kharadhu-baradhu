@@ -4,7 +4,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { IncomeSource } from '../types'
 import { formatDateLocal } from '../utils/date'
-import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Wallet, Briefcase, TrendingUp, Gift, CreditCard } from 'lucide-react'
+import { Plus, Calendar, Trash2, RefreshCw, CheckCircle2, Wallet, Briefcase, TrendingUp, Gift, CreditCard, Check } from 'lucide-react'
 
 function formatMVR(value: number | null) {
   if (!value) return 'MVR --'
@@ -44,6 +44,16 @@ export default function RecurringIncome() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  
+  // Mark as Received modal state
+  const [showMarkReceived, setShowMarkReceived] = useState(false)
+  const [markingReceivedId, setMarkingReceivedId] = useState<string | null>(null)
+  const [markReceivedContext, setMarkReceivedContext] = useState<{ income: RecurringIncome | null; dueDateToReceive: string }>({ income: null, dueDateToReceive: '' })
+  const [markReceivedForm, setMarkReceivedForm] = useState({
+    amount: '',
+    received_date: new Date().toISOString().slice(0, 10),
+    notes: '',
+  })
   
   const [formData, setFormData] = useState({
     name: '',
@@ -147,6 +157,95 @@ export default function RecurringIncome() {
     if (confirm('Delete this recurring income?')) {
       await supabase.from('recurring_income').delete().eq('id', id)
       loadData()
+    }
+  }
+
+  const calcNextDueDate = (income: RecurringIncome) => {
+    const current = new Date(income.next_due_date)
+
+    if (income.frequency === 'daily') {
+      current.setDate(current.getDate() + 1)
+      return formatDateLocal(current)
+    }
+
+    if (income.frequency === 'weekly') {
+      current.setDate(current.getDate() + 7)
+      return formatDateLocal(current)
+    }
+
+    if (income.frequency === 'yearly') {
+      current.setFullYear(current.getFullYear() + 1)
+      return formatDateLocal(current)
+    }
+
+    // monthly - add one month
+    const y = current.getFullYear()
+    const m = current.getMonth()
+    const nextMonthIndex = m + 1
+    const nextYear = y + Math.floor(nextMonthIndex / 12)
+    const nextMonth0 = nextMonthIndex % 12
+    const targetDay = current.getDate()
+    const day = Math.min(targetDay, new Date(nextYear, nextMonth0 + 1, 0).getDate())
+    const next = new Date(nextYear, nextMonth0, day)
+    return formatDateLocal(next)
+  }
+
+  const markAsReceived = async (income: RecurringIncome) => {
+    if (!currentProfile) return
+    if (markingReceivedId) return
+
+    setMarkReceivedContext({ income, dueDateToReceive: income.next_due_date })
+    setMarkReceivedForm({
+      amount: income.amount == null ? '' : String(income.amount),
+      received_date: new Date().toISOString().slice(0, 10),
+      notes: '',
+    })
+    setShowMarkReceived(true)
+  }
+
+  const confirmMarkAsReceived = async () => {
+    if (!currentProfile) return
+    const income = markReceivedContext.income
+    if (!income) return
+    if (markingReceivedId) return
+
+    const num = Number(markReceivedForm.amount)
+    if (!Number.isFinite(num) || num <= 0) {
+      window.alert('Please enter a valid amount')
+      return
+    }
+
+    setMarkingReceivedId(income.id)
+    try {
+      // 1) Create income transaction
+      const { error: txErr } = await supabase
+        .from('transactions')
+        .insert({
+          profile_id: currentProfile.id,
+          income_source_id: income.income_source_id,
+          type: 'income',
+          amount: num,
+          description: income.name,
+          notes: markReceivedForm.notes || null,
+          transaction_date: markReceivedForm.received_date,
+        })
+      if (txErr) throw txErr
+
+      // 2) Advance next due date
+      const nextDue = calcNextDueDate(income)
+      const { error: updErr } = await supabase
+        .from('recurring_income')
+        .update({ next_due_date: nextDue })
+        .eq('id', income.id)
+      if (updErr) throw updErr
+
+      setShowMarkReceived(false)
+      setMarkReceivedContext({ income: null, dueDateToReceive: '' })
+      await loadData()
+    } catch (e: any) {
+      window.alert(e?.message ?? 'Failed to mark as received')
+    } finally {
+      setMarkingReceivedId(null)
     }
   }
 
@@ -372,6 +471,16 @@ export default function RecurringIncome() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {income.is_active && (
+                    <button
+                      onClick={() => markAsReceived(income)}
+                      disabled={markingReceivedId === income.id}
+                      className="p-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg disabled:opacity-50"
+                      title="Mark as Received"
+                    >
+                      <Check size={18} />
+                    </button>
+                  )}
                   <button
                     onClick={() => toggleActive(income.id, income.is_active)}
                     className={`p-2 rounded-lg ${income.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-400 hover:bg-gray-100'}`}
@@ -392,6 +501,72 @@ export default function RecurringIncome() {
           ))
         )}
       </div>
+      {/* Mark as Received Modal */}
+      {showMarkReceived && markReceivedContext.income && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="font-bold text-lg text-gray-900">
+              Mark as Received
+            </h3>
+            <p className="text-sm text-gray-600">
+              {markReceivedContext.income.name} - Due {markReceivedContext.dueDateToReceive}
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Amount Received (MVR)</label>
+                <input
+                  type="number"
+                  value={markReceivedForm.amount}
+                  onChange={(e) => setMarkReceivedForm({ ...markReceivedForm, amount: e.target.value })}
+                  placeholder="5000"
+                  className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date Received</label>
+                <input
+                  type="date"
+                  value={markReceivedForm.received_date}
+                  onChange={(e) => setMarkReceivedForm({ ...markReceivedForm, received_date: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Notes (optional)</label>
+                <input
+                  type="text"
+                  value={markReceivedForm.notes}
+                  onChange={(e) => setMarkReceivedForm({ ...markReceivedForm, notes: e.target.value })}
+                  placeholder="e.g., July salary"
+                  className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setShowMarkReceived(false)
+                  setMarkReceivedContext({ income: null, dueDateToReceive: '' })
+                }}
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmMarkAsReceived}
+                disabled={markingReceivedId === markReceivedContext.income.id}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {markingReceivedId === markReceivedContext.income.id ? 'Processing...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

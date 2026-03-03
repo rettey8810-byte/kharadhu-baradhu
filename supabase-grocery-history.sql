@@ -5,14 +5,15 @@ CREATE TABLE IF NOT EXISTS public.grocery_item_history (
   item_name text NOT NULL,
   last_used_at timestamptz DEFAULT now(),
   use_count integer DEFAULT 1,
-  created_at timestamptz DEFAULT now(),
-  
-  -- Ensure unique item names per user (case-insensitive)
-  UNIQUE (user_id, LOWER(item_name))
+  created_at timestamptz DEFAULT now()
 );
 
 -- Enable RLS
 ALTER TABLE public.grocery_item_history ENABLE ROW LEVEL SECURITY;
+
+-- Unique index for case-insensitive item names per user
+CREATE UNIQUE INDEX idx_grocery_item_history_unique_name 
+  ON public.grocery_item_history (user_id, LOWER(item_name));
 
 -- RLS Policies
 CREATE POLICY "Users can view their own grocery item history"
@@ -37,7 +38,7 @@ CREATE POLICY "Users can delete their own grocery item history"
 
 -- Index for fast autocomplete lookups
 CREATE INDEX IF NOT EXISTS idx_grocery_item_history_user_id ON public.grocery_item_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_grocery_item_history_name ON public.grocery_item_history USING gin (item_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_grocery_item_history_name ON public.grocery_item_history(item_name);
 CREATE INDEX IF NOT EXISTS idx_grocery_item_history_last_used ON public.grocery_item_history(last_used_at DESC);
 
 -- Function to upsert grocery item history
