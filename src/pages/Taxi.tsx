@@ -32,7 +32,28 @@ type TaxiTrip = {
   total_income: number
   transaction_id: string | null
   notes: string | null
+  app_name: string | null
+  route: string | null
   created_at: string
+}
+
+const TAXI_APPS = ['Avas Ride', 'Fahi Ride', 'Gaadiya App', 'Other'] as const
+
+// Route prices configuration - YOU CAN EDIT THESE PRICES
+const ROUTE_PRICES: Record<string, number> = {
+  'Inside Male\'': 15,
+  'Inside HM Phase 1': 15,
+  'Inside HM Phase 2': 15,
+  'Male\' to HM Phase 1': 45,
+  'Male\' to HM Phase 2': 50,
+  'Male\' to Seaplane Terminal': 55,
+  'Male\' to Airport': 35,
+  'HM Phase 1 to Male\'': 45,
+  'HM Phase 2 to Male\'': 50,
+  'Seaplane Terminal to Male\'': 55,
+  'Airport to Male\'': 35,
+  'HM Phase 1 to HM Phase 2': 20,
+  'HM Phase 2 to HM Phase 1': 20,
 }
 
 type TaxiVehicleExpense = {
@@ -67,11 +88,20 @@ export default function Taxi() {
   })
 
   const [showAddTrip, setShowAddTrip] = useState(false)
-  const [tripForm, setTripForm] = useState<{ trip_date: string; trip_count: string; rate: string; notes: string }>({
+  const [tripForm, setTripForm] = useState<{
+    trip_date: string
+    trip_count: string
+    rate: string
+    notes: string
+    app_name: string
+    route: string
+  }>({
     trip_date: new Date().toISOString().slice(0, 10),
     trip_count: '1',
     rate: '',
     notes: '',
+    app_name: 'Avas Ride',
+    route: 'Inside Male\'',
   })
 
   const [showAddExpense, setShowAddExpense] = useState(false)
@@ -345,6 +375,9 @@ export default function Taxi() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      const appInfo = tripForm.app_name ? ` [${tripForm.app_name}]` : ''
+      const routeInfo = tripForm.route ? ` - ${tripForm.route}` : ''
+
       // Create a general transaction so this affects dashboards/budgets
       const { data: txData, error: txErr } = await supabase
         .from('transactions')
@@ -352,10 +385,10 @@ export default function Taxi() {
           profile_id: currentProfile.id,
           type: 'income',
           amount: total,
-          description: `Taxi income - ${vehicleLabel}`,
+          description: `Taxi${appInfo}${routeInfo} - ${vehicleLabel}`,
           notes: tripForm.notes.trim()
-            ? `Vehicle: ${vehicleLabel}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}`
-            : `Vehicle: ${vehicleLabel}\nTrips: ${count}\nRate: ${rate}`,
+            ? `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}`
+            : `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}`,
           transaction_date: tripForm.trip_date,
           category_id: null,
           income_source_id: taxiIncomeSourceId,
@@ -375,10 +408,12 @@ export default function Taxi() {
           total_income: total,
           transaction_id: txData?.id ?? null,
           notes: tripForm.notes.trim() ? tripForm.notes.trim() : null,
+          app_name: tripForm.app_name || null,
+          route: tripForm.route || null,
         })
       if (tripErr) throw tripErr
 
-      setTripForm({ trip_date: new Date().toISOString().slice(0, 10), trip_count: '1', rate: '', notes: '' })
+      setTripForm({ trip_date: new Date().toISOString().slice(0, 10), trip_count: '1', rate: '', notes: '', app_name: 'Avas Ride', route: 'Inside Male\'' })
       setShowAddTrip(false)
       await loadVehicleData(selectedVehicleId)
     } catch (e: any) {
@@ -484,7 +519,17 @@ export default function Taxi() {
             ))}
           </select>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setTripForm({ ...tripForm, trip_date: new Date().toISOString().slice(0, 10) })
+                setShowAddTrip(true)
+              }}
+              className="bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 text-sm"
+            >
+              Mark Today
+            </button>
             <button
               type="button"
               onClick={() => setShowAddTrip(true)}
@@ -640,8 +685,11 @@ export default function Taxi() {
                 {trips.slice(0, 8).map(tr => (
                   <div key={tr.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{tr.trip_date} • {tr.trip_count} trips × {formatMVR(Number(tr.rate))}</p>
-                      <p className="text-xs text-gray-500">{tr.notes ?? ''}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {tr.trip_date} • {tr.app_name && <span className="text-blue-600">[{tr.app_name}]</span>} {tr.route && <span className="text-gray-500">- {tr.route}</span>}
+                      </p>
+                      <p className="text-xs text-gray-500">{tr.trip_count} trips × {formatMVR(Number(tr.rate))}</p>
+                      {tr.notes && <p className="text-xs text-gray-400 mt-1">{tr.notes}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-blue-700">{formatMVR(Number(tr.total_income))}</span>
@@ -777,6 +825,40 @@ export default function Taxi() {
                   onChange={(e) => setTripForm({ ...tripForm, trip_date: e.target.value })}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Taxi App</label>
+                <select
+                  value={tripForm.app_name}
+                  onChange={(e) => setTripForm({ ...tripForm, app_name: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                >
+                  {TAXI_APPS.map(app => (
+                    <option key={app} value={app}>{app}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Route / Location</label>
+                <select
+                  value={tripForm.route}
+                  onChange={(e) => {
+                    const route = e.target.value
+                    const price = ROUTE_PRICES[route] || 0
+                    setTripForm({ 
+                      ...tripForm, 
+                      route,
+                      rate: price > 0 ? String(price) : tripForm.rate
+                    })
+                  }}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                >
+                  {Object.keys(ROUTE_PRICES).map(route => (
+                    <option key={route} value={route}>{route} {ROUTE_PRICES[route] > 0 ? `(MVR ${ROUTE_PRICES[route]})` : ''}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
