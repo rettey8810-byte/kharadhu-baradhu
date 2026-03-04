@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { supabase } from '../lib/supabase'
-import { Car, Plus, ArrowUpCircle, ArrowDownCircle, X, Pencil } from 'lucide-react'
+import { Car, Plus, X, Pencil, MapPin, Smartphone, TrendingUp, DollarSign } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 function formatMVR(value: number) {
@@ -275,52 +275,86 @@ export default function Taxi() {
     }
   }
 
-  const summary = useMemo(() => {
+  const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
     const monthKey = new Date().toISOString().slice(0, 7)
     const yearKey = new Date().toISOString().slice(0, 4)
 
-    // Day to Date
-    const dayIncome = trips
-      .filter(t => t.trip_date === today)
-      .reduce((sum, it) => sum + Number(it.total_income), 0)
-    const dayExpense = expenses
-      .filter(e => e.expense_date === today)
-      .reduce((sum, it) => sum + Number(it.amount), 0)
+    // Day stats
+    const todayTrips = trips.filter(t => t.trip_date === today)
+    const dayIncome = todayTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+    const dayExpense = expenses.filter(e => e.expense_date === today).reduce((sum, it) => sum + Number(it.amount), 0)
+    const dayTripCount = todayTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Month to Date
-    const monthlyIncome = trips
-      .filter(t => t.trip_date.startsWith(monthKey))
-      .reduce((sum, it) => sum + Number(it.total_income), 0)
-    const monthlyExpense = expenses
-      .filter(e => e.expense_date.startsWith(monthKey))
-      .reduce((sum, it) => sum + Number(it.amount), 0)
+    // Month stats
+    const monthTrips = trips.filter(t => t.trip_date.startsWith(monthKey))
+    const monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+    const monthlyExpense = expenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
+    const monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Year to Date
-    const yearlyIncome = trips
-      .filter(t => t.trip_date.startsWith(yearKey))
-      .reduce((sum, it) => sum + Number(it.total_income), 0)
-    const yearlyExpense = expenses
-      .filter(e => e.expense_date.startsWith(yearKey))
-      .reduce((sum, it) => sum + Number(it.amount), 0)
+    // Year stats
+    const yearTrips = trips.filter(t => t.trip_date.startsWith(yearKey))
+    const yearlyIncome = yearTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+    const yearlyExpense = expenses.filter(e => e.expense_date.startsWith(yearKey)).reduce((sum, it) => sum + Number(it.amount), 0)
 
-    // Overall (all time)
+    // Overall stats
     const overallIncome = trips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const overallExpense = expenses.reduce((sum, it) => sum + Number(it.amount), 0)
+    const totalTrips = trips.reduce((sum, it) => sum + Number(it.trip_count), 0)
+
+    // Most popular route
+    const routeCounts: Record<string, number> = {}
+    trips.forEach(t => {
+      if (t.route) {
+        routeCounts[t.route] = (routeCounts[t.route] || 0) + Number(t.trip_count)
+      }
+    })
+    const mostPopularRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0] || ['-', 0]
+
+    // Trips by app
+    const appCounts: Record<string, number> = {}
+    trips.forEach(t => {
+      const app = t.app_name || 'Other'
+      appCounts[app] = (appCounts[app] || 0) + Number(t.trip_count)
+    })
+    const tripsByApp = Object.entries(appCounts).sort((a, b) => b[1] - a[1])
+
+    // This week stats (last 7 days)
+    const weekDates: string[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      weekDates.push(d.toISOString().slice(0, 10))
+    }
+    const weekTrips = trips.filter(t => weekDates.includes(t.trip_date))
+    const weekIncome = weekTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+    const weekExpense = expenses.filter(e => weekDates.includes(e.expense_date)).reduce((sum, it) => sum + Number(it.amount), 0)
+
+    // Average per trip
+    const avgPerTrip = totalTrips > 0 ? overallIncome / totalTrips : 0
 
     return {
       dayIncome,
       dayExpense,
       dayProfit: dayIncome - dayExpense,
+      dayTripCount,
       monthlyIncome,
       monthlyExpense,
       monthlyProfit: monthlyIncome - monthlyExpense,
+      monthTripCount,
       yearlyIncome,
       yearlyExpense,
       yearlyProfit: yearlyIncome - yearlyExpense,
       overallIncome,
       overallExpense,
       overallProfit: overallIncome - overallExpense,
+      totalTrips,
+      mostPopularRoute: { name: mostPopularRoute[0], count: mostPopularRoute[1] },
+      tripsByApp,
+      weekIncome,
+      weekExpense,
+      weekProfit: weekIncome - weekExpense,
+      avgPerTrip,
     }
   }, [trips, expenses])
 
@@ -556,106 +590,181 @@ export default function Taxi() {
         </div>
       )}
 
-      {/* Profit summary */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        {/* Day to Date */}
-        <div className="mb-4 pb-4 border-b border-gray-100">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Day to Date</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <ArrowUpCircle size={12} /> Revenue
-              </p>
-              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.dayIncome)}</p>
+      {/* Enhanced Dashboard */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Today's Stats Card */}
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <DollarSign size={18} />
             </div>
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-              <p className="text-xs text-red-700 flex items-center gap-1">
-                <ArrowDownCircle size={12} /> Cost
-              </p>
-              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.dayExpense)}</p>
-            </div>
+            <span className="text-sm font-medium text-emerald-50">Today</span>
           </div>
-          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-xs text-gray-500">Profit</p>
-            <p className={`text-sm font-semibold ${summary.dayProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatMVR(summary.dayProfit)}
-            </p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-xs text-emerald-100">Income</p>
+              <p className="text-lg font-bold">{formatMVR(stats.dayIncome)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <p className="text-xs text-emerald-100">Trips</p>
+                <p className="text-sm font-semibold">{stats.dayTripCount}</p>
+              </div>
+              <div className="flex-1 text-right">
+                <p className="text-xs text-emerald-100">Profit</p>
+                <p className={`text-sm font-semibold ${stats.dayProfit >= 0 ? 'text-white' : 'text-red-200'}`}>
+                  {formatMVR(stats.dayProfit)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Month to Date */}
-        <div className="mb-4 pb-4 border-b border-gray-100">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Month to Date</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <ArrowUpCircle size={12} /> Revenue
-              </p>
-              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.monthlyIncome)}</p>
+        {/* Month Stats Card */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <TrendingUp size={18} />
             </div>
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-              <p className="text-xs text-red-700 flex items-center gap-1">
-                <ArrowDownCircle size={12} /> Cost
-              </p>
-              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.monthlyExpense)}</p>
-            </div>
+            <span className="text-sm font-medium text-blue-50">This Month</span>
           </div>
-          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-xs text-gray-500">Profit</p>
-            <p className={`text-sm font-semibold ${summary.monthlyProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatMVR(summary.monthlyProfit)}
-            </p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-xs text-blue-100">Income</p>
+              <p className="text-lg font-bold">{formatMVR(stats.monthlyIncome)}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <p className="text-xs text-blue-100">Trips</p>
+                <p className="text-sm font-semibold">{stats.monthTripCount}</p>
+              </div>
+              <div className="flex-1 text-right">
+                <p className="text-xs text-blue-100">Profit</p>
+                <p className={`text-sm font-semibold ${stats.monthlyProfit >= 0 ? 'text-white' : 'text-red-200'}`}>
+                  {formatMVR(stats.monthlyProfit)}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Year to Date */}
-        <div className="mb-4 pb-4 border-b border-gray-100">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Year to Date</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <ArrowUpCircle size={12} /> Revenue
-              </p>
-              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.yearlyIncome)}</p>
+      {/* Most Popular Route Card */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="bg-amber-100 p-2 rounded-lg">
+            <MapPin size={18} className="text-amber-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Most Popular Route</h3>
+        </div>
+        {stats.mostPopularRoute.count > 0 ? (
+          <div className="flex items-center justify-between bg-amber-50 rounded-xl p-3">
+            <div>
+              <p className="font-medium text-gray-900">{stats.mostPopularRoute.name}</p>
+              <p className="text-sm text-gray-500">{stats.mostPopularRoute.count} trips</p>
             </div>
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-              <p className="text-xs text-red-700 flex items-center gap-1">
-                <ArrowDownCircle size={12} /> Cost
-              </p>
-              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.yearlyExpense)}</p>
+            <div className="bg-amber-200 text-amber-800 px-3 py-1 rounded-full text-sm font-semibold">
+              #{1}
             </div>
           </div>
-          <div className="mt-2 bg-gray-50 rounded-xl p-2 text-center">
-            <p className="text-xs text-gray-500">Profit</p>
-            <p className={`text-sm font-semibold ${summary.yearlyProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatMVR(summary.yearlyProfit)}
-            </p>
+        ) : (
+          <p className="text-sm text-gray-500 text-center py-4">No trips recorded yet</p>
+        )}
+      </div>
+
+      {/* Trips by App */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="bg-purple-100 p-2 rounded-lg">
+            <Smartphone size={18} className="text-purple-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Trips by App</h3>
+        </div>
+        {stats.tripsByApp.length > 0 ? (
+          <div className="space-y-2">
+            {stats.tripsByApp.slice(0, 4).map(([app, count], index) => (
+              <div key={app} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                    index === 1 ? 'bg-gray-200 text-gray-700' :
+                    index === 2 ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <span className="font-medium text-gray-900">{app}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">{count} trips</span>
+                  <div className="w-16 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${
+                        index === 0 ? 'bg-yellow-500' :
+                        index === 1 ? 'bg-gray-500' :
+                        index === 2 ? 'bg-orange-500' :
+                        'bg-gray-400'
+                      }`}
+                      style={{ width: `${Math.min(100, (count / stats.totalTrips) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 text-center py-4">No trips recorded yet</p>
+        )}
+      </div>
+
+      {/* Weekly Summary */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <h3 className="font-semibold text-gray-900 mb-3">Last 7 Days</h3>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-blue-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-blue-600 mb-1">Income</p>
+            <p className="text-sm font-bold text-blue-900">{formatMVR(stats.weekIncome)}</p>
+          </div>
+          <div className="bg-red-50 rounded-xl p-3 text-center">
+            <p className="text-xs text-red-600 mb-1">Expenses</p>
+            <p className="text-sm font-bold text-red-900">{formatMVR(stats.weekExpense)}</p>
+          </div>
+          <div className={`rounded-xl p-3 text-center ${stats.weekProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+            <p className={`text-xs mb-1 ${stats.weekProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Profit</p>
+            <p className={`text-sm font-bold ${stats.weekProfit >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>{formatMVR(stats.weekProfit)}</p>
           </div>
         </div>
+      </div>
 
-        {/* Overall */}
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Overall (All Time)</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-              <p className="text-xs text-blue-700 flex items-center gap-1">
-                <ArrowUpCircle size={12} /> Revenue
-              </p>
-              <p className="text-sm font-semibold text-blue-900">{formatMVR(summary.overallIncome)}</p>
-            </div>
-            <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-              <p className="text-xs text-red-700 flex items-center gap-1">
-                <ArrowDownCircle size={12} /> Cost
-              </p>
-              <p className="text-sm font-semibold text-red-900">{formatMVR(summary.overallExpense)}</p>
-            </div>
+      {/* Overall Stats */}
+      <div className="bg-gray-900 rounded-2xl p-4 text-white shadow-lg">
+        <h3 className="font-semibold text-gray-100 mb-3 flex items-center gap-2">
+          <Car size={18} />
+          All Time Statistics
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gray-800 rounded-xl p-3">
+            <p className="text-xs text-gray-400">Total Income</p>
+            <p className="text-lg font-bold text-emerald-400">{formatMVR(stats.overallIncome)}</p>
           </div>
-          <div className="mt-2 bg-emerald-50 rounded-xl p-2 text-center">
-            <p className="text-xs text-gray-500">Total Profit</p>
-            <p className={`text-sm font-semibold ${summary.overallProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {formatMVR(summary.overallProfit)}
-            </p>
+          <div className="bg-gray-800 rounded-xl p-3">
+            <p className="text-xs text-gray-400">Total Expenses</p>
+            <p className="text-lg font-bold text-red-400">{formatMVR(stats.overallExpense)}</p>
           </div>
+          <div className="bg-gray-800 rounded-xl p-3">
+            <p className="text-xs text-gray-400">Total Trips</p>
+            <p className="text-lg font-bold text-blue-400">{stats.totalTrips}</p>
+          </div>
+          <div className="bg-gray-800 rounded-xl p-3">
+            <p className="text-xs text-gray-400">Avg/Trip</p>
+            <p className="text-lg font-bold text-amber-400">{formatMVR(stats.avgPerTrip)}</p>
+          </div>
+        </div>
+        <div className="mt-3 bg-gray-800 rounded-xl p-3 text-center">
+          <p className="text-xs text-gray-400">Total Profit</p>
+          <p className={`text-xl font-bold ${stats.overallProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {formatMVR(stats.overallProfit)}
+          </p>
         </div>
       </div>
 

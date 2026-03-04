@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS public.taxi_trips (
   transaction_id uuid REFERENCES public.transactions(id) ON DELETE SET NULL,
 
   notes text,
+  app_name text,
+  route text,
   created_at timestamptz DEFAULT now()
 );
 
@@ -116,3 +118,14 @@ CREATE POLICY "Users can update their taxi vehicle expenses"
 CREATE POLICY "Users can delete their taxi vehicle expenses"
   ON public.taxi_vehicle_expenses FOR DELETE
   USING (user_id = auth.uid());
+
+-- Migration: Add app_name and route columns if they don't exist (for existing tables)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'taxi_trips' AND column_name = 'app_name') THEN
+    ALTER TABLE public.taxi_trips ADD COLUMN app_name text;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'taxi_trips' AND column_name = 'route') THEN
+    ALTER TABLE public.taxi_trips ADD COLUMN route text;
+  END IF;
+END $$;
