@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car, QrCode } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car, QrCode, Shield } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
@@ -52,9 +52,23 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const [reminderBadgeCount, setReminderBadgeCount] = useState(0)
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('')
+
+  const ADMIN_EMAIL = 'rettey.ay@hotmail.com'
 
   // Track page views for Google Analytics
   usePageTracking()
+
+  // Get current user email for admin check
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email) {
+        setCurrentUserEmail(user.email)
+      }
+    }
+    getUser()
+  }, [])
 
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
 
@@ -255,6 +269,9 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/quick-add" label={t('menu_quick_add')} icon={Zap} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profile-sharing" label={t('menu_profile_sharing')} icon={UserPlus} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profiles" label={t('menu_profiles')} icon={Users} onMenuClose={() => setMenuOpen(false)} />
+              {currentUserEmail === ADMIN_EMAIL && (
+                <NavItem to="/admin" label="Admin Dashboard" icon={Shield} onMenuClose={() => setMenuOpen(false)} />
+              )}
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-white">
               <button

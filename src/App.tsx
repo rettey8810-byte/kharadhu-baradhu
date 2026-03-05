@@ -28,6 +28,7 @@ import AcceptInvite from './pages/AcceptInvite'
 import Taxi from './pages/Taxi'
 import MT5 from './pages/MT5'
 import QRCode from './pages/QRCode'
+import AdminDashboard from './pages/AdminDashboard'
 
 function App() {
   const { session, loading } = useAuth()
@@ -76,6 +77,7 @@ function App() {
                   <Route path="/profile-sharing" element={<ProfileSharing />} />
                   <Route path="/grocery-bills" element={<GroceryBills />} />
                   <Route path="/qr-code" element={<QRCode />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>
