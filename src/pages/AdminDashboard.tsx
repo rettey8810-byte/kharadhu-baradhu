@@ -52,31 +52,17 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      // Load all users
-      const { data: usersData, error: usersError } = await supabase
-        .from('auth.users')
-        .select('*')
-      
-      if (usersError) {
-        // Try RPC method
-        const { data: rpcUsers, error: rpcError } = await supabase
-          .rpc('admin_get_all_users')
-        
-        if (rpcError) throw rpcError
-        setUsers(rpcUsers || [])
-      } else {
-        setUsers(usersData || [])
-      }
+      // IMPORTANT: the client cannot read from auth schema tables directly.
+      // Use admin-only RPCs (SECURITY DEFINER) instead.
+      const { data: rpcUsers, error: usersErr } = await supabase.rpc('admin_get_all_users')
+      if (usersErr) throw usersErr
+      setUsers((rpcUsers || []) as any)
 
-      // Load audit logs
-      const { data: logsData, error: logsError } = await supabase
-        .from('auth.audit_log_entries')
-        .select('*')
-        .order('occurred_at', { ascending: false })
-        .limit(50)
-      
-      if (!logsError) {
-        setAuditLogs(logsData || [])
+      const { data: rpcLogs, error: logsErr } = await supabase.rpc('admin_get_audit_logs', { p_limit: 50 })
+      if (logsErr) {
+        setAuditLogs([])
+      } else {
+        setAuditLogs((rpcLogs || []) as any)
       }
     } catch (e) {
       console.error('Failed to load admin data:', e)
