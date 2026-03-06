@@ -26,6 +26,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserData[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   const [userStats, setUserStats] = useState<{
     transactions: number
@@ -52,6 +53,8 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
+      setLoadError(null)
+
       // IMPORTANT: the client cannot read from auth schema tables directly.
       // Use admin-only RPCs (SECURITY DEFINER) instead.
       const { data: rpcUsers, error: usersErr } = await supabase.rpc('admin_get_all_users')
@@ -66,17 +69,13 @@ export default function AdminDashboard() {
       }
     } catch (e) {
       console.error('Failed to load admin data:', e)
-      // Fallback - load from session
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUsers([{
-          id: user.id,
-          email: user.email || '',
-          created_at: user.created_at || '',
-          last_sign_in_at: user.last_sign_in_at || null,
-          raw_user_meta_data: user.user_metadata || {}
-        }])
-      }
+      const msg =
+        typeof e === 'object' && e && 'message' in e
+          ? String((e as any).message)
+          : JSON.stringify(e)
+      setLoadError(msg || 'Failed to load admin data')
+      setUsers([])
+      setAuditLogs([])
     }
   }
 
@@ -185,6 +184,16 @@ export default function AdminDashboard() {
           Admin: {currentUserEmail}
         </div>
       </div>
+
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+          <p className="text-sm font-semibold text-red-800">Admin load error</p>
+          <p className="text-xs text-red-700 mt-1 break-words">{loadError}</p>
+          <p className="text-xs text-red-700 mt-2">
+            This usually means the Supabase SQL functions were not created, have a wrong signature, or the admin email check blocked access.
+          </p>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
