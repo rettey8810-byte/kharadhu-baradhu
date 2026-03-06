@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Shield, Users, LogIn, Calendar, TrendingUp, UserCheck, X } from 'lucide-react'
 
-const ADMIN_EMAIL = 'rettey.ay@hotmail.com'
+const ADMIN_EMAIL = 'retey.ay@hotmail.com'
 
 type UserData = {
   id: string

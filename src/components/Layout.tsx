@@ -54,7 +54,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [reminderBadgeCount, setReminderBadgeCount] = useState(0)
   const [currentUserEmail, setCurrentUserEmail] = useState<string>('')
 
-  const ADMIN_EMAIL = 'rettey.ay@hotmail.com'
+  const ADMIN_EMAIL = 'retey.ay@hotmail.com'
 
   // Track page views for Google Analytics
   usePageTracking()
