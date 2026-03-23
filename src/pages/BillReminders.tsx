@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { BillReminder } from '../types'
 import { Bell, Check, X, Calendar, AlertCircle } from 'lucide-react'
 
@@ -11,36 +13,46 @@ function formatMVR(value: number | null) {
 
 export default function BillReminders() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const [reminders, setReminders] = useState<BillReminder[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadReminders()
-  }, [profiles])
+  }, [profiles, user])
 
   const loadReminders = async () => {
-    if (profiles.length === 0) return
+    if (!user || profiles.length === 0) return
     setLoading(true)
     
     const profileIds = profiles.map(p => p.id)
-    const { data } = await supabase
-      .from('bill_reminders')
-      .select('*, profile:profile_id(name)')
-      .in('profile_id', profileIds)
-      .eq('is_dismissed', false)
-      .order('due_date', { ascending: true })
+    const promises = profileIds.map(pid => {
+      const q = query(
+        collection(firebaseDb, 'users', user.uid, 'billReminders'),
+        where('profile_id', '==', pid),
+        where('is_dismissed', '==', false),
+        orderBy('due_date', 'asc')
+      )
+      return getDocs(q)
+    })
     
-    setReminders(data || [])
+    const snaps = await Promise.all(promises)
+    const data = snaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as BillReminder))
+    setReminders(data)
     setLoading(false)
   }
 
   const dismissReminder = async (id: string) => {
-    await supabase.from('bill_reminders').update({ is_dismissed: true }).eq('id', id)
+    if (!user) return
+    const ref = doc(firebaseDb, 'users', user.uid, 'billReminders', id)
+    await updateDoc(ref, { is_dismissed: true })
     loadReminders()
   }
 
   const markAsRead = async (id: string) => {
-    await supabase.from('bill_reminders').update({ is_read: true }).eq('id', id)
+    if (!user) return
+    const ref = doc(firebaseDb, 'users', user.uid, 'billReminders', id)
+    await updateDoc(ref, { is_read: true })
     loadReminders()
   }
 

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
+import { useAuth } from '../hooks/useAuth'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function AcceptInvite() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const token = searchParams.get('token')
   
   const [loading, setLoading] = useState(true)
@@ -30,9 +33,6 @@ export default function AcceptInvite() {
 
     const processInvitation = async () => {
       try {
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser()
-        
         if (!user) {
           // User not logged in - show login button instead of error
           setNeedsLogin(true)
@@ -40,19 +40,21 @@ export default function AcceptInvite() {
           return
         }
 
-        // Look up the invitation
-        const { data: invitation, error: inviteError } = await supabase
-          .from('profile_share_invitations')
-          .select('*')
-          .eq('token', token)
-          .eq('accepted', false)
-          .single()
-
-        if (inviteError || !invitation) {
+        // Look up the invitation in Firestore
+        const q = query(
+          collection(firebaseDb, 'profileShareInvitations'),
+          where('token', '==', token),
+          where('accepted', '==', false)
+        )
+        const snap = await getDocs(q)
+        
+        if (snap.empty) {
           setError('Invalid or expired invitation')
           setLoading(false)
           return
         }
+
+        const invitation = { id: snap.docs[0].id, ...snap.docs[0].data() } as any
 
         setInviteDetails({
           email: invitation.email,
@@ -70,39 +72,46 @@ export default function AcceptInvite() {
           return
         }
 
-        // Accept the invitation
-        const { error: acceptError } = await supabase
-          .rpc('accept_share_invitation', { p_invitation_id: invitation.id })
-
-        if (acceptError) throw acceptError
+        // Mark invitation as accepted
+        await updateDoc(doc(firebaseDb, 'profileShareInvitations', invitation.id), {
+          accepted: true,
+          accepted_at: new Date().toISOString(),
+          accepted_by: user.uid
+        })
 
         // If it's a share_all_profiles invitation, create shares for all profiles
         if (invitation.share_all_profiles) {
           // Get inviter's profiles
-          const { data: inviterProfiles } = await supabase
-            .from('expense_profiles')
-            .select('*')
-            .eq('user_id', invitation.invited_by)
-            .eq('is_active', true)
+          const profilesQuery = query(
+            collection(firebaseDb, 'users', invitation.invited_by, 'profiles'),
+            where('is_active', '==', true)
+          )
+          const profilesSnap = await getDocs(profilesQuery)
 
-          if (inviterProfiles && inviterProfiles.length > 0) {
-            const shares = inviterProfiles.map(p => ({
-              profile_id: p.id,
-              shared_with: user.id,
-              shared_by: invitation.invited_by,
-              role: invitation.role,
-              share_all_profiles: true,
-              shared_with_email: user.email
-            }))
-
-            await supabase.from('profile_shares').insert(shares)
+          if (profilesSnap && profilesSnap.docs.length > 0) {
+            const sharePromises = profilesSnap.docs.map(p => 
+              addDoc(collection(firebaseDb, 'profileShares'), {
+                profile_id: p.id,
+                shared_with: user.uid,
+                shared_by: invitation.invited_by,
+                role: invitation.role,
+                share_all_profiles: true,
+                shared_with_email: user.email,
+                created_at: new Date().toISOString()
+              })
+            )
+            await Promise.all(sharePromises)
           }
         } else if (invitation.profile_id) {
           // Share single profile
-          await supabase.rpc('share_profile', {
-            p_profile_id: invitation.profile_id,
-            p_shared_with: user.id,
-            p_role: invitation.role
+          await addDoc(collection(firebaseDb, 'profileShares'), {
+            profile_id: invitation.profile_id,
+            shared_with: user.uid,
+            shared_by: invitation.invited_by,
+            role: invitation.role,
+            share_all_profiles: false,
+            shared_with_email: user.email,
+            created_at: new Date().toISOString()
           })
         }
 
@@ -124,7 +133,7 @@ export default function AcceptInvite() {
     }
 
     processInvitation()
-  }, [token, navigate])
+  }, [token, navigate, user])
 
   if (loading) {
     return (

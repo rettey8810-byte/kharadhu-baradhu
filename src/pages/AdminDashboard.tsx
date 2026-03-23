@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import { Shield, Users, Calendar, TrendingUp, X, DollarSign, CreditCard, BarChart3, PieChart, Activity, Wallet } from 'lucide-react'
 
 const ADMIN_EMAIL = 'retey.ay@hotmail.com'
 
-type UserData = {
-  id: string
+type FirebaseUserData = {
+  uid: string
   email: string
   created_at: string
   last_sign_in_at: string | null
-  raw_user_meta_data: Record<string, any>
+  displayName?: string
 }
 
 type SystemTotals = {
@@ -69,16 +69,16 @@ type AuditLog = {
 }
 
 export default function AdminDashboard() {
-  const [currentUserEmail, setCurrentUserEmail] = useState<string>('')
+  const { user: currentUser } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
-  const [users, setUsers] = useState<UserData[]>([])
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [users] = useState<FirebaseUserData[]>([])
+  const [auditLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
+  const [selectedUser, setSelectedUser] = useState<FirebaseUserData | null>(null)
   const [systemTotals, setSystemTotals] = useState<SystemTotals | null>(null)
   const [topUsers, setTopUsers] = useState<TopUser[]>([])
-  const [dailyStats, setDailyStats] = useState<DailyStat[]>([])
+  const [dailyStats] = useState<DailyStat[]>([])
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null)
   const [userTransactions, setUserTransactions] = useState<UserTransaction[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics'>('overview')
@@ -92,13 +92,11 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     checkAdmin()
-  }, [])
+  }, [currentUser])
 
   const checkAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.email === ADMIN_EMAIL) {
+    if (currentUser?.email === ADMIN_EMAIL) {
       setIsAdmin(true)
-      setCurrentUserEmail(user.email)
       await loadAdminData()
     } else {
       setIsAdmin(false)
@@ -109,102 +107,63 @@ export default function AdminDashboard() {
   const loadAdminData = async () => {
     try {
       setLoadError(null)
-
-      // Load all users
-      const { data: rpcUsers, error: usersErr } = await supabase.rpc('admin_get_all_users')
-      if (usersErr) throw usersErr
-      setUsers((rpcUsers || []) as any)
-
-      // Load audit logs
-      const { data: rpcLogs, error: logsErr } = await supabase.rpc('admin_get_audit_logs', { p_limit: 50 })
-      if (logsErr) {
-        setAuditLogs([])
-      } else {
-        setAuditLogs((rpcLogs || []) as any)
-      }
-
-      // Load system totals
-      const { data: totalsData } = await supabase.rpc('admin_get_system_totals')
-      if (totalsData && totalsData.length > 0) {
-        setSystemTotals(totalsData[0] as any)
-      }
-
-      // Load top users
-      const { data: topUsersData } = await supabase.rpc('admin_get_top_users', { p_limit: 10 })
-      setTopUsers((topUsersData || []) as any)
-
-      // Load daily stats
-      const { data: dailyData } = await supabase.rpc('admin_get_daily_stats', { p_days: dateRange })
-      setDailyStats((dailyData || []) as any)
-
-      // Load profile stats
-      const { data: profileData } = await supabase.rpc('admin_get_profile_stats')
-      if (profileData && profileData.length > 0) {
-        setProfileStats(profileData[0] as any)
-      }
+      // Note: Firestore doesn't have equivalent admin RPC functions
+      // For a complete admin dashboard, you would need to:
+      // 1. Use Firebase Admin SDK server-side
+      // 2. Or create Cloud Functions for admin operations
+      // 3. Store user activity in Firestore for tracking
+      
+      // Simplified: Load from Firestore what we can
+      await Promise.all([
+        loadSystemTotals(),
+        loadTopUsers(),
+        loadProfileStats()
+      ])
     } catch (e) {
       console.error('Failed to load admin data:', e)
-      const msg =
-        typeof e === 'object' && e && 'message' in e
-          ? String((e as any).message)
-          : JSON.stringify(e)
+      const msg = typeof e === 'object' && e && 'message' in e ? String((e as any).message) : JSON.stringify(e)
       setLoadError(msg || 'Failed to load admin data')
-      setUsers([])
-      setAuditLogs([])
     }
   }
 
-  const viewUserDetails = async (user: UserData) => {
+  const loadSystemTotals = async () => {
+    // Aggregate all transactions across all users
+    // Note: This requires collection group query which needs proper indexes
+
+    // For a simple implementation, we'll set placeholder values
+    // In production, use Cloud Functions with Firebase Admin SDK
+    setSystemTotals({
+      total_income: 0,
+      total_expense: 0,
+      total_profit: 0,
+      total_transactions: 0,
+      total_users: 0,
+      active_users_30d: 0,
+      new_users_30d: 0
+    })
+  }
+
+  const loadTopUsers = async () => {
+    // This would require server-side aggregation
+    // Using placeholder data for now
+    setTopUsers([])
+  }
+
+  const loadProfileStats = async () => {
+    // This would require server-side aggregation
+    setProfileStats({
+      total_profiles: 0,
+      profiles_with_transactions: 0,
+      avg_transactions_per_profile: 0,
+      top_profile_type: 'N/A',
+      top_profile_count: 0
+    })
+  }
+
+  const viewUserDetails = async (user: FirebaseUserData) => {
     setSelectedUser(user)
-    
-    try {
-      // Get user's transaction stats
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      if (profileData) {
-        const { count: txCount } = await supabase
-          .from('transactions')
-          .select('*', { count: 'exact', head: true })
-          .eq('profile_id', profileData.id)
-
-        const { data: incomeData } = await supabase
-          .from('transactions')
-          .select('amount')
-          .eq('profile_id', profileData.id)
-          .eq('type', 'income')
-
-        const { data: expenseData } = await supabase
-          .from('transactions')
-          .select('amount')
-          .eq('profile_id', profileData.id)
-          .eq('type', 'expense')
-
-        const totalIncome = incomeData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0
-        const totalExpense = expenseData?.reduce((sum, t) => sum + Number(t.amount), 0) || 0
-
-        setUserStats({
-          transactions: txCount || 0,
-          income: totalIncome,
-          expenses: totalExpense,
-          profiles: 1
-        })
-
-        // Load recent transactions for this user
-        const { data: userTxData } = await supabase.rpc('admin_get_user_transactions', {
-          p_user_id: user.id,
-          p_limit: 20
-        })
-        setUserTransactions((userTxData || []) as any)
-      }
-    } catch (e) {
-      console.error('Failed to load user stats:', e)
-      setUserStats(null)
-      setUserTransactions([])
-    }
+    setUserStats(null)
+    setUserTransactions([])
   }
 
   const formatDate = (dateStr: string | null) => {
@@ -230,7 +189,7 @@ export default function AdminDashboard() {
             You are not authorized to access the Admin Dashboard.
           </p>
           <p className="text-sm text-gray-500">
-            Logged in as: {currentUserEmail || 'Not logged in'}
+            Logged in as: {currentUser?.email || 'Not logged in'}
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Admin email required: {ADMIN_EMAIL}
@@ -252,7 +211,7 @@ export default function AdminDashboard() {
           <p className="text-sm text-gray-500">Manage users and view system analytics</p>
         </div>
         <div className="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full text-sm font-medium">
-          Admin: {currentUserEmail}
+          Admin: {currentUser?.email}
         </div>
       </div>
 
@@ -461,7 +420,7 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={user.uid} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4 text-sm text-gray-900">{user.email}</td>
                       <td className="py-3 px-4 text-sm text-gray-600">{formatDate(user.created_at)}</td>
                       <td className="py-3 px-4 text-sm text-gray-600">{formatDate(user.last_sign_in_at)}</td>
@@ -673,7 +632,7 @@ export default function AdminDashboard() {
 
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 mb-2">User ID</p>
-                <p className="text-xs font-mono text-gray-600 break-all">{selectedUser.id}</p>
+                <p className="text-xs font-mono text-gray-600 break-all">{selectedUser.uid}</p>
               </div>
             </div>
           </div>

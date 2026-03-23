@@ -1,12 +1,12 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car, QrCode, Shield } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
 import { useLanguage } from '../hooks/useLanguage.tsx'
 import { usePageTracking } from '../hooks/usePageTracking'
-import { formatDateLocal } from '../utils/date'
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth'
+import { firebaseAuth } from '../lib/firebase'
 
 function NavItem({ to, label, icon: Icon, badge, onMenuClose }: { to?: string; label: string; icon: any; badge?: number; onMenuClose?: () => void }) {
   const location = useLocation()
@@ -61,60 +61,21 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   // Get current user email for admin check
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.email) {
-        setCurrentUserEmail(user.email)
-      }
-    }
-    getUser()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      setCurrentUserEmail(user?.email ?? '')
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
 
   useEffect(() => {
-    const load = async () => {
-      if (profileIds.length === 0) return
-
-      await supabase.rpc('generate_bill_reminders_v2')
-      await supabase.rpc('generate_income_reminders')
-
-      const today = formatDateLocal(new Date())
-      const { data: reminders } = await supabase
-        .from('bill_reminders')
-        .select('id, title, due_date, is_read')
-        .in('profile_id', profileIds)
-        .eq('is_dismissed', false)
-        .lte('due_date', today)
-
-      const unread = (reminders ?? []).filter((r: any) => !r.is_read)
-      setReminderBadgeCount(unread.length)
-
-      if (unread.length > 0 && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        const key = `notified_reminders_${today}`
-        const prev = new Set<string>(JSON.parse(localStorage.getItem(key) ?? '[]'))
-        const toNotify = unread.filter((r: any) => !prev.has(r.id))
-        if (toNotify.length > 0) {
-          const title = toNotify.length === 1 ? 'Bill Reminder' : 'Bill Reminders'
-          const body = toNotify.length === 1 ? `${toNotify[0].title} due today` : `${toNotify.length} bills due today`
-          try {
-            new Notification(title, { body })
-          } catch {
-            // ignore
-          }
-          toNotify.forEach((r: any) => prev.add(r.id))
-          localStorage.setItem(key, JSON.stringify(Array.from(prev)))
-        }
-      }
-    }
-
-    load()
-    const id = window.setInterval(load, 5 * 60 * 1000)
-    return () => window.clearInterval(id)
+    setReminderBadgeCount(0)
   }, [profileIds])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    await firebaseSignOut(firebaseAuth)
   }
 
   return (

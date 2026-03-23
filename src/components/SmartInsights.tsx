@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction } from '../types'
 import { AlertTriangle, TrendingUp, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
@@ -19,43 +21,47 @@ interface Insight {
 
 export default function SmartInsights() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const { t: tr } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (profiles.length > 0) {
+    if (profiles.length > 0 && user) {
       loadData()
     }
-  }, [profiles])
+  }, [profiles, user])
 
   const loadData = async () => {
+    if (!user) return
     setLoading(true)
+    
     const profileIds = profiles.map(p => p.id)
     
     // Get current and previous month dates
     const now = new Date()
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    const startStr = currentMonth.toISOString().slice(0, 10)
+    const endStr = now.toISOString().slice(0, 10)
 
-    // Load current month transactions
-    const { data: currentTx } = await supabase
-      .from('transactions')
-      .select('*, category:category_id(name)')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', currentMonth.toISOString().slice(0, 10))
-      .lte('transaction_date', now.toISOString().slice(0, 10))
+    // Load current month transactions from all profiles
+    const txPromises = profileIds.map(pid => {
+      const q = query(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', pid),
+        where('transaction_date', '>=', startStr),
+        where('transaction_date', '<=', endStr),
+        orderBy('transaction_date', 'desc')
+      )
+      return getDocs(q)
+    })
+    
+    const txSnaps = await Promise.all(txPromises)
+    const allTx = txSnaps.flatMap(snap => 
+      snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction)
+    )
 
-    // Load previous month transactions for comparison
-    await supabase
-      .from('transactions')
-      .select('*, category:category_id(name)')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', prevMonth.toISOString().slice(0, 10))
-      .lte('transaction_date', prevMonthEnd.toISOString().slice(0, 10))
-
-    setTransactions(currentTx || [])
+    setTransactions(allTx)
     setLoading(false)
   }
 

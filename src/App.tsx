@@ -31,7 +31,7 @@ import QRCode from './pages/QRCode'
 import AdminDashboard from './pages/AdminDashboard'
 
 function App() {
-  const { session, loading } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -49,7 +49,7 @@ function App() {
         
         {/* All other routes require auth */}
         <Route path="*" element={
-          session ? (
+          user ? (
             <ProfileProvider>
               <Layout>
                 <Routes>

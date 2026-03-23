@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { SavingsGoal } from '../types'
 import { Plus, Target, Trash2, TrendingUp, Calendar } from 'lucide-react'
 
@@ -10,6 +12,7 @@ function formatMVR(value: number) {
 
 export default function SavingsGoals() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [goals, setGoals] = useState<SavingsGoal[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -23,52 +26,51 @@ export default function SavingsGoals() {
 
   useEffect(() => {
     loadGoals()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadGoals = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     setLoading(true)
-    const { data } = await supabase
-      .from('savings_goals')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .order('created_at', { ascending: false })
-    setGoals(data || [])
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'savingsGoals'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('created_at', 'desc')
+    )
+    const snap = await getDocs(q)
+    setGoals(snap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingsGoal))
     setLoading(false)
   }
 
   const addGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     
-    const { error } = await supabase.from('savings_goals').insert({
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'savingsGoals'), {
       profile_id: currentProfile.id,
       name: formData.name,
       target_amount: parseFloat(formData.target_amount),
       current_amount: parseFloat(formData.current_amount) || 0,
       deadline: formData.deadline || null,
-      color: formData.color
+      color: formData.color,
+      created_at: new Date().toISOString()
     })
     
-    if (!error) {
-      setFormData({ name: '', target_amount: '', current_amount: '', deadline: '', color: '#10b981' })
-      setShowAdd(false)
-      loadGoals()
-    }
+    setFormData({ name: '', target_amount: '', current_amount: '', deadline: '', color: '#10b981' })
+    setShowAdd(false)
+    loadGoals()
   }
 
   const updateProgress = async (id: string, newAmount: number) => {
-    const { error } = await supabase
-      .from('savings_goals')
-      .update({ current_amount: newAmount })
-      .eq('id', id)
-    
-    if (!error) loadGoals()
+    if (!user) return
+    const ref = doc(firebaseDb, 'users', user.uid, 'savingsGoals', id)
+    await updateDoc(ref, { current_amount: newAmount })
+    loadGoals()
   }
 
   const deleteGoal = async (id: string) => {
     if (!confirm('Delete this savings goal?')) return
-    await supabase.from('savings_goals').delete().eq('id', id)
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'savingsGoals', id))
     loadGoals()
   }
 

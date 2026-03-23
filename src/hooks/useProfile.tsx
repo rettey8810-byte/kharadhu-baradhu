@@ -1,6 +1,8 @@
 import { useState, useEffect, useContext, createContext, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
 import type { ExpenseProfile } from '../types'
+import { onAuthStateChanged } from 'firebase/auth'
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from 'firebase/firestore'
+import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 interface ProfileContextType {
   profiles: ExpenseProfile[]
@@ -18,67 +20,144 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [currentProfile, setCurrentProfileState] = useState<ExpenseProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const ensureBootstrapProfiles = async (uid: string) => {
+    const profilesCol = collection(firebaseDb, 'users', uid, 'profiles')
+    const profilesSnap = await getDocs(query(profilesCol, limit(1)))
+    if (!profilesSnap.empty) return
+
+    const profileIds = new Set<string>()
+    const takeProfileIds = (docs: Array<{ profile_id?: string }>) => {
+      docs.forEach((d) => {
+        if (d.profile_id) profileIds.add(d.profile_id)
+      })
+    }
+
+    const txCol = collection(firebaseDb, 'users', uid, 'transactions')
+    const catCol = collection(firebaseDb, 'users', uid, 'categories')
+    const srcCol = collection(firebaseDb, 'users', uid, 'incomeSources')
+
+    const [txSnap, catSnap, srcSnap] = await Promise.all([
+      getDocs(query(txCol, limit(500))),
+      getDocs(query(catCol, limit(500))),
+      getDocs(query(srcCol, limit(500)))
+    ])
+
+    takeProfileIds(txSnap.docs.map((d) => d.data() as any))
+    takeProfileIds(catSnap.docs.map((d) => d.data() as any))
+    takeProfileIds(srcSnap.docs.map((d) => d.data() as any))
+
+    if (profileIds.size === 0) {
+      const fallbackId = 'default'
+      profileIds.add(fallbackId)
+    }
+
+    const now = new Date().toISOString()
+    let index = 0
+    for (const pid of profileIds) {
+      const pRef = doc(firebaseDb, 'users', uid, 'profiles', pid)
+      const payload: ExpenseProfile = {
+        id: pid,
+        user_id: uid,
+        name: `Profile ${pid.slice(0, 6)}`,
+        type: 'personal',
+        currency: 'MVR',
+        is_active: true,
+        created_at: now,
+        updated_at: now
+      }
+
+      if (pid === 'default') {
+        payload.name = 'Default'
+      }
+
+      await setDoc(pRef, payload, { merge: true })
+      index++
+    }
+  }
+
   const fetchProfiles = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = firebaseAuth.currentUser
     if (!user) return
 
-    const { data: profilesData } = await supabase
-      .from('expense_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .order('created_at')
+    await ensureBootstrapProfiles(user.uid)
 
-    if (profilesData) {
-      setProfiles(profilesData)
-      
-      // Get default profile from settings
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+    const profilesCol = collection(firebaseDb, 'users', user.uid, 'profiles')
+    const qProfiles = query(profilesCol, where('is_active', '==', true), orderBy('created_at'))
+    const profilesSnap = await getDocs(qProfiles)
+    const profilesData = profilesSnap.docs.map((d) => d.data() as ExpenseProfile)
 
-      if (settings?.default_profile_id) {
-        const defaultProfile = profilesData.find((p: ExpenseProfile) => p.id === settings.default_profile_id)
-        if (defaultProfile) {
-          setCurrentProfileState(defaultProfile)
-        } else if (profilesData.length > 0) {
-          setCurrentProfileState(profilesData[0])
-        }
+    setProfiles(profilesData)
+
+    const settingsRef = doc(firebaseDb, 'users', user.uid, 'settings', 'userSettings')
+    const settingsSnap = await getDoc(settingsRef)
+    const defaultProfileId = (settingsSnap.exists() ? (settingsSnap.data() as any).default_profile_id : null) as string | null
+
+    if (defaultProfileId) {
+      const defaultProfile = profilesData.find((p) => p.id === defaultProfileId)
+      if (defaultProfile) {
+        setCurrentProfileState(defaultProfile)
       } else if (profilesData.length > 0) {
         setCurrentProfileState(profilesData[0])
       }
+    } else if (profilesData.length > 0) {
+      setCurrentProfileState(profilesData[0])
     }
+
     setLoading(false)
   }
 
   const setCurrentProfile = async (profile: ExpenseProfile) => {
     setCurrentProfileState(profile)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from('user_settings')
-        .upsert({ user_id: user.id, default_profile_id: profile.id })
-    }
+    const user = firebaseAuth.currentUser
+    if (!user) return
+
+    const settingsRef = doc(firebaseDb, 'users', user.uid, 'settings', 'userSettings')
+    await setDoc(
+      settingsRef,
+      {
+        user_id: user.uid,
+        default_profile_id: profile.id,
+        updated_at: new Date().toISOString()
+      },
+      { merge: true }
+    )
   }
 
   const createProfile = async (name: string, type: 'personal' | 'family' | 'business') => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = firebaseAuth.currentUser
     if (!user) throw new Error('Not authenticated')
 
-    const { error } = await supabase
-      .from('expense_profiles')
-      .insert({ user_id: user.id, name, type })
-      .select()
-      .single()
+    const now = new Date().toISOString()
+    const newRef = doc(collection(firebaseDb, 'users', user.uid, 'profiles'))
+    const payload: ExpenseProfile = {
+      id: newRef.id,
+      user_id: user.uid,
+      name,
+      type,
+      currency: 'MVR',
+      is_active: true,
+      created_at: now,
+      updated_at: now
+    }
 
-    if (error) throw error
+    await setDoc(newRef, payload)
     await fetchProfiles()
   }
 
   useEffect(() => {
-    fetchProfiles()
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (!user) {
+        setProfiles([])
+        setCurrentProfileState(null)
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      fetchProfiles()
+    })
+
+    return () => unsubscribe()
   }, [])
 
   return (

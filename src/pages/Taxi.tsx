@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore'
 import { Car, Plus, X, Pencil, MapPin, Smartphone, TrendingUp, DollarSign } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -70,6 +72,7 @@ type TaxiVehicleExpense = {
 
 export default function Taxi() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
 
@@ -115,100 +118,92 @@ export default function Taxi() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!currentProfile) return
+    if (!currentProfile || !user) return
     load()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   useEffect(() => {
     const ensureTaxiCategory = async () => {
-      if (!currentProfile) return
+      if (!user || !currentProfile) return
       try {
-        const { data: cats, error: catsErr } = await supabase
-          .from('expense_categories')
-          .select('id, name')
-          .eq('profile_id', currentProfile.id)
-          .eq('is_archived', false)
+        const catsQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'categories'),
+          where('profile_id', '==', currentProfile.id),
+          where('is_archived', '==', false)
+        )
+        const catsSnap = await getDocs(catsQuery)
+        const cats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-        if (catsErr) throw catsErr
-
-        const existing = (cats ?? []).find((c: any) => (c.name ?? '').trim().toLowerCase() === 'taxi')
+        const existing = cats.find((c: any) => (c.name ?? '').trim().toLowerCase() === 'taxi')
         if (existing?.id) {
           setTaxiExpenseCategoryId(existing.id)
           return
         }
 
-        const { data: created, error: createErr } = await supabase
-          .from('expense_categories')
-          .insert({
-            profile_id: currentProfile.id,
-            name: 'Taxi',
-            color: '#f59e0b',
-            icon: 'Car',
-            is_default: false,
-            sort_order: 0,
-          })
-          .select('id')
-          .single()
-
-        if (createErr) throw createErr
-        setTaxiExpenseCategoryId(created?.id ?? null)
+        // Create taxi category
+        const catRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'categories'), {
+          profile_id: currentProfile.id,
+          name: 'Taxi',
+          color: '#f59e0b',
+          icon: 'Car',
+          is_default: false,
+          sort_order: 0,
+          is_archived: false,
+          created_at: new Date().toISOString()
+        })
+        setTaxiExpenseCategoryId(catRef.id)
       } catch {
         setTaxiExpenseCategoryId(null)
       }
     }
 
     ensureTaxiCategory()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   useEffect(() => {
     const ensureTaxiIncomeSource = async () => {
-      if (!currentProfile) return
+      if (!user || !currentProfile) return
       try {
-        const { data: sources, error: sourcesErr } = await supabase
-          .from('income_sources')
-          .select('id, name')
-          .eq('profile_id', currentProfile.id)
-          .eq('is_archived', false)
+        const sourcesQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'incomeSources'),
+          where('profile_id', '==', currentProfile.id),
+          where('is_archived', '==', false)
+        )
+        const sourcesSnap = await getDocs(sourcesQuery)
+        const sources = sourcesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-        if (sourcesErr) throw sourcesErr
-
-        const existing = (sources ?? []).find((s: any) => (s.name ?? '').trim().toLowerCase() === 'taxi')
+        const existing = sources.find((s: any) => (s.name ?? '').trim().toLowerCase() === 'taxi')
         if (existing?.id) {
           setTaxiIncomeSourceId(existing.id)
           return
         }
 
-        const { data: created, error: createErr } = await supabase
-          .from('income_sources')
-          .insert({
-            profile_id: currentProfile.id,
-            name: 'Taxi',
-            color: '#3b82f6',
-            icon: 'Car',
-            is_archived: false,
-          })
-          .select('id')
-          .single()
-
-        if (createErr) throw createErr
-        setTaxiIncomeSourceId(created?.id ?? null)
+        // Create taxi income source
+        const sourceRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'incomeSources'), {
+          profile_id: currentProfile.id,
+          name: 'Taxi',
+          color: '#3b82f6',
+          icon: 'Car',
+          is_archived: false,
+          created_at: new Date().toISOString()
+        })
+        setTaxiIncomeSourceId(sourceRef.id)
       } catch {
         setTaxiIncomeSourceId(null)
       }
     }
 
     ensureTaxiIncomeSource()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   useEffect(() => {
-    if (!selectedVehicleId) return
+    if (!selectedVehicleId || !user) return
     loadVehicleData(selectedVehicleId)
-  }, [selectedVehicleId])
+  }, [selectedVehicleId, user])
 
   const load = async () => {
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setVehicles([])
         setSelectedVehicleId('')
@@ -217,15 +212,14 @@ export default function Taxi() {
         return
       }
 
-      const { data: vData, error: vErr } = await supabase
-        .from('taxi_vehicles')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
-      if (vErr) throw vErr
-      const vs = (vData ?? []) as TaxiVehicle[]
+      const vQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiVehicles'),
+        where('user_id', '==', user.uid),
+        where('is_active', '==', true),
+        orderBy('created_at', 'desc')
+      )
+      const vSnap = await getDocs(vQuery)
+      const vs = vSnap.docs.map(d => ({ id: d.id, ...d.data() }) as TaxiVehicle)
       setVehicles(vs)
 
       const nextSelected = selectedVehicleId && vs.some(v => v.id === selectedVehicleId)
@@ -245,31 +239,25 @@ export default function Taxi() {
   const loadVehicleData = async (vehicleId: string) => {
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const [{ data: tData, error: tErr }, { data: eData, error: eErr }] = await Promise.all([
-        supabase
-          .from('taxi_trips')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('vehicle_id', vehicleId)
-          .order('trip_date', { ascending: false })
-          .limit(30),
-        supabase
-          .from('taxi_vehicle_expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('vehicle_id', vehicleId)
-          .order('expense_date', { ascending: false })
-          .limit(30)
-      ])
+      const tQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
+        where('user_id', '==', user.uid),
+        where('vehicle_id', '==', vehicleId),
+        orderBy('trip_date', 'desc')
+      )
+      const eQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
+        where('user_id', '==', user.uid),
+        where('vehicle_id', '==', vehicleId),
+        orderBy('expense_date', 'desc')
+      )
+      
+      const [tSnap, eSnap] = await Promise.all([getDocs(tQuery), getDocs(eQuery)])
 
-      if (tErr) throw tErr
-      if (eErr) throw eErr
-
-      setTrips((tData ?? []) as any)
-      setExpenses((eData ?? []) as any)
+      setTrips(tSnap.docs.map(d => ({ id: d.id, ...d.data() }) as TaxiTrip).slice(0, 30))
+      setExpenses(eSnap.docs.map(d => ({ id: d.id, ...d.data() }) as TaxiVehicleExpense).slice(0, 30))
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load vehicle activity')
     }
@@ -362,22 +350,20 @@ export default function Taxi() {
     e.preventDefault()
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
       const name = vehicleForm.name.trim()
       const plate = vehicleForm.plate_number.trim()
       if (!name) return
 
-      const { error: insErr } = await supabase
-        .from('taxi_vehicles')
-        .insert({
-          user_id: user.id,
-          vehicle_type: vehicleForm.vehicle_type,
-          name,
-          plate_number: plate ? plate : null,
-        })
-      if (insErr) throw insErr
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'taxiVehicles'), {
+        user_id: user.uid,
+        vehicle_type: vehicleForm.vehicle_type,
+        name,
+        plate_number: plate ? plate : null,
+        is_active: true,
+        created_at: new Date().toISOString()
+      })
 
       setVehicleForm({ vehicle_type: 'car', name: '', plate_number: '' })
       setShowAddVehicle(false)
@@ -390,7 +376,7 @@ export default function Taxi() {
   const addTrip = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!currentProfile) return
+    if (!currentProfile || !user) return
     if (!selectedVehicleId) return
 
     const count = Number(tripForm.trip_count)
@@ -406,46 +392,37 @@ export default function Taxi() {
       : selectedVehicleId
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
       const appInfo = tripForm.app_name ? ` [${tripForm.app_name}]` : ''
       const routeInfo = tripForm.route ? ` - ${tripForm.route}` : ''
 
-      // Create a general transaction so this affects dashboards/budgets
-      const { data: txData, error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          type: 'income',
-          amount: total,
-          description: `Taxi${appInfo}${routeInfo} - ${vehicleLabel}`,
-          notes: tripForm.notes.trim()
-            ? `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}`
-            : `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}`,
-          transaction_date: tripForm.trip_date,
-          category_id: null,
-          income_source_id: taxiIncomeSourceId,
-        })
-        .select()
-        .single()
-      if (txErr) throw txErr
+      // Create a general transaction
+      const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        type: 'income',
+        amount: total,
+        description: `Taxi${appInfo}${routeInfo} - ${vehicleLabel}`,
+        notes: tripForm.notes.trim()
+          ? `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}\n${tripForm.notes.trim()}`
+          : `Vehicle: ${vehicleLabel}\nApp: ${tripForm.app_name}\nRoute: ${tripForm.route}\nTrips: ${count}\nRate: ${rate}`,
+        transaction_date: tripForm.trip_date,
+        category_id: null,
+        income_source_id: taxiIncomeSourceId,
+        created_at: new Date().toISOString()
+      })
 
-      const { error: tripErr } = await supabase
-        .from('taxi_trips')
-        .insert({
-          user_id: user.id,
-          vehicle_id: selectedVehicleId,
-          trip_date: tripForm.trip_date,
-          trip_count: count,
-          rate,
-          total_income: total,
-          transaction_id: txData?.id ?? null,
-          notes: tripForm.notes.trim() ? tripForm.notes.trim() : null,
-          app_name: tripForm.app_name || null,
-          route: tripForm.route || null,
-        })
-      if (tripErr) throw tripErr
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'taxiTrips'), {
+        user_id: user.uid,
+        vehicle_id: selectedVehicleId,
+        trip_date: tripForm.trip_date,
+        trip_count: count,
+        rate,
+        total_income: total,
+        transaction_id: txRef.id,
+        notes: tripForm.notes.trim() ? tripForm.notes.trim() : null,
+        app_name: tripForm.app_name || null,
+        route: tripForm.route || null,
+        created_at: new Date().toISOString()
+      })
 
       setTripForm({ trip_date: new Date().toISOString().slice(0, 10), trip_count: '1', rate: '', notes: '', app_name: 'Avas Ride', route: 'Inside Male\'' })
       setShowAddTrip(false)
@@ -458,7 +435,7 @@ export default function Taxi() {
   const addVehicleExpense = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!currentProfile) return
+    if (!currentProfile || !user) return
     if (!selectedVehicleId) return
 
     const amt = Number(expenseForm.amount)
@@ -470,37 +447,28 @@ export default function Taxi() {
       : selectedVehicleId
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        type: 'expense',
+        amount: amt,
+        description: `Taxi expense - ${expenseForm.expense_type} - ${vehicleLabel}`,
+        notes: expenseForm.notes.trim() ? `Vehicle: ${vehicleLabel}\n${expenseForm.notes.trim()}` : `Vehicle: ${vehicleLabel}`,
+        transaction_date: expenseForm.expense_date,
+        category_id: taxiExpenseCategoryId,
+        income_source_id: null,
+        created_at: new Date().toISOString()
+      })
 
-      const { data: txData, error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          type: 'expense',
-          amount: amt,
-          description: `Taxi expense - ${expenseForm.expense_type} - ${vehicleLabel}`,
-          notes: expenseForm.notes.trim() ? `Vehicle: ${vehicleLabel}\n${expenseForm.notes.trim()}` : `Vehicle: ${vehicleLabel}`,
-          transaction_date: expenseForm.expense_date,
-          category_id: taxiExpenseCategoryId,
-          income_source_id: null,
-        })
-        .select()
-        .single()
-      if (txErr) throw txErr
-
-      const { error: expErr } = await supabase
-        .from('taxi_vehicle_expenses')
-        .insert({
-          user_id: user.id,
-          vehicle_id: selectedVehicleId,
-          expense_date: expenseForm.expense_date,
-          expense_type: expenseForm.expense_type,
-          amount: amt,
-          transaction_id: txData?.id ?? null,
-          notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
-        })
-      if (expErr) throw expErr
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'), {
+        user_id: user.uid,
+        vehicle_id: selectedVehicleId,
+        expense_date: expenseForm.expense_date,
+        expense_type: expenseForm.expense_type,
+        amount: amt,
+        transaction_id: txRef.id,
+        notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
+        created_at: new Date().toISOString()
+      })
 
       setExpenseForm({ expense_date: new Date().toISOString().slice(0, 10), expense_type: 'petrol', amount: '', notes: '' })
       setShowAddExpense(false)

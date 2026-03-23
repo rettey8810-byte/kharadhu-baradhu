@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query as firestoreQuery, where, getDocs, orderBy, limit } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction } from '../types'
 import { Search, X, Filter, TrendingDown, TrendingUp } from 'lucide-react'
@@ -11,6 +13,7 @@ function formatMVR(value: number) {
 
 export default function SearchTransactions() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -27,22 +30,28 @@ export default function SearchTransactions() {
 
   useEffect(() => {
     loadTransactions()
-  }, [profiles])
+  }, [profiles, user])
 
   const loadTransactions = async () => {
-    if (profiles.length === 0) return
+    if (!user || profiles.length === 0) return
     setLoading(true)
     
     const profileIds = profiles.map(p => p.id)
-    const { data } = await supabase
-      .from('transactions')
-      .select('*, profile:profile_id(name), category:category_id(name, color)')
-      .in('profile_id', profileIds)
-      .order('transaction_date', { ascending: false })
-      .limit(100)
+    const promises = profileIds.map(pid => {
+      const q = firestoreQuery(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', pid),
+        orderBy('transaction_date', 'desc'),
+        limit(100)
+      )
+      return getDocs(q)
+    })
     
-    setTransactions(data || [])
-    setFiltered(data || [])
+    const snaps = await Promise.all(promises)
+    const data = snaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }) as Transaction))
+    
+    setTransactions(data)
+    setFiltered(data)
     setLoading(false)
   }
 

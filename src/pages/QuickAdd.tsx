@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { ExpenseCategory } from '../types'
 import { ArrowLeft, Plus, Coffee, Utensils, Car, ShoppingBag, Zap, Check } from 'lucide-react'
 
@@ -18,6 +20,7 @@ export default function QuickAdd() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null)
   const [customAmount, setCustomAmount] = useState('')
@@ -30,7 +33,7 @@ export default function QuickAdd() {
   const presetName = searchParams.get('preset')
 
   useEffect(() => {
-    if (currentProfile) {
+    if (currentProfile && user) {
       loadCategories()
     }
     // Auto-select if preset passed in URL
@@ -42,16 +45,18 @@ export default function QuickAdd() {
         setCustomDescription(preset.name)
       }
     }
-  }, [currentProfile, presetName])
+  }, [currentProfile, presetName, user])
 
   const loadCategories = async () => {
-    const { data } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('profile_id', currentProfile!.id)
-      .eq('is_archived', false)
-      .order('name')
-    setCategories(data || [])
+    if (!user || !currentProfile) return
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'categories'),
+      where('profile_id', '==', currentProfile.id),
+      where('is_archived', '==', false),
+      orderBy('name')
+    )
+    const snap = await getDocs(q)
+    setCategories(snap.docs.map(d => ({ id: d.id, ...d.data() }) as ExpenseCategory))
   }
 
   const selectPreset = (preset: typeof QUICK_PRESETS[0]) => {
@@ -64,25 +69,24 @@ export default function QuickAdd() {
   }
 
   const saveExpense = async () => {
-    if (!currentProfile || !customAmount || !selectedCategory) return
+    if (!user || !currentProfile || !customAmount || !selectedCategory) return
     
     setSaving(true)
-    const { error } = await supabase.from('transactions').insert({
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
       profile_id: currentProfile.id,
       type: 'expense',
       amount: parseFloat(customAmount),
       category_id: selectedCategory,
       description: customDescription || 'Quick Add',
       transaction_date: new Date().toISOString().slice(0, 10),
+      created_at: new Date().toISOString()
     })
     setSaving(false)
     
-    if (!error) {
-      setSaved(true)
-      setTimeout(() => {
-        navigate('/')
-      }, 1500)
-    }
+    setSaved(true)
+    setTimeout(() => {
+      navigate('/')
+    }, 1500)
   }
 
   if (saved) {

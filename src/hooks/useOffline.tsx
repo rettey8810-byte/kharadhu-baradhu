@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { firebaseDb } from '../lib/firebase'
+import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
 
 interface OfflineContextType {
   isOnline: boolean
@@ -134,24 +136,21 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     
     for (const change of changes) {
       try {
-        // Dynamically import supabase to avoid circular dependency
-        const { supabase } = await import('../lib/supabase')
-        
         switch (change.operation) {
           case 'add_transaction':
-            await supabase.from('transactions').insert(change.data)
+            await addDoc(collection(firebaseDb, 'users', change.data.user_id, 'transactions'), change.data)
             break
           case 'update_transaction':
-            await supabase.from('transactions').update(change.data).eq('id', change.data.id)
+            await updateDoc(doc(firebaseDb, 'users', change.data.user_id, 'transactions', change.data.id), change.data)
             break
           case 'delete_transaction':
-            await supabase.from('transactions').delete().eq('id', change.data.id)
+            await deleteDoc(doc(firebaseDb, 'users', change.data.user_id, 'transactions', change.data.id))
             break
           case 'add_expense':
-            await supabase.from('recurring_expenses').insert(change.data)
+            await addDoc(collection(firebaseDb, 'users', change.data.user_id, 'recurringExpenses'), change.data)
             break
           case 'add_income':
-            await supabase.from('recurring_income').insert(change.data)
+            await addDoc(collection(firebaseDb, 'users', change.data.user_id, 'recurringIncome'), change.data)
             break
         }
         

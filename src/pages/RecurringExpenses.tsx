@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy, updateDoc } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { RecurringExpense, ExpenseCategory } from '../types'
 import { formatDateLocal } from '../utils/date'
@@ -31,6 +33,7 @@ const BILL_PRESETS = [
 
 export default function RecurringExpenses() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [expenses, setExpenses] = useState<(RecurringExpense & { category: ExpenseCategory })[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
@@ -85,65 +88,58 @@ export default function RecurringExpenses() {
 
   useEffect(() => {
     loadData()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadData = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     setLoading(true)
     
-    const { data: expensesData, error } = await supabase
-      .from('recurring_expenses')
-      .select('*, category:category_id(name)')
-      .eq('profile_id', currentProfile.id)
-      .order('name', { ascending: true })
-
-    // Debug: show all recurring expenses with IDs to find duplicates
-    console.log('All recurring expenses:', expensesData?.map((e: any) => ({ id: e.id, name: e.name, amount: e.amount, next_due_date: e.next_due_date })))
-    
-    // Find duplicates by name
-    const nameCount: Record<string, number> = {}
-    expensesData?.forEach((e: any) => {
-      nameCount[e.name] = (nameCount[e.name] || 0) + 1
-    })
-    const duplicates = Object.entries(nameCount).filter(([_name, count]) => count > 1)
-    if (duplicates.length > 0) {
-      console.log('DUPLICATE BILLS FOUND:', duplicates)
-    }
-
-    if (!error && expensesData) {
-      setExpenses(expensesData as any)
-      
-      // Check paid status for variable bills
-      const variableBills = expensesData.filter((e: any) => e.is_variable_amount)
-      if (variableBills.length > 0) {
-        const { data: payments } = await supabase
-          .from('bill_payments')
-          .select('recurring_expense_id, due_date, is_paid')
-          .eq('profile_id', currentProfile.id)
-          .eq('is_paid', true)
-          .in('recurring_expense_id', variableBills.map((e: any) => e.id))
-        
-        const status: Record<string, boolean> = {}
-        payments?.forEach((p: any) => {
-          status[`${p.recurring_expense_id}|${p.due_date}`] = true
-        })
-        setPaidStatus(status)
-      }
-    }
+    const expensesQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'recurringExpenses'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('name')
+    )
+    const snap = await getDocs(expensesQuery)
+    const expensesData = snap.docs.map(d => ({ id: d.id, ...d.data() }) as RecurringExpense)
     
     // Load categories for the add form
-    const { data: catData } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-    setCategories(catData || [])
+    const catsQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'categories'),
+      where('profile_id', '==', currentProfile.id)
+    )
+    const catsSnap = await getDocs(catsQuery)
+    const cats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as ExpenseCategory)
+    setCategories(cats)
+    
+    // Enrich expenses with category data
+    const enriched = expensesData.map(e => ({
+      ...e,
+      category: cats.find(c => c.id === e.category_id) || ({ name: 'Uncategorized' } as ExpenseCategory)
+    }))
+    setExpenses(enriched)
+    
+    // Check paid status for variable bills
+    const variableBills = expensesData.filter(e => e.is_variable_amount)
+    if (variableBills.length > 0) {
+      const billIds = variableBills.map(e => e.id)
+      const paymentsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'billPayments'),
+        where('profile_id', '==', currentProfile.id),
+        where('is_paid', '==', true)
+      )
+      const paymentsSnap = await getDocs(paymentsQuery)
+      const status: Record<string, boolean> = {}
+      paymentsSnap.docs.forEach(d => {
+        const p = d.data()
+        if (billIds.includes(p.recurring_expense_id)) {
+          status[`${p.recurring_expense_id}|${p.due_date}`] = true
+        }
+      })
+      setPaidStatus(status)
+    }
     
     setLoading(false)
   }
-
-  useEffect(() => {
-    loadData()
-  }, [currentProfile])
 
   const clampDayOfMonth = (year: number, monthIndex0: number, day: number) => {
     const lastDay = new Date(year, monthIndex0 + 1, 0).getDate()
@@ -181,22 +177,20 @@ export default function RecurringExpenses() {
   }
 
   const markAsPaid = async (exp: RecurringExpense & { category: ExpenseCategory }) => {
-    console.log('markAsPaid called for:', exp.name, 'id:', exp.id, 'is_variable:', exp.is_variable_amount)
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     if (markingPaidId) return
 
-    const { data: unpaidBp } = await supabase
-      .from('bill_payments')
-      .select('due_date')
-      .eq('profile_id', currentProfile.id)
-      .eq('recurring_expense_id', exp.id)
-      .eq('is_paid', false)
-      .order('due_date', { ascending: true })
-      .limit(1)
-      .maybeSingle()
+    // Find earliest unpaid bill payment
+    const paymentsQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'billPayments'),
+      where('profile_id', '==', currentProfile.id),
+      where('recurring_expense_id', '==', exp.id),
+      where('is_paid', '==', false),
+      orderBy('due_date')
+    )
+    const snap = await getDocs(paymentsQuery)
+    const unpaidBp = snap.empty ? null : { due_date: snap.docs[0].data().due_date }
     
-    console.log('Unpaid bill_payments for', exp.name, ':', unpaidBp)
-
     const dueDateToPay = unpaidBp?.due_date ?? exp.next_due_date
 
     setMarkPaidContext({ exp, dueDateToPay })
@@ -209,7 +203,7 @@ export default function RecurringExpenses() {
   }
 
   const confirmMarkAsPaid = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     const exp = markPaidContext.exp
     if (!exp) return
     if (markingPaidId) return
@@ -225,98 +219,64 @@ export default function RecurringExpenses() {
     setMarkingPaidId(exp.id)
     try {
       // 1) Create transaction
-      const { error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          category_id: exp.category_id,
-          type: 'expense',
-          amount: num,
-          description: exp.name,
-          notes: markPaidForm.notes || null,
-          transaction_date: markPaidForm.paid_date,
-        })
-      if (txErr) throw txErr
+      const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        category_id: exp.category_id,
+        type: 'expense',
+        amount: num,
+        description: exp.name,
+        notes: markPaidForm.notes || null,
+        transaction_date: markPaidForm.paid_date,
+        created_at: new Date().toISOString()
+      })
 
-      // 2) Update existing bill_payments row (if it exists), otherwise insert a new one.
-      // Also check for bill_payments linked to duplicate recurring expenses with same name.
-      const { data: duplicateIds } = await supabase
-        .from('recurring_expenses')
-        .select('id')
-        .eq('name', exp.name)
-        .eq('profile_id', currentProfile.id)
-        .neq('id', exp.id)
+      // 2) Update or create bill payment
+      const paymentsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'billPayments'),
+        where('profile_id', '==', currentProfile.id),
+        where('recurring_expense_id', '==', exp.id),
+        where('due_date', '==', dueDateToPay)
+      )
+      const snap = await getDocs(paymentsQuery)
       
-      const allRecurringIds = [exp.id, ...(duplicateIds || []).map((d: any) => d.id)]
-      console.log('Looking for bill_payments with recurring_expense_ids:', allRecurringIds)
-
-      // Try to find existing unpaid bill_payment for any of these recurring expense IDs
-      let existingPayment: { id: string } | null = null
-      for (const rid of allRecurringIds) {
-        const { data: ep } = await supabase
-          .from('bill_payments')
-          .select('id')
-          .eq('profile_id', currentProfile.id)
-          .eq('recurring_expense_id', rid)
-          .eq('due_date', dueDateToPay)
-          .maybeSingle()
-        if (ep?.id) {
-          existingPayment = ep
-          console.log('Found existing payment for recurring_id', rid, ':', ep.id)
-          break
-        }
-      }
-
-      if (existingPayment?.id) {
-        console.log('Updating existing payment:', existingPayment.id)
-        const { error: payErr } = await supabase
-          .from('bill_payments')
-          .update({
-            paid_date: markPaidForm.paid_date,
-            amount: num,
-            is_paid: true,
-            recurring_expense_id: exp.id, // Link to active recurring expense
-          })
-          .eq('id', existingPayment.id)
-        if (payErr) throw payErr
-        console.log('Payment updated successfully')
+      if (!snap.empty) {
+        // Update existing
+        await updateDoc(doc(firebaseDb, 'users', user.uid, 'billPayments', snap.docs[0].id), {
+          paid_date: markPaidForm.paid_date,
+          amount: num,
+          is_paid: true,
+          transaction_id: txRef.id
+        })
       } else {
-        console.log('Inserting new paid bill_payments for due date:', dueDateToPay)
-        const { error: payErr } = await supabase
-          .from('bill_payments')
-          .insert({
-            recurring_expense_id: exp.id,
-            profile_id: currentProfile.id,
-            due_date: dueDateToPay,
-            paid_date: markPaidForm.paid_date,
-            amount: num,
-            is_paid: true,
-          })
-        if (payErr) throw payErr
-        console.log('New payment inserted successfully')
+        // Create new
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'billPayments'), {
+          recurring_expense_id: exp.id,
+          profile_id: currentProfile.id,
+          due_date: dueDateToPay,
+          paid_date: markPaidForm.paid_date,
+          amount: num,
+          is_paid: true,
+          transaction_id: txRef.id,
+          created_at: new Date().toISOString()
+        })
       }
 
-      // 3) Advance next due date and create next month's bill payment
+      // 3) Advance next due date
       if (dueDateToPay === exp.next_due_date) {
         const nextDue = calcNextDueDate(exp)
-        const { error: updErr } = await supabase
-          .from('recurring_expenses')
-          .update({ next_due_date: nextDue })
-          .eq('id', exp.id)
-        if (updErr) throw updErr
+        await updateDoc(doc(firebaseDb, 'users', user.uid, 'recurringExpenses', exp.id), {
+          next_due_date: nextDue
+        })
 
-        // Create bill_payments row for next month so it appears on dashboard
-        const { error: nextBpErr } = await supabase
-          .from('bill_payments')
-          .insert({
-            recurring_expense_id: exp.id,
-            profile_id: currentProfile.id,
-            due_date: nextDue,
-            amount: exp.amount,
-            is_paid: false,
-          })
-        // Ignore conflict error if row already exists
-        if (nextBpErr && !nextBpErr.message?.includes('duplicate')) throw nextBpErr
+        // Create bill_payments row for next month
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'billPayments'), {
+          recurring_expense_id: exp.id,
+          profile_id: currentProfile.id,
+          due_date: nextDue,
+          amount: exp.amount,
+          is_paid: false,
+          created_at: new Date().toISOString()
+        })
       }
 
       setShowMarkPaid(false)
@@ -331,7 +291,7 @@ export default function RecurringExpenses() {
 
   const addExpense = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     
     const amountNum = Number(formData.amount)
     const amountValue = Number.isFinite(amountNum) ? amountNum : null
@@ -339,7 +299,7 @@ export default function RecurringExpenses() {
     const insertData: any = {
       profile_id: currentProfile.id,
       name: formData.name,
-      amount: formData.is_variable_amount ? amountValue : amountValue,
+      amount: amountValue,
       is_variable_amount: formData.is_variable_amount,
       category_id: formData.category_id || null,
       frequency: formData.frequency,
@@ -351,32 +311,34 @@ export default function RecurringExpenses() {
       bill_type: formData.bill_type,
       provider: formData.provider,
       account_number: formData.account_number || null,
-      meter_number: formData.meter_number || null
+      meter_number: formData.meter_number || null,
+      is_active: true,
+      created_at: new Date().toISOString()
     }
 
-    const { error } = await supabase.from('recurring_expenses').insert(insertData)
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'recurringExpenses'), insertData)
 
-    if (!error) {
-      setShowAdd(false)
-      setShowPresets(true)
-      setSelectedPreset(null)
-      setFormData({
-        name: '', amount: '', is_variable_amount: false, category_id: '', frequency: 'monthly',
-        start_date: new Date().toISOString().slice(0, 10), due_day_of_month: '', reminder_days: '3',
-        grace_period_days: '5', bill_type: '', provider: '', account_number: '', meter_number: ''
-      })
-      loadData()
-    }
+    setShowAdd(false)
+    setShowPresets(true)
+    setSelectedPreset(null)
+    setFormData({
+      name: '', amount: '', is_variable_amount: false, category_id: '', frequency: 'monthly',
+      start_date: new Date().toISOString().slice(0, 10), due_day_of_month: '', reminder_days: '3',
+      grace_period_days: '5', bill_type: '', provider: '', account_number: '', meter_number: ''
+    })
+    loadData()
   }
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from('recurring_expenses').update({ is_active: !current }).eq('id', id)
+    if (!user) return
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'recurringExpenses', id), { is_active: !current })
     loadData()
   }
 
   const deleteExpense = async (id: string) => {
     if (!confirm(t('delete_recurring_bill') || 'Delete this recurring bill?')) return
-    await supabase.from('recurring_expenses').delete().eq('id', id)
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'recurringExpenses', id))
     loadData()
   }
 
@@ -401,73 +363,16 @@ export default function RecurringExpenses() {
   }
 
   const updateExpense = async () => {
-    if (!editingId) return
+    if (!editingId || !user) return
     const parsedAmount = formData.amount.trim() === '' ? null : Number(formData.amount)
     
-    // First update the current record
-    const { error } = await supabase
-      .from('recurring_expenses')
-      .update({
-        name: formData.name,
-        amount: parsedAmount,
-        is_variable_amount: formData.is_variable_amount,
-        category_id: formData.category_id || null,
-        frequency: formData.frequency,
-      })
-      .eq('id', editingId)
-    
-    if (error) {
-      console.error('Update error:', error)
-      return
-    }
-
-    // Also update any other recurring expenses with same name/profile (duplicates)
-    // that might be linked to bill_payments
-    if (currentProfile) {
-      const { error: dupError } = await supabase
-        .from('recurring_expenses')
-        .update({
-          amount: parsedAmount,
-          is_variable_amount: formData.is_variable_amount,
-        })
-        .eq('name', formData.name)
-        .eq('profile_id', currentProfile.id)
-        .neq('id', editingId)
-      
-      if (dupError) {
-        console.error('Duplicate update error:', dupError)
-      }
-    }
-    
-    // Update bill_payments for this recurring expense
-    if (parsedAmount != null) {
-      await supabase
-        .from('bill_payments')
-        .update({ amount: parsedAmount })
-        .eq('recurring_expense_id', editingId)
-        .eq('is_paid', false)
-        .or('amount.is.null,amount.eq.0')
-      
-      // Also update bill_payments linked to any duplicate records
-      if (currentProfile) {
-        const { data: duplicates } = await supabase
-          .from('recurring_expenses')
-          .select('id')
-          .eq('name', formData.name)
-          .eq('profile_id', currentProfile.id)
-          .neq('id', editingId)
-        
-        if (duplicates && duplicates.length > 0) {
-          for (const dup of duplicates) {
-            await supabase
-              .from('bill_payments')
-              .update({ amount: parsedAmount, recurring_expense_id: editingId })
-              .eq('recurring_expense_id', dup.id)
-              .eq('is_paid', false)
-          }
-        }
-      }
-    }
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'recurringExpenses', editingId), {
+      name: formData.name,
+      amount: parsedAmount,
+      is_variable_amount: formData.is_variable_amount,
+      category_id: formData.category_id || null,
+      frequency: formData.frequency,
+    })
 
     setShowEdit(false)
     setEditingId(null)

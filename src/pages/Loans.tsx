@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useProfile } from '../hooks/useProfile'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil } from 'lucide-react'
 
 // Format currency as MVR
@@ -281,6 +283,7 @@ const getStatusColor = (status: string) => {
 
 export default function Loans() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [loans, setLoans] = useState<Loan[]>([])
   const [payments, setPayments] = useState<Record<string, LoanPayment[]>>({})
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
@@ -332,56 +335,54 @@ export default function Loans() {
   })
 
   useEffect(() => {
-    loadLoans()
-  }, [currentProfile])
+    if (user && currentProfile) {
+      loadLoans()
+    }
+  }, [currentProfile, user])
 
   useEffect(() => {
     const loadCategories = async () => {
-      if (!currentProfile) return
-      const { data: cats } = await supabase
-        .from('expense_categories')
-        .select('id, name, profile_id, is_archived, sort_order')
-        .eq('profile_id', currentProfile.id)
-        .eq('is_archived', false)
-        .order('sort_order')
-
-      setCategories((cats ?? []) as any)
+      if (!user || !currentProfile) return
+      const catQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'categories'),
+        where('profile_id', '==', currentProfile.id),
+        where('is_archived', '==', false),
+        orderBy('sort_order')
+      )
+      const catSnap = await getDocs(catQuery)
+      setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() }) as ExpenseCategory))
     }
 
     loadCategories()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadLoans = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     setLoading(true)
 
-    const { data: loansData, error } = await supabase
-      .from('loans')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .order('created_at', { ascending: false })
+    const loansQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'loans'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('created_at', 'desc')
+    )
+    const loansSnap = await getDocs(loansQuery)
+    const loansData = loansSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Loan)
+    setLoans(loansData)
 
-    if (!error && loansData) {
-      setLoans(loansData as Loan[])
-
-      // Load payments for each loan
-      const loanIds = loansData.map((l: any) => l.id)
-      if (loanIds.length > 0) {
-        const { data: paymentsData } = await supabase
-          .from('loan_payments')
-          .select('*')
-          .in('loan_id', loanIds)
-          .order('payment_date', { ascending: false })
-
-        if (paymentsData) {
-          const paymentsMap: Record<string, LoanPayment[]> = {}
-          paymentsData.forEach((p: any) => {
-            if (!paymentsMap[p.loan_id]) paymentsMap[p.loan_id] = []
-            paymentsMap[p.loan_id].push(p)
-          })
-          setPayments(paymentsMap)
-        }
+    // Load payments for each loan
+    const loanIds = loansData.map(l => l.id)
+    if (loanIds.length > 0) {
+      const paymentsMap: Record<string, LoanPayment[]> = {}
+      for (const loanId of loanIds) {
+        const payQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'loanPayments'),
+          where('loan_id', '==', loanId),
+          orderBy('payment_date', 'desc')
+        )
+        const paySnap = await getDocs(payQuery)
+        paymentsMap[loanId] = paySnap.docs.map(d => ({ id: d.id, ...d.data() }) as LoanPayment)
       }
+      setPayments(paymentsMap)
     }
 
     setLoading(false)
@@ -389,19 +390,18 @@ export default function Loans() {
 
   const handleAddLoan = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
 
     const principal = Number(formData.principal_amount)
     const interestRate = Number(formData.interest_rate)
     let totalAmount = Number(formData.total_amount) || principal
 
-    // Calculate total with simple interest if not provided
     if (!formData.total_amount && interestRate > 0 && formData.interest_type === 'simple') {
-      const years = 1 // Default 1 year if no due date
+      const years = 1
       totalAmount = principal + (principal * interestRate * years / 100)
     }
 
-    const insertData = {
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
       profile_id: currentProfile.id,
       loan_type: formData.loan_type,
       category: formData.category,
@@ -413,37 +413,35 @@ export default function Loans() {
       loan_date: formData.loan_date,
       due_date: formData.due_date || null,
       total_amount: totalAmount,
+      amount_paid: 0,
       emi_amount: formData.emi_amount ? Number(formData.emi_amount) : null,
       total_installments: formData.total_installments ? Number(formData.total_installments) : null,
+      installments_paid: 0,
+      status: 'active',
       description: formData.description || null,
       account_number: formData.account_number || null,
       bank_name: formData.bank_name || null,
-    }
+      created_at: new Date().toISOString()
+    })
 
-    const { error } = await supabase.from('loans').insert(insertData)
-
-    if (!error) {
-      setShowAdd(false)
-      setFormData({
-        loan_type: 'borrowed',
-        category: 'individual',
-        party_name: '',
-        principal_amount: '',
-        interest_rate: '0',
-        interest_type: 'none',
-        loan_date: new Date().toISOString().slice(0, 10),
-        due_date: '',
-        total_amount: '',
-        emi_amount: '',
-        total_installments: '',
-        description: '',
-        account_number: '',
-        bank_name: '',
-      })
-      loadLoans()
-    } else {
-      alert('Failed to add loan: ' + error.message)
-    }
+    setShowAdd(false)
+    setFormData({
+      loan_type: 'borrowed',
+      category: 'individual',
+      party_name: '',
+      principal_amount: '',
+      interest_rate: '0',
+      interest_type: 'none',
+      loan_date: new Date().toISOString().slice(0, 10),
+      due_date: '',
+      total_amount: '',
+      emi_amount: '',
+      total_installments: '',
+      description: '',
+      account_number: '',
+      bank_name: '',
+    })
+    loadLoans()
   }
 
   const openEdit = (loan: Loan) => {
@@ -468,7 +466,7 @@ export default function Loans() {
 
   const handleUpdateLoan = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile || !showEdit) return
+    if (!user || !showEdit) return
 
     const principal = Number(editFormData.principal_amount)
     const interestRate = Number(editFormData.interest_rate)
@@ -479,7 +477,7 @@ export default function Loans() {
       totalAmount = principal + (principal * interestRate * years / 100)
     }
 
-    const updateData = {
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', showEdit), {
       loan_type: editFormData.loan_type,
       category: editFormData.category,
       lender_name: editFormData.loan_type === 'borrowed' ? editFormData.party_name : null,
@@ -495,25 +493,15 @@ export default function Loans() {
       description: editFormData.description || null,
       account_number: editFormData.account_number || null,
       bank_name: editFormData.bank_name || null
-    }
+    })
 
-    const { error } = await supabase
-      .from('loans')
-      .update(updateData)
-      .eq('id', showEdit)
-      .eq('profile_id', currentProfile.id)
-
-    if (!error) {
-      setShowEdit(null)
-      loadLoans()
-    } else {
-      alert('Failed to update loan: ' + error.message)
-    }
+    setShowEdit(null)
+    loadLoans()
   }
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile || !showPay) return
+    if (!user || !currentProfile || !showPay) return
 
     const loan = loans.find(l => l.id === showPay)
     if (!loan) return
@@ -521,56 +509,49 @@ export default function Loans() {
     const amount = Number(paymentForm.amount)
 
     // Create transaction for this payment
-    const { data: txData, error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        profile_id: currentProfile.id,
-        type: loan.loan_type === 'borrowed' ? 'expense' : 'income',
-        amount: amount,
-        description: `${loan.loan_type === 'borrowed' ? 'Loan Payment' : 'Loan Repayment'} - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
-        transaction_date: paymentForm.payment_date,
-        category_id: paymentForm.category_id || null,
-      })
-      .select()
-      .single()
-
-    if (txError) {
-      alert('Failed to create transaction: ' + txError.message)
-      return
-    }
+    const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+      profile_id: currentProfile.id,
+      type: loan.loan_type === 'borrowed' ? 'expense' : 'income',
+      amount: amount,
+      description: `${loan.loan_type === 'borrowed' ? 'Loan Payment' : 'Loan Repayment'} - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
+      transaction_date: paymentForm.payment_date,
+      category_id: paymentForm.category_id || null,
+      created_at: new Date().toISOString()
+    })
 
     // Add loan payment record
-    const { error: payError } = await supabase.from('loan_payments').insert({
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'loanPayments'), {
       loan_id: showPay,
       profile_id: currentProfile.id,
       payment_date: paymentForm.payment_date,
       amount_paid: amount,
-      transaction_id: txData?.id,
+      transaction_id: txRef.id,
       notes: paymentForm.notes || null,
       installment_number: loan.installments_paid + 1,
+      created_at: new Date().toISOString()
     })
 
-    if (!payError) {
-      setShowPay(null)
-      setPaymentForm({
-        amount: '',
-        payment_date: new Date().toISOString().slice(0, 10),
-        notes: '',
-        category_id: '',
-      })
-      loadLoans()
-    } else {
-      alert('Failed to record payment: ' + payError.message)
-    }
+    // Update loan amount paid
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', showPay), {
+      amount_paid: loan.amount_paid + amount,
+      installments_paid: loan.installments_paid + 1
+    })
+
+    setShowPay(null)
+    setPaymentForm({
+      amount: '',
+      payment_date: new Date().toISOString().slice(0, 10),
+      notes: '',
+      category_id: '',
+    })
+    loadLoans()
   }
 
   const deleteLoan = async (id: string) => {
     if (!confirm('Delete this loan? This will also delete all payment records.')) return
-
-    const { error } = await supabase.from('loans').delete().eq('id', id)
-    if (!error) {
-      loadLoans()
-    }
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'loans', id))
+    loadLoans()
   }
 
   // Calculate statistics

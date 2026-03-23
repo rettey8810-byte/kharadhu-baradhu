@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { formatDateLocal } from '../utils/date'
 
 function formatMVR(value: number) {
@@ -9,6 +11,7 @@ function formatMVR(value: number) {
 
 export default function YearlyView() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [monthlyExpenseTotals, setMonthlyExpenseTotals] = useState<number[]>(Array(12).fill(0))
   const [monthlyIncomeTotals, setMonthlyIncomeTotals] = useState<number[]>(Array(12).fill(0))
@@ -21,20 +24,27 @@ export default function YearlyView() {
 
   useEffect(() => {
     const load = async () => {
-      if (profiles.length === 0) return
+      if (!user || profiles.length === 0) return
 
       const profileIds = profiles.map(p => p.id)
 
-      const { data } = await supabase
-        .from('transactions')
-        .select('amount, transaction_date, type')
-        .in('profile_id', profileIds)
-        .gte('transaction_date', startEnd.start)
-        .lte('transaction_date', startEnd.end)
+      // Query transactions for each profile
+      const promises = profileIds.map(pid => {
+        const q = query(
+          collection(firebaseDb, 'users', user.uid, 'transactions'),
+          where('profile_id', '==', pid),
+          where('transaction_date', '>=', startEnd.start),
+          where('transaction_date', '<=', startEnd.end)
+        )
+        return getDocs(q)
+      })
+      
+      const snaps = await Promise.all(promises)
+      const rows = snaps.flatMap(snap => snap.docs.map(d => d.data()))
 
       const expenseTotals = Array(12).fill(0)
       const incomeTotals = Array(12).fill(0)
-      for (const row of data ?? []) {
+      for (const row of rows) {
         const d = new Date(row.transaction_date)
         const m = d.getMonth()
         if (row.type === 'income') incomeTotals[m] += Number(row.amount)
@@ -45,7 +55,7 @@ export default function YearlyView() {
     }
 
     load()
-  }, [profiles, startEnd])
+  }, [profiles, startEnd, user])
 
   const totalExpense = monthlyExpenseTotals.reduce((a, b) => a + b, 0)
   const totalIncome = monthlyIncomeTotals.reduce((a, b) => a + b, 0)

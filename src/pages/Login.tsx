@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth'
+import { firebaseAuth } from '../lib/firebase'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -11,6 +12,27 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  const forgotPassword = async () => {
+    setError(null)
+    setMessage(null)
+
+    const cleanEmail = email.trim()
+    if (!cleanEmail) {
+      setError('Please enter your email first')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await sendPasswordResetEmail(firebaseAuth, cleanEmail)
+      setMessage('Password reset email sent. Please check your inbox.')
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to send password reset email')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -19,8 +41,7 @@ export default function Login() {
 
     try {
       if (mode === 'signin') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
+        await signInWithEmailAndPassword(firebaseAuth, email.trim(), password)
         setMessage('Signed in successfully.')
         
         // Check for pending invite token and redirect
@@ -30,20 +51,14 @@ export default function Login() {
           return
         }
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
+        await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
+        setMessage('Account created and signed in.')
 
-        if (data.session) {
-          setMessage('Account created and signed in.')
-          
-          // Check for pending invite token and redirect
-          const pendingToken = localStorage.getItem('pendingInviteToken')
-          if (pendingToken) {
-            window.location.href = `/accept-invite?token=${pendingToken}`
-            return
-          }
-        } else {
-          setMessage('Account created. Check your email to confirm your account, then come back and sign in.')
+        // Check for pending invite token and redirect
+        const pendingToken = localStorage.getItem('pendingInviteToken')
+        if (pendingToken) {
+          window.location.href = `/accept-invite?token=${pendingToken}`
+          return
         }
       }
     } catch (err: any) {
@@ -111,8 +126,19 @@ export default function Login() {
             {mode === 'signin' ? 'New here? Create an account' : 'Already have an account? Sign in'}
           </button>
 
+          {mode === 'signin' && (
+            <button
+              type="button"
+              className="w-full text-sm text-emerald-700 hover:text-emerald-800"
+              disabled={loading}
+              onClick={forgotPassword}
+            >
+              Forgot password?
+            </button>
+          )}
+
           <div className="text-xs text-gray-500 pt-2">
-            If you can’t log in after sign-up, your Supabase project may require email confirmation.
+            If you don’t see the reset email, check your spam folder.
           </div>
         </form>
       </div>

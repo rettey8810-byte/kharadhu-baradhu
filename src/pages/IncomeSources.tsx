@@ -1,43 +1,47 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { IncomeSource } from '../types'
 
 export default function IncomeSources() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [sources, setSources] = useState<IncomeSource[]>([])
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
-    if (!currentProfile) return
-    const { data, error } = await supabase
-      .from('income_sources')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .order('created_at')
-
-    if (!error) setSources((data ?? []) as any)
+    if (!user || !currentProfile) return
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'incomeSources'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('created_at')
+    )
+    const snap = await getDocs(q)
+    setSources(snap.docs.map(d => ({ id: d.id, ...d.data() }) as IncomeSource))
   }
 
   useEffect(() => {
     load()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
 
     setError(null)
     setLoading(true)
 
     try {
-      const { error } = await supabase
-        .from('income_sources')
-        .insert({ profile_id: currentProfile.id, name: name.trim() })
-
-      if (error) throw error
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'incomeSources'), {
+        profile_id: currentProfile.id,
+        name: name.trim(),
+        is_archived: false,
+        created_at: new Date().toISOString()
+      })
       setName('')
       await load()
     } catch (err: any) {
@@ -48,17 +52,18 @@ export default function IncomeSources() {
   }
 
   const toggleArchive = async (source: IncomeSource) => {
-    await supabase
-      .from('income_sources')
-      .update({ is_archived: !source.is_archived })
-      .eq('id', source.id)
+    if (!user) return
+    const ref = doc(firebaseDb, 'users', user.uid, 'incomeSources', source.id)
+    await updateDoc(ref, { is_archived: !source.is_archived })
     await load()
   }
 
   const rename = async (source: IncomeSource, nextName: string) => {
+    if (!user) return
     const trimmed = nextName.trim()
     if (!trimmed || trimmed === source.name) return
-    await supabase.from('income_sources').update({ name: trimmed }).eq('id', source.id)
+    const ref = doc(firebaseDb, 'users', user.uid, 'incomeSources', source.id)
+    await updateDoc(ref, { name: trimmed })
     await load()
   }
 

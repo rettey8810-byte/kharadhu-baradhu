@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
-import { Edit2, Trash2, X, Check, ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
 import { formatDateLocal } from '../utils/date'
 import { useLocation } from 'react-router-dom'
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
+import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -16,8 +17,6 @@ export default function Transactions() {
   const { t } = useLanguage()
   const location = useLocation()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [categories, setCategories] = useState<ExpenseCategory[]>([])
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -36,21 +35,14 @@ export default function Transactions() {
     return params.get('mt5') === '1'
   }, [location.search])
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    amount: '',
-    description: '',
-    transaction_date: '',
-    category_id: '',
-    income_source_id: ''
-  })
-
   useEffect(() => {
     loadData()
   }, [profiles, selectedMonth])
 
   const loadData = async () => {
     if (profiles.length === 0) return
+    const user = firebaseAuth.currentUser
+    if (!user) return
     setLoading(true)
 
     const profileIds = profiles.map(p => p.id)
@@ -58,87 +50,77 @@ export default function Transactions() {
     const start = new Date(year, month - 1, 1)
     const end = new Date(year, month, 0)
 
-    // Load transactions for ALL profiles for current month only
-    const { data: txData } = await supabase
-      .from('transactions')
-      .select('*, category:category_id(*), income_source:income_source_id(*), profile:profile_id(name)')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', formatDateLocal(start))
-      .lte('transaction_date', formatDateLocal(end))
-      .order('transaction_date', { ascending: false })
+    const startDate = formatDateLocal(start)
+    const endDate = formatDateLocal(end)
 
-    setTransactions(txData || [])
+    const txCol = collection(firebaseDb, 'users', user.uid, 'transactions')
+    const catCol = collection(firebaseDb, 'users', user.uid, 'categories')
+    const srcCol = collection(firebaseDb, 'users', user.uid, 'incomeSources')
 
-    // Load categories and income sources from all profiles for editing
-    const [{ data: cats }, { data: sources }] = await Promise.all([
-      supabase.from('expense_categories').select('*').in('profile_id', profileIds).eq('is_archived', false),
-      supabase.from('income_sources').select('*').in('profile_id', profileIds)
+    const chunk = <T,>(items: T[], size: number) => {
+      const out: T[][] = []
+      for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
+      return out
+    }
+
+    const profileIdChunks = chunk(profileIds, 10)
+
+    const [txDocs, catDocs, srcDocs] = await Promise.all([
+      Promise.all(
+        profileIdChunks.map(async (ids) =>
+          getDocs(
+            query(
+              txCol,
+              where('profile_id', 'in', ids),
+              where('transaction_date', '>=', startDate),
+              where('transaction_date', '<=', endDate),
+              orderBy('transaction_date', 'desc')
+            )
+          )
+        )
+      ).then((snaps) => snaps.flatMap((s) => s.docs)),
+      Promise.all(profileIdChunks.map(async (ids) => getDocs(query(catCol, where('profile_id', 'in', ids)))))
+        .then((snaps) => snaps.flatMap((s) => s.docs)),
+      Promise.all(profileIdChunks.map(async (ids) => getDocs(query(srcCol, where('profile_id', 'in', ids)))))
+        .then((snaps) => snaps.flatMap((s) => s.docs))
     ])
 
-    setCategories(cats || [])
-    setIncomeSources(sources || [])
-    setLoading(false)
-  }
+    const cats = catDocs.map((d) => d.data() as ExpenseCategory).filter((c) => !c.is_archived)
+    const sources = srcDocs.map((d) => d.data() as IncomeSource)
 
-  const handleEdit = (tx: Transaction) => {
-    setEditingId(tx.id)
-    setEditForm({
-      amount: String(tx.amount),
-      description: tx.description || '',
-      transaction_date: tx.transaction_date,
-      category_id: tx.category_id || '',
-      income_source_id: tx.income_source_id || ''
-    })
-  }
+    const categoryById = new Map(cats.map((c) => [c.id, c]))
+    const sourceById = new Map(sources.map((s) => [s.id, s]))
+    const profileById = new Map(profiles.map((p) => [p.id, p]))
 
-  // Support auto-edit mode via query param (e.g., from Taxi page)
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const editId = params.get('edit')
-    if (editId && transactions.length > 0) {
-      const tx = transactions.find(t => t.id === editId)
-      if (tx) {
-        handleEdit(tx)
+    const txData = txDocs.map((d) => {
+      const raw = d.data() as any
+      const txDate: string = raw.transaction_date?.toDate ? formatDateLocal(raw.transaction_date.toDate()) : String(raw.transaction_date)
+
+      const tx: Transaction = {
+        id: raw.id ?? d.id,
+        profile_id: raw.profile_id,
+        type: raw.type,
+        amount: raw.amount,
+        category_id: raw.category_id ?? null,
+        income_source_id: raw.income_source_id ?? null,
+        description: raw.description ?? null,
+        notes: raw.notes ?? null,
+        tags: raw.tags ?? null,
+        transaction_date: txDate,
+        created_at: raw.created_at?.toDate ? raw.created_at.toDate().toISOString() : (raw.created_at ?? ''),
+        updated_at: raw.updated_at?.toDate ? raw.updated_at.toDate().toISOString() : (raw.updated_at ?? ''),
+        category: raw.category_id ? categoryById.get(raw.category_id) : undefined,
+        income_source: raw.income_source_id ? sourceById.get(raw.income_source_id) : undefined,
+        profile: { name: profileById.get(raw.profile_id)?.name ?? 'Profile' }
       }
-    }
-  }, [transactions, location.search])
 
-  const handleSave = async (id: string) => {
-    const updateData: any = {
-      amount: parseFloat(editForm.amount),
-      description: editForm.description,
-      transaction_date: editForm.transaction_date
-    }
+      return tx
+    })
 
-    if (editForm.category_id) {
-      updateData.category_id = editForm.category_id
-    }
-    if (editForm.income_source_id) {
-      updateData.income_source_id = editForm.income_source_id
-    }
+    txData.sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
 
-    const { error } = await supabase
-      .from('transactions')
-      .update(updateData)
-      .eq('id', id)
-
-    if (!error) {
-      setEditingId(null)
-      loadData()
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('confirm_delete_tx'))) return
-
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id)
-
-    if (!error) {
-      loadData()
-    }
+    setTransactions(txData)
+    setLoading(false)
   }
 
   const filteredTransactions = transactions.filter(tx => {
@@ -255,117 +237,32 @@ export default function Transactions() {
           </div>
         ) : (
           filteredTransactions.map(tx => {
-            const isEditing = editingId === tx.id
             const isExpense = tx.type === 'expense'
 
             return (
               <div key={tx.id} className="bg-white rounded-xl p-3">
-                {isEditing ? (
-                  // Edit Mode
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                        placeholder={t('edit_amount_placeholder')}
-                        value={editForm.amount}
-                        onChange={e => setEditForm({...editForm, amount: e.target.value})}
-                      />
-                      <input
-                        type="date"
-                        className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                        value={editForm.transaction_date}
-                        onChange={e => setEditForm({...editForm, transaction_date: e.target.value})}
-                      />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isExpense ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                      {isExpense ? (
+                        <ArrowDownCircle size={20} className="text-red-600" />
+                      ) : (
+                        <ArrowUpCircle size={20} className="text-emerald-600" />
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                      placeholder={t('edit_description_placeholder')}
-                      value={editForm.description}
-                      onChange={e => setEditForm({...editForm, description: e.target.value})}
-                    />
-                    {isExpense && (
-                      <select
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                        value={editForm.category_id}
-                        onChange={e => setEditForm({...editForm, category_id: e.target.value})}
-                      >
-                        <option value="">{t('select_category')}</option>
-                        {categories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                      </select>
-                    )}
-                    {!isExpense && (
-                      <select
-                        className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm"
-                        value={editForm.income_source_id}
-                        onChange={e => setEditForm({...editForm, income_source_id: e.target.value})}
-                      >
-                        <option value="">{t('select_income_source')}</option>
-                        {incomeSources.map(src => (
-                          <option key={src.id} value={src.id}>{src.name}</option>
-                        ))}
-                      </select>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleSave(tx.id)}
-                        className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-sm"
-                      >
-                        <Check size={16} className="mx-auto" />
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="flex-1 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm"
-                      >
-                        <X size={16} className="mx-auto" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // View Mode
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isExpense ? 'bg-red-100' : 'bg-emerald-100'}`}>
-                        {isExpense ? (
-                          <ArrowDownCircle size={20} className="text-red-600" />
-                        ) : (
-                          <ArrowUpCircle size={20} className="text-emerald-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{(tx.profile as any)?.name || 'Profile'} • {getTransactionName(tx)}</p>
-                        <p className="text-xs text-gray-500">
-                          {tx.transaction_date} {tx.description && `• ${tx.description}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${isExpense ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {isExpense ? '-' : '+'}{formatMVR(tx.amount)}
+                    <div>
+                      <p className="font-medium text-gray-900">{(tx.profile as any)?.name || 'Profile'} • {getTransactionName(tx)}</p>
+                      <p className="text-xs text-gray-500">
+                        {tx.transaction_date} {tx.description && `• ${tx.description}`}
                       </p>
-                      <div className="flex gap-1 mt-1">
-                        <button
-                          onClick={() => handleEdit(tx)}
-                          className="p-1.5 rounded bg-gray-100 hover:bg-gray-200"
-                          title={t('edit_title')}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(tx.id)}
-                          className="p-1.5 rounded bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600"
-                          title={t('delete_title')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
                     </div>
                   </div>
-                )}
+                  <div className="text-right">
+                    <p className={`font-semibold ${isExpense ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {isExpense ? '-' : '+'}{formatMVR(tx.amount)}
+                    </p>
+                  </div>
+                </div>
               </div>
             )
           })

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore'
 import { BarChart3, Plus, X, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
@@ -48,6 +50,7 @@ const EXPENSE_TYPES = [
 
 export default function MT5() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
 
@@ -78,74 +81,71 @@ export default function MT5() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!currentProfile) return
+    if (!currentProfile || !user) return
     load()
     ensureMt5Category()
     ensureMt5IncomeSource()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const ensureMt5Category = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     try {
-      const { data: cats } = await supabase
-        .from('expense_categories')
-        .select('id, name')
-        .eq('profile_id', currentProfile.id)
-        .eq('is_archived', false)
+      const catsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'categories'),
+        where('profile_id', '==', currentProfile.id),
+        where('is_archived', '==', false)
+      )
+      const catsSnap = await getDocs(catsQuery)
+      const cats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-      const existing = (cats ?? []).find((c: any) => (c.name ?? '').trim().toLowerCase() === 'mt5')
+      const existing = cats.find((c: any) => (c.name ?? '').trim().toLowerCase() === 'mt5')
       if (existing?.id) {
         setMt5ExpenseCategoryId(existing.id)
         return
       }
 
-      const { data: created } = await supabase
-        .from('expense_categories')
-        .insert({
-          profile_id: currentProfile.id,
-          name: 'MT5',
-          color: '#8b5cf6',
-          icon: 'BarChart3',
-          is_default: false,
-          sort_order: 0,
-        })
-        .select('id')
-        .single()
-
-      setMt5ExpenseCategoryId(created?.id ?? null)
+      const catRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'categories'), {
+        profile_id: currentProfile.id,
+        name: 'MT5',
+        color: '#8b5cf6',
+        icon: 'BarChart3',
+        is_default: false,
+        sort_order: 0,
+        is_archived: false,
+        created_at: new Date().toISOString()
+      })
+      setMt5ExpenseCategoryId(catRef.id)
     } catch {
       setMt5ExpenseCategoryId(null)
     }
   }
 
   const ensureMt5IncomeSource = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     try {
-      const { data: sources } = await supabase
-        .from('income_sources')
-        .select('id, name')
-        .eq('profile_id', currentProfile.id)
-        .eq('is_archived', false)
+      const sourcesQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'incomeSources'),
+        where('profile_id', '==', currentProfile.id),
+        where('is_archived', '==', false)
+      )
+      const sourcesSnap = await getDocs(sourcesQuery)
+      const sources = sourcesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-      const existing = (sources ?? []).find((s: any) => (s.name ?? '').trim().toLowerCase() === 'mt5')
+      const existing = sources.find((s: any) => (s.name ?? '').trim().toLowerCase() === 'mt5')
       if (existing?.id) {
         setMt5IncomeSourceId(existing.id)
         return
       }
 
-      const { data: created } = await supabase
-        .from('income_sources')
-        .insert({
-          profile_id: currentProfile.id,
-          name: 'MT5',
-          color: '#10b981',
-          icon: 'BarChart3',
-          is_archived: false,
-        })
-        .select('id')
-        .single()
-
-      setMt5IncomeSourceId(created?.id ?? null)
+      const sourceRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'incomeSources'), {
+        profile_id: currentProfile.id,
+        name: 'MT5',
+        color: '#10b981',
+        icon: 'BarChart3',
+        is_archived: false,
+        created_at: new Date().toISOString()
+      })
+      setMt5IncomeSourceId(sourceRef.id)
     } catch {
       setMt5IncomeSourceId(null)
     }
@@ -154,32 +154,130 @@ export default function MT5() {
   const load = async () => {
     setError(null)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setTrades([])
         setExpenses([])
         return
       }
 
-      const [{ data: tData }, { data: eData }] = await Promise.all([
-        supabase
-          .from('mt5_trades')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('trade_date', { ascending: false })
-          .limit(30),
-        supabase
-          .from('mt5_expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('expense_date', { ascending: false })
-          .limit(30)
-      ])
+      const tQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'mt5Trades'),
+        where('user_id', '==', user.uid),
+        orderBy('trade_date', 'desc')
+      )
+      const eQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'mt5Expenses'),
+        where('user_id', '==', user.uid),
+        orderBy('expense_date', 'desc')
+      )
+      
+      const [tSnap, eSnap] = await Promise.all([getDocs(tQuery), getDocs(eQuery)])
 
-      setTrades((tData ?? []) as any)
-      setExpenses((eData ?? []) as any)
+      setTrades(tSnap.docs.map(d => ({ id: d.id, ...d.data() }) as MT5Trade).slice(0, 30))
+      setExpenses(eSnap.docs.map(d => ({ id: d.id, ...d.data() }) as MT5Expense).slice(0, 30))
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load MT5 data')
+    }
+  }
+
+  const addTrade = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!currentProfile || !user) return
+
+    const lotSize = Number(tradeForm.lot_size)
+    const entryPrice = Number(tradeForm.entry_price)
+    const exitPrice = Number(tradeForm.exit_price)
+    if (!Number.isFinite(lotSize) || lotSize <= 0) return
+    if (!Number.isFinite(entryPrice) || entryPrice <= 0) return
+    if (!Number.isFinite(exitPrice) || exitPrice <= 0) return
+
+    const profitLoss = (exitPrice - entryPrice) * lotSize * 100000
+
+    try {
+      const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        type: profitLoss >= 0 ? 'income' : 'expense',
+        amount: Math.abs(profitLoss),
+        description: `MT5 ${tradeForm.trade_type.toUpperCase()} ${tradeForm.symbol}`,
+        notes: `Symbol: ${tradeForm.symbol}\nType: ${tradeForm.trade_type}\nLot: ${lotSize}\nEntry: ${entryPrice}\nExit: ${exitPrice}\n${tradeForm.notes.trim()}`,
+        transaction_date: tradeForm.trade_date,
+        category_id: profitLoss < 0 ? mt5ExpenseCategoryId : null,
+        income_source_id: profitLoss >= 0 ? mt5IncomeSourceId : null,
+        created_at: new Date().toISOString()
+      })
+
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'mt5Trades'), {
+        user_id: user.uid,
+        trade_date: tradeForm.trade_date,
+        symbol: tradeForm.symbol.toUpperCase(),
+        trade_type: tradeForm.trade_type,
+        lot_size: lotSize,
+        entry_price: entryPrice,
+        exit_price: exitPrice,
+        profit_loss: profitLoss,
+        transaction_id: txRef.id,
+        notes: tradeForm.notes.trim() ? tradeForm.notes.trim() : null,
+        created_at: new Date().toISOString()
+      })
+
+      setTradeForm({
+        trade_date: new Date().toISOString().slice(0, 10),
+        symbol: '',
+        trade_type: 'buy',
+        lot_size: '',
+        entry_price: '',
+        exit_price: '',
+        notes: '',
+      })
+      setShowAddTrade(false)
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to add trade')
+    }
+  }
+
+  const addExpense = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!currentProfile || !user) return
+
+    const amt = Number(expenseForm.amount)
+    if (!Number.isFinite(amt) || amt <= 0) return
+
+    try {
+      const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        type: 'expense',
+        amount: amt,
+        description: `MT5 expense - ${EXPENSE_TYPES.find(t => t.value === expenseForm.expense_type)?.label || expenseForm.expense_type}`,
+        notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
+        transaction_date: expenseForm.expense_date,
+        category_id: mt5ExpenseCategoryId,
+        income_source_id: null,
+        created_at: new Date().toISOString()
+      })
+
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'mt5Expenses'), {
+        user_id: user.uid,
+        expense_date: expenseForm.expense_date,
+        expense_type: expenseForm.expense_type,
+        amount: amt,
+        transaction_id: txRef.id,
+        notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
+        created_at: new Date().toISOString()
+      })
+
+      setExpenseForm({
+        expense_date: new Date().toISOString().slice(0, 10),
+        expense_type: 'commission',
+        amount: '',
+        notes: '',
+      })
+      setShowAddExpense(false)
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to add expense')
     }
   }
 
@@ -231,125 +329,6 @@ export default function MT5() {
       overallNet: overallProfit - overallExpense,
     }
   }, [trades, expenses])
-
-  const addTrade = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!currentProfile) return
-
-    const lotSize = Number(tradeForm.lot_size)
-    const entryPrice = Number(tradeForm.entry_price)
-    const exitPrice = Number(tradeForm.exit_price)
-    if (!Number.isFinite(lotSize) || lotSize <= 0) return
-    if (!Number.isFinite(entryPrice) || entryPrice <= 0) return
-    if (!Number.isFinite(exitPrice) || exitPrice <= 0) return
-
-    const profitLoss = (exitPrice - entryPrice) * lotSize * 100000 // Standard lot = 100,000 units
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const { data: txData, error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          type: profitLoss >= 0 ? 'income' : 'expense',
-          amount: Math.abs(profitLoss),
-          description: `MT5 ${tradeForm.trade_type.toUpperCase()} ${tradeForm.symbol}`,
-          notes: `Symbol: ${tradeForm.symbol}\nType: ${tradeForm.trade_type}\nLot: ${lotSize}\nEntry: ${entryPrice}\nExit: ${exitPrice}\n${tradeForm.notes.trim()}`,
-          transaction_date: tradeForm.trade_date,
-          category_id: profitLoss < 0 ? mt5ExpenseCategoryId : null,
-          income_source_id: profitLoss >= 0 ? mt5IncomeSourceId : null,
-        })
-        .select()
-        .single()
-      if (txErr) throw txErr
-
-      const { error: tradeErr } = await supabase
-        .from('mt5_trades')
-        .insert({
-          user_id: user.id,
-          trade_date: tradeForm.trade_date,
-          symbol: tradeForm.symbol.toUpperCase(),
-          trade_type: tradeForm.trade_type,
-          lot_size: lotSize,
-          entry_price: entryPrice,
-          exit_price: exitPrice,
-          profit_loss: profitLoss,
-          transaction_id: txData?.id ?? null,
-          notes: tradeForm.notes.trim() ? tradeForm.notes.trim() : null,
-        })
-      if (tradeErr) throw tradeErr
-
-      setTradeForm({
-        trade_date: new Date().toISOString().slice(0, 10),
-        symbol: '',
-        trade_type: 'buy',
-        lot_size: '',
-        entry_price: '',
-        exit_price: '',
-        notes: '',
-      })
-      setShowAddTrade(false)
-      await load()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to add trade')
-    }
-  }
-
-  const addExpense = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    if (!currentProfile) return
-
-    const amt = Number(expenseForm.amount)
-    if (!Number.isFinite(amt) || amt <= 0) return
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-
-      const { data: txData, error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          type: 'expense',
-          amount: amt,
-          description: `MT5 expense - ${EXPENSE_TYPES.find(t => t.value === expenseForm.expense_type)?.label || expenseForm.expense_type}`,
-          notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
-          transaction_date: expenseForm.expense_date,
-          category_id: mt5ExpenseCategoryId,
-          income_source_id: null,
-        })
-        .select()
-        .single()
-      if (txErr) throw txErr
-
-      const { error: expErr } = await supabase
-        .from('mt5_expenses')
-        .insert({
-          user_id: user.id,
-          expense_date: expenseForm.expense_date,
-          expense_type: expenseForm.expense_type,
-          amount: amt,
-          transaction_id: txData?.id ?? null,
-          notes: expenseForm.notes.trim() ? expenseForm.notes.trim() : null,
-        })
-      if (expErr) throw expErr
-
-      setExpenseForm({
-        expense_date: new Date().toISOString().slice(0, 10),
-        expense_type: 'commission',
-        amount: '',
-        notes: '',
-      })
-      setShowAddExpense(false)
-      await load()
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to add expense')
-    }
-  }
 
   return (
     <div className="space-y-4">

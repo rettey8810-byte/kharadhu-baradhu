@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
 import { useLanguage } from '../hooks/useLanguage'
 import SmartInsights from '../components/SmartInsights'
@@ -52,6 +54,7 @@ interface DashboardLoan {
 
 export default function Dashboard() {
   const { profiles, currentProfile, setCurrentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -67,255 +70,213 @@ export default function Dashboard() {
     overdueCount: number
   } | null>(null)
 
-  const processedRecurringRef = useRef<string>('')
-
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
-  // v2 - Show all transactions regardless of profile_id
 
   useEffect(() => {
     const load = async () => {
-      if (profiles.length === 0) return
+      if (!user || profiles.length === 0) return
       setLoading(true)
-      console.log('Dashboard loading for profiles:', profiles.map(p => ({id: p.id, name: p.name})))
+      console.log('Dashboard loading for profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
 
       const profileIds = profiles.map(p => p.id)
       const start = new Date(year, month - 1, 1)
       const end = new Date(year, month, 0)
-
-      const monthKey = `${year}-${String(month).padStart(2, '0')}`
-      if (processedRecurringRef.current !== monthKey) {
-        processedRecurringRef.current = monthKey
-
-        const today = formatDateLocal(new Date())
-        const maxIterations = 24
-
-        const processExpensesOnce = async () => {
-          const { error } = await supabase.rpc('process_recurring_expenses_v2')
-          if (error) {
-            await supabase.rpc('process_recurring_expenses')
-          }
-        }
-
-        const processIncomeOnce = async () => {
-          await supabase.rpc('process_recurring_income')
-        }
-
-        try {
-          for (let i = 0; i < maxIterations; i++) {
-            const { data: due } = await supabase
-              .from('recurring_expenses')
-              .select('id')
-              .in('profile_id', profileIds)
-              .eq('is_active', true)
-              .lte('next_due_date', today)
-              .limit(1)
-
-            if (!due || due.length === 0) break
-            await processExpensesOnce()
-          }
-        } catch {
-          // ignore
-        }
-
-        try {
-          for (let i = 0; i < maxIterations; i++) {
-            const { data: due } = await supabase
-              .from('recurring_income')
-              .select('id')
-              .in('profile_id', profileIds)
-              .eq('is_active', true)
-              .lte('next_due_date', today)
-              .limit(1)
-
-            if (!due || due.length === 0) break
-            await processIncomeOnce()
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      // Load all transactions for this month (including those with no/mismatched profile)
-      const { data: tx, error: txError } = await supabase
-        .from('transactions')
-        .select('*, profile:profile_id(name), category:category_id(name), income_source:income_source_id(name)')
-        .gte('transaction_date', formatDateLocal(start))
-        .lte('transaction_date', formatDateLocal(end))
-        .order('transaction_date', { ascending: false })
-
-      if (txError) {
-        // no-op
-      }
-
-      // Load all budgets from all profiles
-      const { data: b } = await supabase
-        .from('monthly_budgets')
-        .select('*')
-        .in('profile_id', profileIds)
-        .eq('year', year)
-        .eq('month', month)
-
-      // Pending bills - ONLY current month (from 1st to end), not next month
       const monthStart = formatDateLocal(start)
       const monthEnd = formatDateLocal(end)
 
-      const { data: unpaidVariable, error: varError } = await supabase
-        .from('bill_payments')
-        .select('id, profile_id, due_date, amount, profile:profile_id(name), recurring_expense:recurring_expense_id(name, amount)')
-        .in('profile_id', profileIds)
-        .eq('is_paid', false)
-        .gte('due_date', monthStart)
-        .lte('due_date', monthEnd)
-        .order('due_date', { ascending: true })
+      try {
+        // Load transactions for this month
+        const txQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'transactions'),
+          where('transaction_date', '>=', monthStart),
+          where('transaction_date', '<=', monthEnd)
+        )
+        const txSnap = await getDocs(txQuery)
 
-      // Debug: Check raw bill_payments data
-      const { data: rawBP } = await supabase
-        .from('bill_payments')
-        .select('*')
-        .in('profile_id', profileIds)
-        .eq('is_paid', false)
-        .gte('due_date', monthStart)
-        .lte('due_date', monthEnd)
-      console.log('Raw bill_payments:', rawBP?.map((b: any) => ({ id: b.id, recurring_expense_id: b.recurring_expense_id, amount: b.amount, due_date: b.due_date })))
+        // Load categories and income sources for enrichment
+        const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
+        const sourceSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'incomeSources'))
 
-      // Build a lookup of best amounts for each bill name (across all recurring expenses)
-      const { data: allRecurring } = await supabase
-        .from('recurring_expenses')
-        .select('name, amount, profile_id')
-        .in('profile_id', profileIds)
-      
-      const bestAmountByName: Record<string, number | null> = {}
-      ;(allRecurring ?? []).forEach((re: any) => {
-        const name = re.name
-        const amt = re.amount != null ? Number(re.amount) : null
-        if (amt != null && amt > 0) {
-          if (bestAmountByName[name] == null || amt > bestAmountByName[name]!) {
-            bestAmountByName[name] = amt
+        const categoryById = new Map(catSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
+        const sourceById = new Map(sourceSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
+        const profileById = new Map(profiles.map(p => [p.id, p]))
+
+        const txData: Transaction[] = txSnap.docs.map(d => {
+          const raw = d.data()
+          return {
+            id: d.id,
+            profile_id: raw.profile_id || '',
+            type: raw.type || 'expense',
+            amount: Number(raw.amount) || 0,
+            transaction_date: raw.transaction_date || '',
+            description: raw.description || '',
+            notes: raw.notes || '',
+            tags: raw.tags || [],
+            category_id: raw.category_id || null,
+            income_source_id: raw.income_source_id || null,
+            created_at: raw.created_at?.toDate ? raw.created_at.toDate().toISOString() : (raw.created_at || ''),
+            updated_at: raw.updated_at?.toDate ? raw.updated_at.toDate().toISOString() : (raw.updated_at || ''),
+            category: raw.category_id ? categoryById.get(raw.category_id) : undefined,
+            income_source: raw.income_source_id ? sourceById.get(raw.income_source_id) : undefined,
+            profile: { name: profileById.get(raw.profile_id)?.name ?? 'Profile' }
           }
-        }
-      })
-      console.log('Best amounts by name:', bestAmountByName)
-
-      const { data: upcomingFixed } = await supabase
-        .from('recurring_expenses')
-        .select('id, profile_id, name, amount, next_due_date, is_variable_amount, profile:profile_id(name)')
-        .in('profile_id', profileIds)
-        .eq('is_active', true)
-        .eq('is_variable_amount', false)
-        .gte('next_due_date', monthStart)
-        .lte('next_due_date', monthEnd)
-        .order('next_due_date', { ascending: true })
-
-      console.log('Dashboard bills query:', {
-        profileIds,
-        monthStart,
-        monthEnd,
-        unpaidVariable: unpaidVariable?.length ?? 0,
-        varError: varError?.message,
-        upcomingFixed: upcomingFixed?.length ?? 0,
-        unpaidVariableData: unpaidVariable?.map((u: any) => ({
-          id: u.id,
-          name: u.recurring_expense?.name,
-          amount: u.amount,
-          is_paid: u.is_paid,
-          due_date: u.due_date,
-          recurring_expense_id: u.recurring_expense_id,
-          recurring_expense: u.recurring_expense
-        }))
-      })
-
-      const pending: PendingBill[] = []
-
-      ;(unpaidVariable ?? []).forEach((row: any) => {
-        const paymentAmount = row.amount == null ? null : Number(row.amount)
-        const joinAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
-        // Use best amount from any recurring expense with same name (handles duplicate records)
-        const bestAmount = bestAmountByName[row.recurring_expense?.name] ?? null
-        const defaultAmount = bestAmount ?? joinAmount
-        const effectiveAmount = paymentAmount == null || paymentAmount === 0 ? defaultAmount : paymentAmount
-        console.log('Processing variable bill:', {
-          name: row.recurring_expense?.name,
-          paymentAmount,
-          joinAmount,
-          bestAmount,
-          defaultAmount,
-          effectiveAmount,
-          row_amount: row.amount,
-          recurring_expense_amount: row.recurring_expense?.amount
         })
-        pending.push({
-          id: row.id,
-          profile_id: row.profile_id,
-          profile_name: row.profile?.name ?? 'Profile',
-          name: row.recurring_expense?.name ?? 'Bill',
-          due_date: row.due_date,
-          amount: effectiveAmount,
-          source: 'variable',
+
+        txData.sort((a, b) => b.transaction_date.localeCompare(a.transaction_date))
+
+        // Load budgets from all profiles
+        const budgetPromises = profileIds.map(async (pid) => {
+          const bQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'budgets'),
+            where('profile_id', '==', pid),
+            where('year', '==', year),
+            where('month', '==', month)
+          )
+          const bSnap = await getDocs(bQuery)
+          return bSnap.docs.map(d => ({ id: d.id, ...d.data() }) as MonthlyBudget)
         })
-      })
+        const budgetsData = (await Promise.all(budgetPromises)).flat()
 
-      ;(upcomingFixed ?? []).forEach((row: any) => {
-        pending.push({
-          id: row.id,
-          profile_id: row.profile_id,
-          profile_name: row.profile?.name ?? 'Profile',
-          name: row.name,
-          due_date: row.next_due_date,
-          amount: row.amount == null ? null : Number(row.amount),
-          source: 'fixed',
+        // Load pending bills - variable (bill_payments)
+        const billPaymentPromises = profileIds.map(async (pid) => {
+          const bpQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'billPayments'),
+            where('profile_id', '==', pid),
+            where('is_paid', '==', false),
+            where('due_date', '>=', monthStart),
+            where('due_date', '<=', monthEnd)
+          )
+          return getDocs(bpQuery)
         })
-      })
+        const billPaymentSnaps = await Promise.all(billPaymentPromises)
+        const billPaymentsData = billPaymentSnaps.flatMap(snap =>
+          snap.docs.map(d => ({ id: d.id, ...d.data() } as any))
+        )
 
-      setPendingBills(pending)
+        // Load recurring expenses for fixed bills and amount lookup
+        const recurringPromises = profileIds.map(async (pid) => {
+          const reQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'recurringExpenses'),
+            where('profile_id', '==', pid),
+            where('is_active', '==', true)
+          )
+          return getDocs(reQuery)
+        })
+        const recurringSnaps = await Promise.all(recurringPromises)
+        const allRecurring = recurringSnaps.flatMap(snap =>
+          snap.docs.map(d => ({ id: d.id, ...d.data() } as any))
+        )
 
-      // Loans summary (across all profiles)
-      const todayStr = formatDateLocal(new Date())
-      const dueSoonThreshold = formatDateLocal(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7))
+        const bestAmountByName: Record<string, number | null> = {}
+        allRecurring.forEach((re: any) => {
+          const name = re.name
+          const amt = re.amount != null ? Number(re.amount) : null
+          if (amt != null && amt > 0) {
+            if (bestAmountByName[name] == null || amt > bestAmountByName[name]!) {
+              bestAmountByName[name] = amt
+            }
+          }
+        })
 
-      const { data: loansData } = await supabase
-        .from('loans')
-        .select('id, profile_id, loan_type, lender_name, borrower_name, due_date, total_amount, amount_paid, status, profile:profile_id(name)')
-        .in('profile_id', profileIds)
-        .eq('status', 'active')
+        const upcomingFixed = allRecurring.filter((re: any) =>
+          !re.is_variable_amount &&
+          re.next_due_date >= monthStart &&
+          re.next_due_date <= monthEnd
+        )
 
-      const loans = (loansData ?? []) as any as DashboardLoan[]
-      const borrowedRemaining = loans
-        .filter(l => l.loan_type === 'borrowed')
-        .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
-      const lendedOutstanding = loans
-        .filter(l => l.loan_type === 'lended')
-        .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
+        const pending: PendingBill[] = []
 
-      const dueSoonCount = loans.filter(l => !!l.due_date && l.due_date >= todayStr && l.due_date <= dueSoonThreshold).length
-      const overdueCount = loans.filter(l => !!l.due_date && l.due_date < todayStr).length
+        billPaymentsData.forEach((row: any) => {
+          const paymentAmount = row.amount == null ? null : Number(row.amount)
+          const joinAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
+          const bestAmount = bestAmountByName[row.recurring_expense?.name] ?? null
+          const defaultAmount = bestAmount ?? joinAmount
+          const effectiveAmount = paymentAmount == null || paymentAmount === 0 ? defaultAmount : paymentAmount
 
-      setLoansSummary({
-        borrowedRemaining,
-        lendedOutstanding,
-        net: lendedOutstanding - borrowedRemaining,
-        dueSoonCount,
-        overdueCount,
-      })
+          pending.push({
+            id: row.id,
+            profile_id: row.profile_id,
+            profile_name: profileById.get(row.profile_id)?.name ?? 'Profile',
+            name: row.recurring_expense?.name ?? 'Bill',
+            due_date: row.due_date,
+            amount: effectiveAmount,
+            source: 'variable',
+          })
+        })
 
-      setTransactions(tx ?? [])
-      setBudgets(b ?? [])
+        upcomingFixed.forEach((row: any) => {
+          pending.push({
+            id: row.id,
+            profile_id: row.profile_id,
+            profile_name: profileById.get(row.profile_id)?.name ?? 'Profile',
+            name: row.name,
+            due_date: row.next_due_date,
+            amount: row.amount == null ? null : Number(row.amount),
+            source: 'fixed',
+          })
+        })
 
-      // Calculate spending per profile
-      const spendings: ProfileSpending[] = profiles.map(profile => {
-        const profileTransactions = (tx ?? []).filter(t => t.profile_id === profile.id && t.type === 'expense')
-        return {
-          profile,
-          totalSpent: profileTransactions.reduce((sum, t) => sum + Number(t.amount), 0),
-          transactionCount: profileTransactions.length,
-        }
-      }).sort((a, b) => b.totalSpent - a.totalSpent)
+        pending.sort((a, b) => a.due_date.localeCompare(b.due_date))
+        setPendingBills(pending)
 
-      setProfileSpendings(spendings)
-      setLoading(false)
+        // Loans summary
+        const todayStr = formatDateLocal(new Date())
+        const dueSoonThreshold = formatDateLocal(new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7))
+
+        const loanPromises = profileIds.map(async (pid) => {
+          const lQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'loans'),
+            where('profile_id', '==', pid),
+            where('status', '==', 'active')
+          )
+          return getDocs(lQuery)
+        })
+        const loanSnaps = await Promise.all(loanPromises)
+        const loans = loanSnaps.flatMap(snap =>
+          snap.docs.map(d => ({ id: d.id, ...d.data() }) as DashboardLoan)
+        )
+
+        const borrowedRemaining = loans
+          .filter(l => l.loan_type === 'borrowed')
+          .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
+        const lendedOutstanding = loans
+          .filter(l => l.loan_type === 'lended')
+          .reduce((sum, l) => sum + (Number(l.total_amount) - Number(l.amount_paid)), 0)
+
+        const dueSoonCount = loans.filter(l => !!l.due_date && l.due_date >= todayStr && l.due_date <= dueSoonThreshold).length
+        const overdueCount = loans.filter(l => !!l.due_date && l.due_date < todayStr).length
+
+        setLoansSummary({
+          borrowedRemaining,
+          lendedOutstanding,
+          net: lendedOutstanding - borrowedRemaining,
+          dueSoonCount,
+          overdueCount,
+        })
+
+        setTransactions(txData)
+        setBudgets(budgetsData)
+
+        // Calculate spending per profile
+        const spendings: ProfileSpending[] = profiles.map(profile => {
+          const profileTransactions = txData.filter((t: any) => t.profile_id === profile.id && t.type === 'expense')
+          return {
+            profile,
+            totalSpent: profileTransactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+            transactionCount: profileTransactions.length,
+          }
+        }).sort((a, b) => b.totalSpent - a.totalSpent)
+
+        setProfileSpendings(spendings)
+      } catch (err) {
+        console.error('Dashboard load error:', err)
+      } finally {
+        setLoading(false)
+      }
     }
 
     load()
-  }, [profiles, year, month])
+  }, [profiles, year, month, user])
 
   const stats: DashboardStats = useMemo(() => {
     const totalIncome = transactions

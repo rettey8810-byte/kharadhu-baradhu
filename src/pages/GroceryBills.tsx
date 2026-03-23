@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
 import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package } from 'lucide-react'
@@ -26,6 +28,7 @@ function formatMVR(value: number) {
 
 export default function GroceryBills() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [bills, setBills] = useState<BillWithItems[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,32 +40,48 @@ export default function GroceryBills() {
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
 
-  // Reload bills when page becomes visible
   useEffect(() => {
-    // Initial load
-    loadBills()
+    if (user && currentProfile) {
+      loadBills()
+    }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && user && currentProfile) {
         loadBills()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadBills = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     setLoading(true)
 
-    // Load grocery bills with their items
-    const { data: billsData } = await supabase
-      .from('grocery_bills')
-      .select('*, items:grocery_bill_items(*)')
-      .eq('profile_id', currentProfile.id)
-      .order('bill_date', { ascending: false })
+    // Load grocery bills
+    const billsQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'groceryBills'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('bill_date', 'desc')
+    )
+    const billsSnap = await getDocs(billsQuery)
 
-    const billsWithItems = billsData || []
+    // Load items for each bill
+    const billsWithItems: BillWithItems[] = []
+    for (const billDoc of billsSnap.docs) {
+      const bill = { id: billDoc.id, ...billDoc.data() } as GroceryBill
+      
+      const itemsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'groceryBillItems'),
+        where('grocery_bill_id', '==', billDoc.id),
+        orderBy('created_at')
+      )
+      const itemsSnap = await getDocs(itemsQuery)
+      const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as GroceryBillItem)
+      
+      billsWithItems.push({ ...bill, items })
+    }
+    
     setBills(billsWithItems)
 
     // Build price comparison data

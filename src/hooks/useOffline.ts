@@ -63,7 +63,7 @@ export function useOfflineMode() {
     saveQueue(queue)
   }, [])
 
-  const sync = useCallback(async (supabaseClient: any) => {
+  const sync = useCallback(async (executeAction: (action: QueuedAction) => Promise<void>) => {
     if (!navigator.onLine) return
     
     setIsSyncing(true)
@@ -72,13 +72,7 @@ export function useOfflineMode() {
 
     for (const action of queue) {
       try {
-        if (action.type === 'insert') {
-          await supabaseClient.from(action.table).insert(action.data)
-        } else if (action.type === 'update') {
-          await supabaseClient.from(action.table).update(action.data).eq('id', action.data.id)
-        } else if (action.type === 'delete') {
-          await supabaseClient.from(action.table).delete().eq('id', action.data.id)
-        }
+        await executeAction(action)
       } catch (err) {
         failed.push(action)
       }

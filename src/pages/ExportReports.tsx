@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, MonthlyBudget } from '../types'
 import { Download, FileSpreadsheet, FileText, Calendar, TrendingDown, TrendingUp, Wallet, Filter } from 'lucide-react'
@@ -15,6 +17,7 @@ function formatDate(dateStr: string) {
 
 export default function ExportReports() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
@@ -26,12 +29,13 @@ export default function ExportReports() {
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
 
   useEffect(() => {
-    if (profiles.length > 0) {
+    if (profiles.length > 0 && user) {
       loadData()
     }
-  }, [profiles, year, month, reportType])
+  }, [profiles, year, month, reportType, user])
 
   const loadData = async () => {
+    if (!user) return
     let startDate: Date
     let endDate: Date
     
@@ -43,27 +47,40 @@ export default function ExportReports() {
       endDate = new Date(year, 11, 31)
     }
 
-    // Load transactions
-    const { data: tx } = await supabase
-      .from('transactions')
-      .select('*, category:category_id(name), income_source:income_source_id(name)')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', startDate.toISOString().slice(0, 10))
-      .lte('transaction_date', endDate.toISOString().slice(0, 10))
-      .order('transaction_date', { ascending: false })
+    const start = startDate.toISOString().slice(0, 10)
+    const end = endDate.toISOString().slice(0, 10)
+
+    // Load transactions from all profiles
+    const txPromises = profileIds.map(pid => {
+      const q = query(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', pid),
+        where('transaction_date', '>=', start),
+        where('transaction_date', '<=', end),
+        orderBy('transaction_date', 'desc')
+      )
+      return getDocs(q)
+    })
+    const txSnaps = await Promise.all(txPromises)
+    const txData = txSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction))
 
     // Load budgets for monthly report
     if (reportType === 'monthly') {
-      const { data: b } = await supabase
-        .from('monthly_budgets')
-        .select('*')
-        .in('profile_id', profileIds)
-        .eq('year', year)
-        .eq('month', month)
-      setBudgets(b || [])
+      const budgetPromises = profileIds.map(pid => {
+        const q = query(
+          collection(firebaseDb, 'users', user.uid, 'budgets'),
+          where('profile_id', '==', pid),
+          where('year', '==', year),
+          where('month', '==', month)
+        )
+        return getDocs(q)
+      })
+      const budgetSnaps = await Promise.all(budgetPromises)
+      const bData = budgetSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as MonthlyBudget))
+      setBudgets(bData)
     }
 
-    setTransactions(tx || [])
+    setTransactions(txData)
   }
 
   const stats = useMemo(() => {

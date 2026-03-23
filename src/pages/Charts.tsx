@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 function formatMVR(value: number) {
@@ -9,6 +11,7 @@ function formatMVR(value: number) {
 
 export default function Charts() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const [data, setData] = useState<{ name: string; value: number; color: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
@@ -16,29 +19,40 @@ export default function Charts() {
 
   useEffect(() => {
     loadData()
-  }, [profiles, month, year])
+  }, [profiles, month, year, user])
 
   const loadData = async () => {
-    if (profiles.length === 0) return
+    if (!user || profiles.length === 0) return
     setLoading(true)
 
     const profileIds = profiles.map(p => p.id)
-    const start = new Date(year, month - 1, 1)
-    const end = new Date(year, month, 0)
+    const start = new Date(year, month - 1, 1).toISOString().slice(0, 10)
+    const end = new Date(year, month, 0).toISOString().slice(0, 10)
 
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('*, category:category_id(name, color)')
-      .in('profile_id', profileIds)
-      .eq('type', 'expense')
-      .gte('transaction_date', start.toISOString().slice(0, 10))
-      .lte('transaction_date', end.toISOString().slice(0, 10))
+    // Load transactions and categories
+    const txPromises = profileIds.map(pid => {
+      const q = query(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', pid),
+        where('type', '==', 'expense'),
+        where('transaction_date', '>=', start),
+        where('transaction_date', '<=', end)
+      )
+      return getDocs(q)
+    })
+    
+    const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
+    const categoryById = new Map(catSnap.docs.map(d => [d.id, { name: d.data().name, color: d.data().color }]))
+    
+    const txSnaps = await Promise.all(txPromises)
+    const transactions = txSnaps.flatMap(snap => snap.docs.map(d => d.data()))
 
     const categoryTotals: Record<string, { name: string; value: number; color: string }> = {}
     
     transactions?.forEach(t => {
-      const catName = (t.category as any)?.name || 'Uncategorized'
-      const catColor = (t.category as any)?.color || '#9ca3af'
+      const cat = categoryById.get(t.category_id)
+      const catName = cat?.name || 'Uncategorized'
+      const catColor = cat?.color || '#9ca3af'
       
       if (!categoryTotals[catName]) {
         categoryTotals[catName] = { name: catName, value: 0, color: catColor }

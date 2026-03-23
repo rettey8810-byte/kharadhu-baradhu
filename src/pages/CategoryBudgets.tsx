@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { CategoryBudget, ExpenseCategory } from '../types'
 import { Target, AlertTriangle, Plus, Trash2 } from 'lucide-react'
 
@@ -10,6 +12,7 @@ function formatMVR(value: number) {
 
 export default function CategoryBudgets() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [budgets, setBudgets] = useState<(CategoryBudget & { category: ExpenseCategory, spent: number })[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,51 +25,59 @@ export default function CategoryBudgets() {
 
   useEffect(() => {
     loadData()
-  }, [currentProfile, month, year])
+  }, [currentProfile, month, year, user])
 
   const loadData = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     setLoading(true)
 
-    const { data: cats } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .eq('is_archived', false)
-      .order('name')
+    const catQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'categories'),
+      where('profile_id', '==', currentProfile.id),
+      where('is_archived', '==', false),
+      orderBy('name')
+    )
+    const catSnap = await getDocs(catQuery)
+    const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() }) as ExpenseCategory)
+    setCategories(cats)
 
-    setCategories(cats || [])
+    const start = new Date(year, month - 1, 1).toISOString().slice(0, 10)
+    const end = new Date(year, month, 0).toISOString().slice(0, 10)
 
-    const start = new Date(year, month - 1, 1)
-    const end = new Date(year, month, 0)
+    const budgetsQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'categoryBudgets'),
+      where('profile_id', '==', currentProfile.id),
+      where('year', '==', year),
+      where('month', '==', month)
+    )
+    const budgetsSnap = await getDocs(budgetsQuery)
 
-    const { data: budgetsData } = await supabase
-      .from('category_budgets')
-      .select('*, category:category_id(*)')
-      .eq('profile_id', currentProfile.id)
-      .eq('year', year)
-      .eq('month', month)
-
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('category_id, amount')
-      .eq('profile_id', currentProfile.id)
-      .eq('type', 'expense')
-      .gte('transaction_date', start.toISOString().slice(0, 10))
-      .lte('transaction_date', end.toISOString().slice(0, 10))
+    const txQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'transactions'),
+      where('profile_id', '==', currentProfile.id),
+      where('type', '==', 'expense'),
+      where('transaction_date', '>=', start),
+      where('transaction_date', '<=', end)
+    )
+    const txSnap = await getDocs(txQuery)
 
     const spentByCategory: Record<string, number> = {}
-    transactions?.forEach(t => {
+    txSnap.docs.forEach(d => {
+      const t = d.data()
       if (t.category_id) {
         spentByCategory[t.category_id] = (spentByCategory[t.category_id] || 0) + Number(t.amount)
       }
     })
 
-    const budgetsWithSpent = (budgetsData || []).map(b => ({
-      ...b,
-      category: b.category as ExpenseCategory,
-      spent: spentByCategory[b.category_id] || 0
-    }))
+    const budgetsWithSpent = budgetsSnap.docs.map(d => {
+      const b = { id: d.id, ...d.data() } as CategoryBudget
+      const cat = cats.find(c => c.id === b.category_id)
+      return {
+        ...b,
+        category: cat || ({ name: 'Unknown', color: '#9ca3af' } as ExpenseCategory),
+        spent: spentByCategory[b.category_id] || 0
+      }
+    })
 
     setBudgets(budgetsWithSpent)
     setLoading(false)
@@ -74,29 +85,29 @@ export default function CategoryBudgets() {
 
   const addBudget = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
 
-    const { error } = await supabase.from('category_budgets').insert({
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'categoryBudgets'), {
       profile_id: currentProfile.id,
       category_id: selectedCategory,
       year,
       month,
       budget_amount: parseFloat(budgetAmount),
-      alert_threshold: parseInt(alertThreshold)
+      alert_threshold: parseInt(alertThreshold),
+      created_at: new Date().toISOString()
     })
 
-    if (!error) {
-      setShowAdd(false)
-      setSelectedCategory('')
-      setBudgetAmount('')
-      setAlertThreshold('80')
-      loadData()
-    }
+    setShowAdd(false)
+    setSelectedCategory('')
+    setBudgetAmount('')
+    setAlertThreshold('80')
+    loadData()
   }
 
   const deleteBudget = async (id: string) => {
     if (!confirm('Delete this budget?')) return
-    await supabase.from('category_budgets').delete().eq('id', id)
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'categoryBudgets', id))
     loadData()
   }
 

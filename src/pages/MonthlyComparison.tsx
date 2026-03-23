@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react'
 import type { MonthlyComparison } from '../types'
 import { formatDateLocal } from '../utils/date'
@@ -11,6 +13,7 @@ function formatMVR(value: number) {
 
 export default function MonthlyComparison() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const [comparison, setComparison] = useState<MonthlyComparison | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -20,10 +23,10 @@ export default function MonthlyComparison() {
 
   useEffect(() => {
     loadComparison()
-  }, [profiles, selectedYear, selectedMonth])
+  }, [profiles, selectedYear, selectedMonth, user])
 
   const loadComparison = async () => {
-    if (profiles.length === 0) return
+    if (!user || profiles.length === 0) return
     setLoading(true)
 
     const profileIds = profiles.map(p => p.id)
@@ -36,40 +39,46 @@ export default function MonthlyComparison() {
     const currStart = new Date(currentYear, currentMonth - 1, 1)
     const currEnd = new Date(currentYear, currentMonth, 0)
     
-    const { data: currTransactions } = await supabase
-      .from('transactions')
-      .select('type, amount')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', formatDateLocal(currStart))
-      .lte('transaction_date', formatDateLocal(currEnd))
-
     // Previous month data
     const prevStart = new Date(prevYear, prevMonth - 1, 1)
     const prevEnd = new Date(prevYear, prevMonth, 0)
-    
-    const { data: prevTransactions } = await supabase
-      .from('transactions')
-      .select('type, amount')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', formatDateLocal(prevStart))
-      .lte('transaction_date', formatDateLocal(prevEnd))
 
-    const currExpenses = currTransactions?.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0) || 0
-    const currIncome = currTransactions?.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0) || 0
+    // Query transactions for each period
+    const fetchTransactions = async (start: Date, end: Date) => {
+      const promises = profileIds.map(pid => {
+        const q = query(
+          collection(firebaseDb, 'users', user.uid, 'transactions'),
+          where('profile_id', '==', pid),
+          where('transaction_date', '>=', formatDateLocal(start)),
+          where('transaction_date', '<=', formatDateLocal(end))
+        )
+        return getDocs(q)
+      })
+      const snaps = await Promise.all(promises)
+      return snaps.flatMap(snap => snap.docs.map(d => d.data()))
+    }
     
-    const prevExpenses = prevTransactions?.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0) || 0
-    const prevIncome = prevTransactions?.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0) || 0
+    const [currRows, prevRows] = await Promise.all([
+      fetchTransactions(currStart, currEnd),
+      fetchTransactions(prevStart, prevEnd)
+    ])
+
+    const currExpenses = currRows.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0) || 0
+    const currIncome = currRows.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0) || 0
+    
+    const prevExpenses = prevRows.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0) || 0
+    const prevIncome = prevRows.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0) || 0
 
     setComparison({
       currentMonth: {
         totalExpense: currExpenses,
         totalIncome: currIncome,
-        transactionCount: currTransactions?.length || 0
+        transactionCount: currRows.length || 0
       },
       previousMonth: {
         totalExpense: prevExpenses,
         totalIncome: prevIncome,
-        transactionCount: prevTransactions?.length || 0
+        transactionCount: prevRows.length || 0
       },
       change: {
         expenseChange: currExpenses - prevExpenses,

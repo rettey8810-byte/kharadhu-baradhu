@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, limit } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { MonthlyBudget } from '../types'
 
 export default function Budget() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [month, setMonth] = useState(() => new Date().getMonth() + 1)
   const [budget, setBudget] = useState<MonthlyBudget | null>(null)
@@ -13,26 +16,27 @@ export default function Budget() {
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
-    if (!currentProfile) return
-    const { data } = await supabase
-      .from('monthly_budgets')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .eq('year', year)
-      .eq('month', month)
-      .maybeSingle()
-
-    setBudget(data ?? null)
+    if (!user || !currentProfile) return
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'budgets'),
+      where('profile_id', '==', currentProfile.id),
+      where('year', '==', year),
+      where('month', '==', month),
+      limit(1)
+    )
+    const snap = await getDocs(q)
+    const data = snap.docs[0] ? { id: snap.docs[0].id, ...snap.docs[0].data() } as MonthlyBudget : null
+    setBudget(data)
     setValue(data ? String(data.total_budget) : '')
   }
 
   useEffect(() => {
     load()
-  }, [currentProfile, year, month])
+  }, [currentProfile, year, month, user])
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
 
     setError(null)
     setLoading(true)
@@ -41,16 +45,20 @@ export default function Budget() {
       const num = Number(value)
       if (!Number.isFinite(num) || num < 0) throw new Error('Enter a valid budget amount')
 
-      const { error } = await supabase
-        .from('monthly_budgets')
-        .upsert({
+      if (budget?.id) {
+        // Update existing
+        const ref = doc(firebaseDb, 'users', user.uid, 'budgets', budget.id)
+        await updateDoc(ref, { total_budget: num })
+      } else {
+        // Create new
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'budgets'), {
           profile_id: currentProfile.id,
           year,
           month,
           total_budget: num,
+          created_at: new Date().toISOString()
         })
-
-      if (error) throw error
+      }
       await load()
     } catch (err: any) {
       setError(err?.message ?? 'Failed to save budget')

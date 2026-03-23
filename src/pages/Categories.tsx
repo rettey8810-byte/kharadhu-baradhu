@@ -1,42 +1,48 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import type { ExpenseCategory } from '../types'
 
 export default function Categories() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = async () => {
-    if (!currentProfile) return
-    const { data } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('profile_id', currentProfile.id)
-      .order('sort_order')
-    setCategories(data ?? [])
+    if (!user || !currentProfile) return
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'categories'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('sort_order')
+    )
+    const snap = await getDocs(q)
+    setCategories(snap.docs.map(d => ({ id: d.id, ...d.data() }) as ExpenseCategory))
   }
 
   useEffect(() => {
     load()
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
 
     setError(null)
     setLoading(true)
 
     try {
-      const { error } = await supabase
-        .from('expense_categories')
-        .insert({ profile_id: currentProfile.id, name: name.trim(), sort_order: categories.length + 1 })
-
-      if (error) throw error
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'categories'), {
+        profile_id: currentProfile.id,
+        name: name.trim(),
+        sort_order: categories.length + 1,
+        is_archived: false,
+        created_at: new Date().toISOString()
+      })
       setName('')
       await load()
     } catch (err: any) {
@@ -47,10 +53,9 @@ export default function Categories() {
   }
 
   const toggleArchive = async (category: ExpenseCategory) => {
-    await supabase
-      .from('expense_categories')
-      .update({ is_archived: !category.is_archived })
-      .eq('id', category.id)
+    if (!user) return
+    const ref = doc(firebaseDb, 'users', user.uid, 'categories', category.id)
+    await updateDoc(ref, { is_archived: !category.is_archived })
     await load()
   }
 

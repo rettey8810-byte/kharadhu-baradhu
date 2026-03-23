@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
+import { useAuth } from '../hooks/useAuth'
+import { firebaseDb } from '../lib/firebase'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import { AlertCircle, TrendingDown, Wallet } from 'lucide-react'
@@ -21,17 +23,19 @@ interface CashFlowData {
 
 export default function CashFlowForecast() {
   const { profiles } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [data, setData] = useState<CashFlowData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (profiles.length > 0) {
+    if (profiles.length > 0 && user) {
       calculateForecast()
     }
-  }, [profiles])
+  }, [profiles, user])
 
   const calculateForecast = async () => {
+    if (!user) return
     setLoading(true)
     const profileIds = profiles.map(p => p.id)
     
@@ -45,30 +49,52 @@ export default function CashFlowForecast() {
     const startOfMonth = new Date(currentYear, currentMonth, 1).toISOString().slice(0, 10)
     const today = now.toISOString().slice(0, 10)
 
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('*')
-      .in('profile_id', profileIds)
-      .gte('transaction_date', startOfMonth)
-      .lte('transaction_date', today)
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0).toISOString().slice(0, 10)
 
-    // Get upcoming recurring expenses
-    const { data: recurringExpenses } = await supabase
-      .from('recurring_expenses')
-      .select('*')
-      .in('profile_id', profileIds)
-      .eq('is_active', true)
-      .gte('next_due_date', today)
-      .lte('next_due_date', new Date(currentYear, currentMonth + 1, 0).toISOString().slice(0, 10))
+    const txPromises = profileIds.map(profileId => {
+      const qy = query(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', profileId),
+        where('transaction_date', '>=', startOfMonth),
+        where('transaction_date', '<=', today),
+        orderBy('transaction_date', 'desc')
+      )
+      return getDocs(qy)
+    })
 
-    // Get upcoming recurring income
-    const { data: recurringIncome } = await supabase
-      .from('recurring_income')
-      .select('*')
-      .in('profile_id', profileIds)
-      .eq('is_active', true)
-      .gte('next_due_date', today)
-      .lte('next_due_date', new Date(currentYear, currentMonth + 1, 0).toISOString().slice(0, 10))
+    const recurringExpensePromises = profileIds.map(profileId => {
+      const qy = query(
+        collection(firebaseDb, 'users', user.uid, 'recurringExpenses'),
+        where('profile_id', '==', profileId),
+        where('is_active', '==', true),
+        where('next_due_date', '>=', today),
+        where('next_due_date', '<=', endOfMonth),
+        orderBy('next_due_date', 'asc')
+      )
+      return getDocs(qy)
+    })
+
+    const recurringIncomePromises = profileIds.map(profileId => {
+      const qy = query(
+        collection(firebaseDb, 'users', user.uid, 'recurringIncome'),
+        where('profile_id', '==', profileId),
+        where('is_active', '==', true),
+        where('next_due_date', '>=', today),
+        where('next_due_date', '<=', endOfMonth),
+        orderBy('next_due_date', 'asc')
+      )
+      return getDocs(qy)
+    })
+
+    const [txSnaps, recurringExpenseSnaps, recurringIncomeSnaps] = await Promise.all([
+      Promise.all(txPromises),
+      Promise.all(recurringExpensePromises),
+      Promise.all(recurringIncomePromises)
+    ])
+
+    const transactions = txSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
+    const recurringExpenses = recurringExpenseSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
+    const recurringIncome = recurringIncomeSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
 
     // Calculate current month totals
     const currentExpenses = (transactions || [])

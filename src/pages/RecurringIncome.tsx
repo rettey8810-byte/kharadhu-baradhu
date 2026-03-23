@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { IncomeSource } from '../types'
 import { formatDateLocal } from '../utils/date'
@@ -39,13 +41,13 @@ interface RecurringIncome {
 
 export default function RecurringIncome() {
   const { currentProfile } = useProfile()
+  const { user } = useAuth()
   const { t } = useLanguage()
   const [incomes, setIncomes] = useState<(RecurringIncome & { income_source: IncomeSource })[]>([])
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   
-  // Mark as Received modal state
   const [showMarkReceived, setShowMarkReceived] = useState(false)
   const [markingReceivedId, setMarkingReceivedId] = useState<string | null>(null)
   const [markReceivedContext, setMarkReceivedContext] = useState<{ income: RecurringIncome | null; dueDateToReceive: string }>({ income: null, dueDateToReceive: '' })
@@ -66,32 +68,40 @@ export default function RecurringIncome() {
   })
 
   useEffect(() => {
-    if (currentProfile) {
+    if (currentProfile && user) {
       loadData()
     }
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadData = async () => {
+    if (!user || !currentProfile) return
     setLoading(true)
     
     // Load income sources
-    const { data: sources } = await supabase
-      .from('income_sources')
-      .select('*')
-      .eq('profile_id', currentProfile!.id)
-      .eq('is_archived', false)
-      .order('name')
+    const sourcesQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'incomeSources'),
+      where('profile_id', '==', currentProfile.id),
+      where('is_archived', '==', false),
+      orderBy('name')
+    )
+    const sourcesSnap = await getDocs(sourcesQuery)
+    const sources = sourcesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as IncomeSource)
+    setIncomeSources(sources)
     
-    setIncomeSources(sources || [])
+    // Load recurring incomes
+    const recurringQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'recurringIncome'),
+      where('profile_id', '==', currentProfile.id),
+      orderBy('created_at', 'desc')
+    )
+    const recurringSnap = await getDocs(recurringQuery)
+    const recurring = recurringSnap.docs.map(d => ({ 
+      id: d.id, 
+      ...d.data(),
+      income_source: sources.find(s => s.id === d.data().income_source_id)
+    }) as RecurringIncome & { income_source: IncomeSource })
     
-    // Load recurring incomes with source names
-    const { data: recurring } = await supabase
-      .from('recurring_income')
-      .select('*, income_source:income_source_id(*)')
-      .eq('profile_id', currentProfile!.id)
-      .order('created_at', { ascending: false })
-    
-    setIncomes(recurring || [])
+    setIncomes(recurring)
     setLoading(false)
   }
 
@@ -104,9 +114,8 @@ export default function RecurringIncome() {
   }
 
   const addIncome = async () => {
-    if (!currentProfile || !formData.name || !formData.income_source_id) return
+    if (!user || !currentProfile || !formData.name || !formData.income_source_id) return
     
-    // Calculate next due date based on start date and frequency
     const startDate = new Date(formData.start_date)
     let nextDueDate = new Date(startDate)
     
@@ -118,7 +127,7 @@ export default function RecurringIncome() {
       }
     }
     
-    const { error } = await supabase.from('recurring_income').insert({
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'recurringIncome'), {
       profile_id: currentProfile.id,
       name: formData.name,
       amount: formData.amount ? parseFloat(formData.amount) : null,
@@ -128,36 +137,33 @@ export default function RecurringIncome() {
       next_due_date: formatDateLocal(nextDueDate),
       reminder_days: parseInt(formData.reminder_days),
       is_active: true,
+      created_at: new Date().toISOString()
     })
     
-    if (!error) {
-      setFormData({
-        name: '',
-        amount: '',
-        income_source_id: '',
-        frequency: 'monthly',
-        start_date: formatDateLocal(new Date()),
-        due_day_of_month: '',
-        reminder_days: '3',
-      })
-      setShowAdd(false)
-      loadData()
-    }
+    setFormData({
+      name: '',
+      amount: '',
+      income_source_id: '',
+      frequency: 'monthly',
+      start_date: formatDateLocal(new Date()),
+      due_day_of_month: '',
+      reminder_days: '3',
+    })
+    setShowAdd(false)
+    loadData()
   }
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase
-      .from('recurring_income')
-      .update({ is_active: !current })
-      .eq('id', id)
+    if (!user) return
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'recurringIncome', id), { is_active: !current })
     loadData()
   }
 
   const deleteIncome = async (id: string) => {
-    if (confirm('Delete this recurring income?')) {
-      await supabase.from('recurring_income').delete().eq('id', id)
-      loadData()
-    }
+    if (!confirm('Delete this recurring income?')) return
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'recurringIncome', id))
+    loadData()
   }
 
   const calcNextDueDate = (income: RecurringIncome) => {
@@ -191,7 +197,7 @@ export default function RecurringIncome() {
   }
 
   const markAsReceived = async (income: RecurringIncome) => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     if (markingReceivedId) return
 
     setMarkReceivedContext({ income, dueDateToReceive: income.next_due_date })
@@ -204,7 +210,7 @@ export default function RecurringIncome() {
   }
 
   const confirmMarkAsReceived = async () => {
-    if (!currentProfile) return
+    if (!user || !currentProfile) return
     const income = markReceivedContext.income
     if (!income) return
     if (markingReceivedId) return
@@ -218,26 +224,22 @@ export default function RecurringIncome() {
     setMarkingReceivedId(income.id)
     try {
       // 1) Create income transaction
-      const { error: txErr } = await supabase
-        .from('transactions')
-        .insert({
-          profile_id: currentProfile.id,
-          income_source_id: income.income_source_id,
-          type: 'income',
-          amount: num,
-          description: income.name,
-          notes: markReceivedForm.notes || null,
-          transaction_date: markReceivedForm.received_date,
-        })
-      if (txErr) throw txErr
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        income_source_id: income.income_source_id,
+        type: 'income',
+        amount: num,
+        description: income.name,
+        notes: markReceivedForm.notes || null,
+        transaction_date: markReceivedForm.received_date,
+        created_at: new Date().toISOString()
+      })
 
       // 2) Advance next due date
       const nextDue = calcNextDueDate(income)
-      const { error: updErr } = await supabase
-        .from('recurring_income')
-        .update({ next_due_date: nextDue })
-        .eq('id', income.id)
-      if (updErr) throw updErr
+      await updateDoc(doc(firebaseDb, 'users', user.uid, 'recurringIncome', income.id), {
+        next_due_date: nextDue
+      })
 
       setShowMarkReceived(false)
       setMarkReceivedContext({ income: null, dueDateToReceive: '' })

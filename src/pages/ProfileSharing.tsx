@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
+import { useAuth } from '../hooks/useAuth'
 import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound, Copy, Check } from 'lucide-react'
 
 interface SharedProfile {
@@ -25,6 +27,7 @@ interface PendingInvitation {
 
 export default function ProfileSharing() {
   const { profiles, currentProfile } = useProfile()
+  const { user } = useAuth()
   const [sharedProfiles, setSharedProfiles] = useState<SharedProfile[]>([])
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,44 +48,44 @@ export default function ProfileSharing() {
   }, [activeTab])
 
   useEffect(() => {
-    loadSharedProfiles()
-    loadPendingInvitations()
+    if (user) {
+      loadSharedProfiles()
+      loadPendingInvitations()
+    }
     if (currentProfile) {
       setSelectedProfileId(currentProfile.id)
     }
-  }, [currentProfile])
+  }, [currentProfile, user])
 
   const loadSharedProfiles = async () => {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       setLoading(false)
       return
     }
 
     // Load all profiles shared by this user
-    const { data } = await supabase
-      .from('profile_shares')
-      .select('*')
-      .eq('shared_by', user.id)
-      .order('created_at', { ascending: false })
-
-    setSharedProfiles(data || [])
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'profileShares'),
+      where('shared_by', '==', user.uid),
+      orderBy('created_at', 'desc')
+    )
+    const snap = await getDocs(q)
+    setSharedProfiles(snap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedProfile))
     setLoading(false)
   }
 
   const loadPendingInvitations = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data } = await supabase
-      .from('profile_share_invitations')
-      .select('*')
-      .eq('invited_by', user.id)
-      .eq('accepted', false)
-      .order('invited_at', { ascending: false })
-
-    setPendingInvitations(data || [])
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'profileShareInvitations'),
+      where('invited_by', '==', user.uid),
+      where('accepted', '==', false),
+      orderBy('invited_at', 'desc')
+    )
+    const snap = await getDocs(q)
+    setPendingInvitations(snap.docs.map(d => ({ id: d.id, ...d.data() }) as PendingInvitation))
   }
 
   const copyInviteLink = async (token: string) => {
@@ -94,7 +97,7 @@ export default function ProfileSharing() {
   }
 
   const sendInvitation = async () => {
-    if (!inviteEmail) return
+    if (!inviteEmail || !user) return
     
     setSending(true)
     setMessage(null)
@@ -102,23 +105,18 @@ export default function ProfileSharing() {
     try {
       const email = inviteEmail.trim()
       const token = crypto.randomUUID()
-      const { data: { user } } = await supabase.auth.getUser()
       
       // Create pending invitation with token
-      const { error } = await supabase
-        .from('profile_share_invitations')
-        .insert({
-          email,
-          profile_id: shareAllProfiles ? null : selectedProfileId,
-          share_all_profiles: shareAllProfiles,
-          role: inviteRole,
-          invited_by: user?.id,
-          token
-        })
-        .select()
-        .single()
-      
-      if (error) throw error
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'profileShareInvitations'), {
+        email,
+        profile_id: shareAllProfiles ? null : selectedProfileId,
+        share_all_profiles: shareAllProfiles,
+        role: inviteRole,
+        invited_by: user.uid,
+        token,
+        accepted: false,
+        invited_at: new Date().toISOString()
+      })
       
       // Generate and copy invite link
       const baseUrl = window.location.origin
@@ -140,17 +138,22 @@ export default function ProfileSharing() {
   }
 
   const revokeShare = async (shareId: string) => {
-    await supabase.from('profile_shares').delete().eq('id', shareId)
+    if (!user) return
+    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'profileShares', shareId))
     loadSharedProfiles()
   }
 
   const revokeAllSharesForUser = async (email: string) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase
-      .from('profile_shares')
-      .delete()
-      .eq('shared_by', user?.id)
-      .eq('shared_with_email', email)
+    if (!user) return
+    const q = query(
+      collection(firebaseDb, 'users', user.uid, 'profileShares'),
+      where('shared_by', '==', user.uid),
+      where('shared_with_email', '==', email)
+    )
+    const snap = await getDocs(q)
+    for (const d of snap.docs) {
+      await deleteDoc(doc(firebaseDb, 'users', user.uid, 'profileShares', d.id))
+    }
     loadSharedProfiles()
   }
 

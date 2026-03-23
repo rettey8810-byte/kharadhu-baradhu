@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
+import { firebaseDb } from '../lib/firebase'
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import type { ExpenseProfile } from '../types'
 import { TrendingDown, Calendar, Wallet, Target } from 'lucide-react'
 
@@ -18,11 +20,12 @@ interface ProfileStats {
 }
 
 function useProfileStats(profileId: string | undefined) {
+  const { user } = useAuth()
   const [stats, setStats] = useState<ProfileStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!profileId) {
+    if (!user || !profileId) {
       setLoading(false)
       return
     }
@@ -30,12 +33,14 @@ function useProfileStats(profileId: string | undefined) {
     const load = async () => {
       setLoading(true)
       
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('*, category:category_id(name)')
-        .eq('profile_id', profileId)
-        .eq('type', 'expense')
-        .order('transaction_date', { ascending: true })
+      const q = query(
+        collection(firebaseDb, 'users', user.uid, 'transactions'),
+        where('profile_id', '==', profileId),
+        where('type', '==', 'expense'),
+        orderBy('transaction_date', 'asc')
+      )
+      const snap = await getDocs(q)
+      const transactions = snap.docs.map(d => d.data())
 
       if (!transactions || transactions.length === 0) {
         setStats({
@@ -59,9 +64,13 @@ function useProfileStats(profileId: string | undefined) {
       const daysActive = Math.max(1, Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
       const avgPerDay = totalSpent / daysActive
 
+      // Load categories for names
+      const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
+      const categoryById = new Map(catSnap.docs.map(d => [d.id, d.data().name]))
+
       const categoryTotals: Record<string, number> = {}
       transactions.forEach(t => {
-        const catName = (t.category as any)?.name || 'Uncategorized'
+        const catName = categoryById.get(t.category_id) || 'Uncategorized'
         categoryTotals[catName] = (categoryTotals[catName] || 0) + Number(t.amount)
       })
       
@@ -81,7 +90,7 @@ function useProfileStats(profileId: string | undefined) {
     }
 
     load()
-  }, [profileId])
+  }, [profileId, user])
 
   return { stats, loading }
 }
