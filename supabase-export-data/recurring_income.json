@@ -1,0 +1,44 @@
+[
+  {
+    "id": "dd916b0f-eb36-4b57-9005-9ae3afff19c3",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Food Allowance",
+    "amount": 750,
+    "income_source_id": "38c07232-cfbf-41d8-b7d9-6a36efd69af2",
+    "frequency": "monthly",
+    "start_date": "2026-03-04",
+    "next_due_date": "2026-04-15",
+    "reminder_days": 3,
+    "is_active": true,
+    "created_at": "2026-03-03T20:10:16.40649+00:00",
+    "updated_at": "2026-03-03T20:10:16.40649+00:00"
+  },
+  {
+    "id": "c465444a-7164-4d3d-bfad-88e3ce93f132",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Javaahirumaage rent",
+    "amount": 2500,
+    "income_source_id": "dadf2122-c23d-4af8-b4e3-be1e650d668c",
+    "frequency": "monthly",
+    "start_date": "2026-03-04",
+    "next_due_date": "2026-04-05",
+    "reminder_days": 3,
+    "is_active": true,
+    "created_at": "2026-03-03T21:20:35.681175+00:00",
+    "updated_at": "2026-03-03T21:20:35.681175+00:00"
+  },
+  {
+    "id": "39d00ef5-b7eb-4b95-ade2-7abf5bbb668c",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Accommodation Allowance",
+    "amount": 7000,
+    "income_source_id": "f84222f3-ff42-4145-bebc-c65cfe906a5d",
+    "frequency": "monthly",
+    "start_date": "2026-03-04",
+    "next_due_date": "2026-04-10",
+    "reminder_days": 3,
+    "is_active": true,
+    "created_at": "2026-03-03T20:40:40.739543+00:00",
+    "updated_at": "2026-03-03T20:40:40.739543+00:00"
+  }
+]

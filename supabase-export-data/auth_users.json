@@ -1,0 +1,38 @@
+[
+  {
+    "id": "e51c0357-0b88-410c-9af3-89a0183d42e9",
+    "email": "faixgasim@gmail.com",
+    "created_at": "2026-02-27T16:38:48.173988+00:00",
+    "last_sign_in_at": "2026-02-27T21:36:49.822143+00:00",
+    "raw_user_meta_data": {
+      "sub": "e51c0357-0b88-410c-9af3-89a0183d42e9",
+      "email": "faixgasim@gmail.com",
+      "email_verified": true,
+      "phone_verified": false
+    }
+  },
+  {
+    "id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "email": "retey.ay@hotmail.com",
+    "created_at": "2026-02-27T10:13:34.161123+00:00",
+    "last_sign_in_at": "2026-03-19T12:41:21.922147+00:00",
+    "raw_user_meta_data": {
+      "sub": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+      "email": "retey.ay@hotmail.com",
+      "email_verified": true,
+      "phone_verified": false
+    }
+  },
+  {
+    "id": "6c8ca696-9a65-4103-8059-6166086f27b1",
+    "email": "retey@hotmail.com",
+    "created_at": "2026-02-27T10:13:20.698354+00:00",
+    "last_sign_in_at": null,
+    "raw_user_meta_data": {
+      "sub": "6c8ca696-9a65-4103-8059-6166086f27b1",
+      "email": "retey@hotmail.com",
+      "email_verified": false,
+      "phone_verified": false
+    }
+  }
+]

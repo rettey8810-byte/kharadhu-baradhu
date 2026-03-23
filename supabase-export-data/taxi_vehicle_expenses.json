@@ -1,0 +1,101 @@
+[
+  {
+    "id": "3a3a4991-e389-473b-bf69-8a78ec834cf0",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-02",
+    "expense_type": "other",
+    "amount": 65,
+    "transaction_id": "737c8ff4-5697-4954-982a-48b3a51d3df1",
+    "notes": "2 mirrors",
+    "created_at": "2026-03-02T15:58:07.203509+00:00"
+  },
+  {
+    "id": "7419cecb-6eed-4ecc-9e70-b5bb5aa45293",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-02",
+    "expense_type": "annual_fee",
+    "amount": 648,
+    "transaction_id": "463b9399-efd6-47fe-b752-6f0605ea2e56",
+    "notes": null,
+    "created_at": "2026-03-02T16:37:01.464409+00:00"
+  },
+  {
+    "id": "38180155-26e6-439e-92b4-21a182825650",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-03",
+    "expense_type": "petrol",
+    "amount": 64.44,
+    "transaction_id": "bacf8032-de1f-459c-9694-9d137b3ef1d6",
+    "notes": "Full tank in FSM ( Henveyru)",
+    "created_at": "2026-03-03T20:08:55.862682+00:00"
+  },
+  {
+    "id": "f9da5bc7-aa2c-4e02-9905-c19820467b41",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-07",
+    "expense_type": "petrol",
+    "amount": 78.48,
+    "transaction_id": "d6ec7b14-c2d3-4097-bb8a-65614b5e81c4",
+    "notes": null,
+    "created_at": "2026-03-07T21:16:36.900849+00:00"
+  },
+  {
+    "id": "388d6200-5853-4b90-b549-2c5c2d8d0c41",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-09",
+    "expense_type": "petrol",
+    "amount": 61.86,
+    "transaction_id": "09a46812-e63d-4c32-957b-8517f33ff498",
+    "notes": "FSM Easy fill ( track)",
+    "created_at": "2026-03-09T18:32:15.506154+00:00"
+  },
+  {
+    "id": "8631bdbe-d4f6-4a2f-9321-8554c6f47c57",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-13",
+    "expense_type": "petrol",
+    "amount": 61.93,
+    "transaction_id": "2a5c8024-441c-44ff-9e11-d15b640c15ba",
+    "notes": null,
+    "created_at": "2026-03-13T21:42:22.151125+00:00"
+  },
+  {
+    "id": "5630306a-5751-4158-9d89-d5eb3cc3be1c",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-15",
+    "expense_type": "petrol",
+    "amount": 49.45,
+    "transaction_id": "83f943bf-10c7-41ed-be4f-a543bd21baab",
+    "notes": "FSM",
+    "created_at": "2026-03-15T12:40:57.792084+00:00"
+  },
+  {
+    "id": "9500c675-b477-4399-bc53-ea6443bfc6bb",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-18",
+    "expense_type": "petrol",
+    "amount": 46.99,
+    "transaction_id": "63a68420-21ed-464d-9ca4-4d2761fd48e1",
+    "notes": "Villa Fuel",
+    "created_at": "2026-03-18T19:38:55.588122+00:00"
+  },
+  {
+    "id": "6aa1adcc-85e2-4a79-859f-78338769b947",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "expense_date": "2026-03-19",
+    "expense_type": "petrol",
+    "amount": 73.17,
+    "transaction_id": "52db2529-1176-424b-a281-41348b3440ec",
+    "notes": "FSM easy Fill",
+    "created_at": "2026-03-19T19:14:53.768685+00:00"
+  }
+]

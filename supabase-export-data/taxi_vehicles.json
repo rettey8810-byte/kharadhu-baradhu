@@ -1,0 +1,12 @@
+[
+  {
+    "id": "dcdb322e-ef91-464f-ba28-4c1c3d2f79c3",
+    "user_id": "a05054eb-23a4-41ea-aaa7-6267f876cac5",
+    "vehicle_type": "bike",
+    "name": "Click Black",
+    "plate_number": "AOOG 8852",
+    "is_active": true,
+    "created_at": "2026-03-02T15:56:29.462476+00:00",
+    "updated_at": "2026-03-02T15:56:29.462476+00:00"
+  }
+]

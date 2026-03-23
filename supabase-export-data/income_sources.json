@@ -1,0 +1,482 @@
+[
+  {
+    "id": "29c6e323-dd85-4d39-9aac-4378343052ee",
+    "profile_id": "db645f92-01b3-4f6f-a157-8ecaab9669a2",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "83790597-ae43-4ceb-97b2-4c4487002d3b",
+    "profile_id": "db645f92-01b3-4f6f-a157-8ecaab9669a2",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "0b9fa758-11e2-485a-a8e8-be5cda820763",
+    "profile_id": "db645f92-01b3-4f6f-a157-8ecaab9669a2",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "e3d81c2c-10d8-4a98-9fac-e64ca48b54b1",
+    "profile_id": "db645f92-01b3-4f6f-a157-8ecaab9669a2",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "6b991ab5-ed91-4a49-ba8a-5d38adf2b06d",
+    "profile_id": "411e54a6-c2db-42b6-a5bd-fe0bb6038dab",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "34ce2fad-8339-4584-82a8-ef03535086c2",
+    "profile_id": "411e54a6-c2db-42b6-a5bd-fe0bb6038dab",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "e756863f-fc4b-4a27-8ec9-cb1cb7daa535",
+    "profile_id": "411e54a6-c2db-42b6-a5bd-fe0bb6038dab",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "8369d04b-84dd-4b27-8b91-e530fd9fa92d",
+    "profile_id": "411e54a6-c2db-42b6-a5bd-fe0bb6038dab",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "d9ae5877-9307-40e4-aa59-43e8a73f9fd0",
+    "profile_id": "69d73118-3820-4de5-b681-bf673bff18f8",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "ee047d34-b1da-478f-b77d-b2b8cfde8846",
+    "profile_id": "69d73118-3820-4de5-b681-bf673bff18f8",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "87d9d4bc-652f-4014-8ae2-3634f9990ab7",
+    "profile_id": "69d73118-3820-4de5-b681-bf673bff18f8",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "b22681ff-d2a1-4541-8729-6210c0eaf276",
+    "profile_id": "69d73118-3820-4de5-b681-bf673bff18f8",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "373304e2-d101-4671-a7da-709abd9eabd6",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "38c07232-cfbf-41d8-b7d9-6a36efd69af2",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "f84222f3-ff42-4145-bebc-c65cfe906a5d",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "dadf2122-c23d-4af8-b4e3-be1e650d668c",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "93289080-0dd8-4b43-b8ad-c14cd8b1391f",
+    "profile_id": "110675a7-0859-4951-9a93-a418f767c8d4",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "13bb42c8-9c98-4488-b764-d81c5e5245e9",
+    "profile_id": "110675a7-0859-4951-9a93-a418f767c8d4",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "0a9e496f-85f4-4e31-acda-af65987f71a7",
+    "profile_id": "110675a7-0859-4951-9a93-a418f767c8d4",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "28dd7c28-c1c1-448f-ada9-106c1b903eda",
+    "profile_id": "110675a7-0859-4951-9a93-a418f767c8d4",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "84dc9e0d-cb10-46c9-a65b-ab1bbe97950c",
+    "profile_id": "2b368e27-f88e-46fa-84b2-32a00c047d13",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "95dcaf4d-5043-43ce-8051-ca4b8de50c38",
+    "profile_id": "2b368e27-f88e-46fa-84b2-32a00c047d13",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "94c13aaa-722d-484c-8142-f26f3e4529db",
+    "profile_id": "2b368e27-f88e-46fa-84b2-32a00c047d13",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "8050e87a-7725-46c3-998a-440d100e8a47",
+    "profile_id": "2b368e27-f88e-46fa-84b2-32a00c047d13",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "d55589e8-47ee-436c-8590-62d83521c725",
+    "profile_id": "7bd8c236-a517-4e11-b02e-ff655d6aac58",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "0e3895e5-1d6d-4280-818b-ac595926b59d",
+    "profile_id": "7bd8c236-a517-4e11-b02e-ff655d6aac58",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "537dc980-5ba2-4754-afd9-ed67ced6f1f9",
+    "profile_id": "7bd8c236-a517-4e11-b02e-ff655d6aac58",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "b521abba-b136-4a3e-9a1d-18ccb8b872d8",
+    "profile_id": "7bd8c236-a517-4e11-b02e-ff655d6aac58",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "45c8ca67-e6aa-410e-9989-c8965d4f4d68",
+    "profile_id": "a248acba-1834-4562-b857-c83709ced4a4",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "1bfa8b09-8964-4c23-bde8-6a0df534aa43",
+    "profile_id": "a248acba-1834-4562-b857-c83709ced4a4",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "328c0486-7fef-4949-882d-565efbac4c33",
+    "profile_id": "a248acba-1834-4562-b857-c83709ced4a4",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "850370aa-9a66-43ab-a4bb-b0ff9d8363a1",
+    "profile_id": "a248acba-1834-4562-b857-c83709ced4a4",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "ac9dbbc3-0265-4474-9344-596c975ee243",
+    "profile_id": "70914bac-b669-4a4e-91f6-d5b928b054ee",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "88ba8060-4868-4c11-99ea-187ada359a1f",
+    "profile_id": "70914bac-b669-4a4e-91f6-d5b928b054ee",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "fddbf631-9780-4d03-9288-7ec241842c54",
+    "profile_id": "70914bac-b669-4a4e-91f6-d5b928b054ee",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "35a75408-315a-4de4-8914-fbaa55f3842c",
+    "profile_id": "70914bac-b669-4a4e-91f6-d5b928b054ee",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "9c6bd1b7-4e1a-40af-8d8e-0ac0a8186de1",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "Salary",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "0dc37bf4-e562-4d53-9b3e-e2c6f1c5ed18",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "Food allowance",
+    "color": "#10b981",
+    "icon": "Utensils",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "8cbf7ea1-a259-4cfa-b318-dc4fea82c2d1",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "Bonus",
+    "color": "#f59e0b",
+    "icon": "Gift",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "6e1fbc2b-ba32-4d40-98a8-6b03eebd9590",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "Other income",
+    "color": "#6b7280",
+    "icon": "Wallet",
+    "is_archived": false,
+    "created_at": "2026-02-27T17:31:21.431027+00:00",
+    "updated_at": "2026-02-27T17:31:21.431027+00:00"
+  },
+  {
+    "id": "9c8742a2-bc1f-4859-bd94-d1c90d6c4880",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Accommodation Allowance",
+    "color": "#3b82f6",
+    "icon": "Banknote",
+    "is_archived": false,
+    "created_at": "2026-02-27T21:58:03.048587+00:00",
+    "updated_at": "2026-02-27T21:58:03.048587+00:00"
+  },
+  {
+    "id": "c80bbdf7-2db2-4ca6-a5d5-98a579daa123",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "Taxi",
+    "color": "#3b82f6",
+    "icon": "Car",
+    "is_archived": false,
+    "created_at": "2026-03-02T15:55:50.609925+00:00",
+    "updated_at": "2026-03-02T15:55:50.609925+00:00"
+  },
+  {
+    "id": "0b3c9f47-253e-4d6b-95d7-cb5ff8e017fa",
+    "profile_id": "4c276124-ba30-4bfb-aed2-4db99e9563bd",
+    "name": "MT5",
+    "color": "#10b981",
+    "icon": "BarChart3",
+    "is_archived": false,
+    "created_at": "2026-03-02T16:44:47.962183+00:00",
+    "updated_at": "2026-03-02T16:44:47.962183+00:00"
+  },
+  {
+    "id": "5cadc13a-25cb-484a-9b31-a4768623eb2b",
+    "profile_id": "65ede15e-f450-4a42-b1d9-1496c3359b24",
+    "name": "Taxi",
+    "color": "#3b82f6",
+    "icon": "Car",
+    "is_archived": false,
+    "created_at": "2026-03-03T04:57:07.972826+00:00",
+    "updated_at": "2026-03-03T04:57:07.972826+00:00"
+  },
+  {
+    "id": "fa1217cf-1264-48bc-96b6-097369420111",
+    "profile_id": "69d73118-3820-4de5-b681-bf673bff18f8",
+    "name": "Taxi",
+    "color": "#3b82f6",
+    "icon": "Car",
+    "is_archived": false,
+    "created_at": "2026-03-04T15:50:57.220826+00:00",
+    "updated_at": "2026-03-04T15:50:57.220826+00:00"
+  },
+  {
+    "id": "814d23d0-2d06-465a-9f96-3508748d3be3",
+    "profile_id": "5ae43916-9d10-49aa-bbe6-718ede476e8a",
+    "name": "MT5",
+    "color": "#10b981",
+    "icon": "BarChart3",
+    "is_archived": false,
+    "created_at": "2026-03-04T19:17:41.558333+00:00",
+    "updated_at": "2026-03-04T19:17:41.558333+00:00"
+  },
+  {
+    "id": "ed4cfea6-cdda-457d-892d-7bf7eeaccefb",
+    "profile_id": "7bd8c236-a517-4e11-b02e-ff655d6aac58",
+    "name": "Taxi",
+    "color": "#3b82f6",
+    "icon": "Car",
+    "is_archived": false,
+    "created_at": "2026-03-10T18:01:14.932382+00:00",
+    "updated_at": "2026-03-10T18:01:14.932382+00:00"
+  },
+  {
+    "id": "d14518b6-2069-465c-9024-abb94ad99cf1",
+    "profile_id": "110675a7-0859-4951-9a93-a418f767c8d4",
+    "name": "Taxi",
+    "color": "#3b82f6",
+    "icon": "Car",
+    "is_archived": false,
+    "created_at": "2026-03-19T19:11:21.489267+00:00",
+    "updated_at": "2026-03-19T19:11:21.489267+00:00"
+  }
+]

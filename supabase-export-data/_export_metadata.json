@@ -1,0 +1,96 @@
+{
+  "exported_at": "2026-03-23T05:37:27.556Z",
+  "supabase_project": "https://xjgzalzileuugptbfoqi.supabase.co",
+  "tables": [
+    {
+      "name": "auth.users",
+      "records": 3,
+      "file": "auth_users.json"
+    },
+    {
+      "name": "expense_categories",
+      "records": 132,
+      "file": "expense_categories.json"
+    },
+    {
+      "name": "income_sources",
+      "records": 48,
+      "file": "income_sources.json"
+    },
+    {
+      "name": "transactions",
+      "records": 139,
+      "file": "transactions.json"
+    },
+    {
+      "name": "recurring_expenses",
+      "records": 11,
+      "file": "recurring_expenses.json"
+    },
+    {
+      "name": "recurring_income",
+      "records": 3,
+      "file": "recurring_income.json"
+    },
+    {
+      "name": "bill_payments",
+      "records": 11,
+      "file": "bill_payments.json"
+    },
+    {
+      "name": "savings_goals",
+      "records": 1,
+      "file": "savings_goals.json"
+    },
+    {
+      "name": "loans",
+      "records": 7,
+      "file": "loans.json"
+    },
+    {
+      "name": "profile_shares",
+      "records": 8,
+      "file": "profile_shares.json"
+    },
+    {
+      "name": "grocery_item_history",
+      "records": 48,
+      "file": "grocery_item_history.json"
+    },
+    {
+      "name": "taxi_vehicles",
+      "records": 1,
+      "file": "taxi_vehicles.json"
+    },
+    {
+      "name": "taxi_trips",
+      "records": 57,
+      "file": "taxi_trips.json"
+    },
+    {
+      "name": "taxi_vehicle_expenses",
+      "records": 9,
+      "file": "taxi_vehicle_expenses.json"
+    },
+    {
+      "name": "bill_reminders",
+      "records": 6,
+      "file": "bill_reminders.json"
+    }
+  ],
+  "errors": [
+    {
+      "table": "profiles",
+      "error": "Could not find the table 'public.profiles' in the schema cache"
+    },
+    {
+      "table": "categories",
+      "error": "Could not find the table 'public.categories' in the schema cache"
+    },
+    {
+      "table": "invites",
+      "error": "Could not find the table 'public.invites' in the schema cache"
+    }
+  ],
+  "total_records": 484
+}
