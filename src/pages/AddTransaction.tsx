@@ -49,12 +49,31 @@ export default function AddTransaction() {
   const selectedCategory = categories.find(c => c.id === categoryId)
   const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
 
-  // Load grocery item history when in groceries mode (simplified - skip for now)
+  // Load grocery item history when in groceries mode
   useEffect(() => {
-    if (!isGroceries) {
+    if (!isGroceries || !user) {
       setGroceryItemHistory([])
+      return
     }
-  }, [isGroceries])
+    
+    const loadGroceryHistory = async () => {
+      try {
+        const historyRef = collection(firebaseDb, 'users', user.uid, 'groceryHistory')
+        const snap = await getDocs(historyRef)
+        const items = snap.docs
+          .map(d => ({ name: d.data().item_name as string, count: d.data().use_count as number || 0 }))
+          .filter(item => item.name)
+          .sort((a, b) => b.count - a.count)
+          .map(item => item.name)
+        setGroceryItemHistory(items)
+      } catch (err) {
+        console.log('Failed to load grocery history:', err)
+        setGroceryItemHistory([])
+      }
+    }
+    
+    loadGroceryHistory()
+  }, [isGroceries, user])
 
   // Filtered autocomplete suggestions
   const getAutocompleteSuggestions = (query: string) => {

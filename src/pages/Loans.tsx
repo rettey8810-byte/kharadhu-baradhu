@@ -1260,29 +1260,79 @@ function DetailsModal({
             <p className="text-sm text-gray-500 mt-2">{loan.description}</p>
           </div>
 
-          {/* Amount Breakdown */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Principal</p>
-              <p className="font-semibold">{formatMVR(loan.principal_amount)}</p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Interest ({loan.interest_rate}%)</p>
-              <p className="font-semibold">{formatMVR(loan.total_amount - loan.principal_amount)}</p>
+          {/* Enhanced Amount Breakdown */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-gray-700">Amount Breakdown</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Principal Amount</p>
+                <p className="font-semibold text-blue-700">{formatMVR(loan.principal_amount)}</p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Interest ({loan.interest_rate}% {loan.interest_type})</p>
+                <p className="font-semibold text-purple-700">{formatMVR(Math.max(0, loan.total_amount - loan.principal_amount))}</p>
+              </div>
+              <div className="bg-emerald-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Total Amount</p>
+                <p className="font-semibold text-emerald-700">{formatMVR(loan.total_amount)}</p>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Amount Paid</p>
+                <p className="font-semibold text-orange-700">{formatMVR(loan.amount_paid)}</p>
+              </div>
             </div>
           </div>
 
-          {/* Progress */}
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Paid: {formatMVR(loan.amount_paid)}</span>
-              <span>Remaining: {formatMVR(remaining)}</span>
+          {/* Installment Breakdown (if applicable) */}
+          {(loan.emi_amount || loan.total_installments) && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-gray-700">Installment Breakdown</h3>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                {loan.emi_amount && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">EMI Amount</span>
+                    <span className="font-semibold">{formatMVR(loan.emi_amount)}</span>
+                  </div>
+                )}
+                {loan.total_installments && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Installments</span>
+                    <span className="font-semibold">{loan.installments_paid || 0} / {loan.total_installments} paid</span>
+                  </div>
+                )}
+                {loan.emi_amount && loan.total_installments && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Expected Total</span>
+                    <span className="font-semibold">{formatMVR(loan.emi_amount * loan.total_installments)}</span>
+                  </div>
+                )}
+                {loan.total_installments && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Remaining</span>
+                    <span className="font-semibold text-red-600">{loan.total_installments - (loan.installments_paid || 0)} installments</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${loan.loan_type === 'borrowed' ? 'bg-red-500' : 'bg-emerald-500'}`}
-                style={{ width: `${Math.min(100, (loan.amount_paid / loan.total_amount) * 100)}%` }}
-              />
+          )}
+
+          {/* Progress */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700">Payment Progress</h3>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600">Paid: <span className="font-semibold text-emerald-600">{formatMVR(loan.amount_paid)}</span></span>
+                <span className="text-gray-600">Remaining: <span className="font-semibold text-red-600">{formatMVR(remaining)}</span></span>
+              </div>
+              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${loan.loan_type === 'borrowed' ? 'bg-red-500' : 'bg-emerald-500'}`}
+                  style={{ width: `${Math.min(100, (loan.amount_paid / loan.total_amount) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-center text-gray-500 mt-1">
+                {((loan.amount_paid / loan.total_amount) * 100).toFixed(1)}% completed
+              </p>
             </div>
           </div>
 
