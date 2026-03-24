@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
@@ -44,14 +44,13 @@ export default function SmartInsights() {
     const startStr = currentMonth.toISOString().slice(0, 10)
     const endStr = now.toISOString().slice(0, 10)
 
-    // Load current month transactions from all profiles
+    // Load current month transactions from all profiles (fetch and filter client-side)
     const txPromises = profileIds.map(pid => {
       const q = query(
         collection(firebaseDb, 'users', user.uid, 'transactions'),
         where('profile_id', '==', pid),
-        where('transaction_date', '>=', startStr),
-        where('transaction_date', '<=', endStr),
-        orderBy('transaction_date', 'desc')
+        orderBy('transaction_date', 'desc'),
+        limit(5000)
       )
       return getDocs(q)
     })
@@ -59,7 +58,11 @@ export default function SmartInsights() {
     const txSnaps = await Promise.all(txPromises)
     const allTx = txSnaps.flatMap(snap => 
       snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction)
-    )
+    ).filter(tx => {
+      const rawDate = (tx as any).transaction_date
+      const txDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
+      return txDate >= startStr && txDate <= endStr
+    })
 
     setTransactions(allTx)
     setLoading(false)

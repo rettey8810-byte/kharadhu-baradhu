@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy, limit } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import type { CategoryBudget, ExpenseCategory } from '../types'
@@ -56,15 +56,18 @@ export default function CategoryBudgets() {
       collection(firebaseDb, 'users', user.uid, 'transactions'),
       where('profile_id', '==', currentProfile.id),
       where('type', '==', 'expense'),
-      where('transaction_date', '>=', start),
-      where('transaction_date', '<=', end)
+      orderBy('transaction_date', 'desc'),
+      limit(5000)
     )
     const txSnap = await getDocs(txQuery)
 
     const spentByCategory: Record<string, number> = {}
     txSnap.docs.forEach(d => {
       const t = d.data()
-      if (t.category_id) {
+      const txDate: string = t.transaction_date?.toDate 
+        ? new Date(t.transaction_date.toDate()).toISOString().slice(0, 10) 
+        : String(t.transaction_date)
+      if (t.category_id && txDate >= start && txDate <= end) {
         spentByCategory[t.category_id] = (spentByCategory[t.category_id] || 0) + Number(t.amount)
       }
     })

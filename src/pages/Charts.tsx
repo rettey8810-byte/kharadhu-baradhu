@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
@@ -29,14 +29,14 @@ export default function Charts() {
     const start = new Date(year, month - 1, 1).toISOString().slice(0, 10)
     const end = new Date(year, month, 0).toISOString().slice(0, 10)
 
-    // Load transactions and categories
+    // Load transactions without date range (handles mixed Timestamp/string)
     const txPromises = profileIds.map(pid => {
       const q = query(
         collection(firebaseDb, 'users', user.uid, 'transactions'),
         where('profile_id', '==', pid),
         where('type', '==', 'expense'),
-        where('transaction_date', '>=', start),
-        where('transaction_date', '<=', end)
+        orderBy('transaction_date', 'desc'),
+        limit(5000)
       )
       return getDocs(q)
     })
@@ -45,7 +45,14 @@ export default function Charts() {
     const categoryById = new Map(catSnap.docs.map(d => [d.id, { name: d.data().name, color: d.data().color }]))
     
     const txSnaps = await Promise.all(txPromises)
-    const transactions = txSnaps.flatMap(snap => snap.docs.map(d => d.data()))
+    const transactions = txSnaps.flatMap(snap => 
+      snap.docs.map(d => d.data()).filter((t: any) => {
+        const txDate: string = t.transaction_date?.toDate 
+          ? new Date(t.transaction_date.toDate()).toISOString().slice(0, 10) 
+          : String(t.transaction_date)
+        return txDate >= start && txDate <= end
+      })
+    )
 
     const categoryTotals: Record<string, { name: string; value: number; color: string }> = {}
     

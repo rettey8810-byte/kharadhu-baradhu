@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
@@ -50,19 +50,22 @@ export default function ExportReports() {
     const start = startDate.toISOString().slice(0, 10)
     const end = endDate.toISOString().slice(0, 10)
 
-    // Load transactions from all profiles
+    // Load transactions from all profiles (fetch and filter client-side)
     const txPromises = profileIds.map(pid => {
       const q = query(
         collection(firebaseDb, 'users', user.uid, 'transactions'),
         where('profile_id', '==', pid),
-        where('transaction_date', '>=', start),
-        where('transaction_date', '<=', end),
-        orderBy('transaction_date', 'desc')
+        orderBy('transaction_date', 'desc'),
+        limit(5000)
       )
       return getDocs(q)
     })
     const txSnaps = await Promise.all(txPromises)
-    const txData = txSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction))
+    const txData = txSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction)).filter(t => {
+      const rawDate = (t as any).transaction_date
+      const txDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
+      return txDate >= start && txDate <= end
+    })
 
     // Load budgets for monthly report
     if (reportType === 'monthly') {

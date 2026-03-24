@@ -5,7 +5,7 @@ import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
 import { ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
 import { formatDateLocal } from '../utils/date'
 import { useLocation } from 'react-router-dom'
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 function formatMVR(value: number) {
@@ -65,6 +65,7 @@ export default function Transactions() {
 
     const profileIdChunks = chunk(profileIds, 10)
 
+    // Fetch all transactions and filter client-side (handles mixed Timestamp/string formats)
     const [txDocs, catDocs, srcDocs] = await Promise.all([
       Promise.all(
         profileIdChunks.map(async (ids) =>
@@ -72,13 +73,16 @@ export default function Transactions() {
             query(
               txCol,
               where('profile_id', 'in', ids),
-              where('transaction_date', '>=', startDate),
-              where('transaction_date', '<=', endDate),
-              orderBy('transaction_date', 'desc')
+              orderBy('transaction_date', 'desc'),
+              limit(5000)
             )
           )
         )
-      ).then((snaps) => snaps.flatMap((s) => s.docs)),
+      ).then((snaps) => snaps.flatMap((s) => s.docs).filter(d => {
+        const raw = d.data() as any
+        const txDate: string = raw.transaction_date?.toDate ? formatDateLocal(raw.transaction_date.toDate()) : String(raw.transaction_date)
+        return txDate >= startDate && txDate <= endDate
+      })),
       Promise.all(profileIdChunks.map(async (ids) => getDocs(query(catCol, where('profile_id', 'in', ids)))))
         .then((snaps) => snaps.flatMap((s) => s.docs)),
       Promise.all(profileIdChunks.map(async (ids) => getDocs(query(srcCol, where('profile_id', 'in', ids)))))

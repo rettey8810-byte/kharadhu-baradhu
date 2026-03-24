@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
 import { useProfile } from '../hooks/useProfile'
@@ -55,9 +55,8 @@ export default function CashFlowForecast() {
       const qy = query(
         collection(firebaseDb, 'users', user.uid, 'transactions'),
         where('profile_id', '==', profileId),
-        where('transaction_date', '>=', startOfMonth),
-        where('transaction_date', '<=', today),
-        orderBy('transaction_date', 'desc')
+        orderBy('transaction_date', 'desc'),
+        limit(5000)
       )
       return getDocs(qy)
     })
@@ -67,9 +66,8 @@ export default function CashFlowForecast() {
         collection(firebaseDb, 'users', user.uid, 'recurringExpenses'),
         where('profile_id', '==', profileId),
         where('is_active', '==', true),
-        where('next_due_date', '>=', today),
-        where('next_due_date', '<=', endOfMonth),
-        orderBy('next_due_date', 'asc')
+        orderBy('next_due_date', 'asc'),
+        limit(5000)
       )
       return getDocs(qy)
     })
@@ -79,9 +77,8 @@ export default function CashFlowForecast() {
         collection(firebaseDb, 'users', user.uid, 'recurringIncome'),
         where('profile_id', '==', profileId),
         where('is_active', '==', true),
-        where('next_due_date', '>=', today),
-        where('next_due_date', '<=', endOfMonth),
-        orderBy('next_due_date', 'asc')
+        orderBy('next_due_date', 'asc'),
+        limit(5000)
       )
       return getDocs(qy)
     })
@@ -92,9 +89,26 @@ export default function CashFlowForecast() {
       Promise.all(recurringIncomePromises)
     ])
 
-    const transactions = txSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
-    const recurringExpenses = recurringExpenseSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
-    const recurringIncome = recurringIncomeSnaps.flatMap(s => s.docs.map(d => d.data())) as any[]
+    // Filter transactions client-side after normalizing dates
+    const transactions = txSnaps.flatMap(s => s.docs.map(d => d.data())).filter((t: any) => {
+      const rawDate = t.transaction_date
+      const txDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
+      return txDate >= startOfMonth && txDate <= today
+    }) as any[]
+    
+    // Filter recurring expenses client-side
+    const recurringExpenses = recurringExpenseSnaps.flatMap(s => s.docs.map(d => d.data())).filter((e: any) => {
+      const rawDate = e.next_due_date
+      const dueDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
+      return dueDate >= today && dueDate <= endOfMonth
+    }) as any[]
+    
+    // Filter recurring income client-side
+    const recurringIncome = recurringIncomeSnaps.flatMap(s => s.docs.map(d => d.data())).filter((i: any) => {
+      const rawDate = i.next_due_date
+      const dueDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
+      return dueDate >= today && dueDate <= endOfMonth
+    }) as any[]
 
     // Calculate current month totals
     const currentExpenses = (transactions || [])

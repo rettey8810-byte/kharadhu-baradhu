@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { TrendingDown, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react'
@@ -43,19 +43,24 @@ export default function MonthlyComparison() {
     const prevStart = new Date(prevYear, prevMonth - 1, 1)
     const prevEnd = new Date(prevYear, prevMonth, 0)
 
-    // Query transactions for each period
+    // Query transactions for each period (fetch recent and filter client-side)
     const fetchTransactions = async (start: Date, end: Date) => {
       const promises = profileIds.map(pid => {
         const q = query(
           collection(firebaseDb, 'users', user.uid, 'transactions'),
           where('profile_id', '==', pid),
-          where('transaction_date', '>=', formatDateLocal(start)),
-          where('transaction_date', '<=', formatDateLocal(end))
+          orderBy('transaction_date', 'desc'),
+          limit(5000)
         )
         return getDocs(q)
       })
       const snaps = await Promise.all(promises)
-      return snaps.flatMap(snap => snap.docs.map(d => d.data()))
+      return snaps.flatMap(snap => snap.docs.map(d => d.data())).filter((t: any) => {
+        const txDate: string = t.transaction_date?.toDate 
+          ? new Date(t.transaction_date.toDate()).toISOString().slice(0, 10) 
+          : String(t.transaction_date)
+        return txDate >= formatDateLocal(start) && txDate <= formatDateLocal(end)
+      })
     }
     
     const [currRows, prevRows] = await Promise.all([

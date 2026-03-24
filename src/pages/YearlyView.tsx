@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { formatDateLocal } from '../utils/date'
@@ -28,24 +28,29 @@ export default function YearlyView() {
 
       const profileIds = profiles.map(p => p.id)
 
-      // Query transactions for each profile
+      // Query transactions for each profile (fetch recent and filter client-side)
       const promises = profileIds.map(pid => {
         const q = query(
           collection(firebaseDb, 'users', user.uid, 'transactions'),
           where('profile_id', '==', pid),
-          where('transaction_date', '>=', startEnd.start),
-          where('transaction_date', '<=', startEnd.end)
+          orderBy('transaction_date', 'desc'),
+          limit(5000)
         )
         return getDocs(q)
       })
       
       const snaps = await Promise.all(promises)
-      const rows = snaps.flatMap(snap => snap.docs.map(d => d.data()))
+      const rows = snaps.flatMap(snap => snap.docs.map(d => d.data())).filter((row: any) => {
+        const txDate: string = row.transaction_date?.toDate 
+          ? new Date(row.transaction_date.toDate()).toISOString().slice(0, 10) 
+          : String(row.transaction_date)
+        return txDate >= startEnd.start && txDate <= startEnd.end
+      })
 
       const expenseTotals = Array(12).fill(0)
       const incomeTotals = Array(12).fill(0)
       for (const row of rows) {
-        const d = new Date(row.transaction_date)
+        const d = new Date(row.transaction_date?.toDate ? row.transaction_date.toDate() : row.transaction_date)
         const m = d.getMonth()
         if (row.type === 'income') incomeTotals[m] += Number(row.amount)
         if (row.type === 'expense') expenseTotals[m] += Number(row.amount)

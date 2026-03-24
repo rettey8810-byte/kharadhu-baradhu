@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { PWAInstallButton } from '../hooks/usePWAInstall'
@@ -96,11 +96,12 @@ export default function Dashboard() {
 
       try {
         console.log('Loading transactions for user:', user.uid)
-        // Load transactions for this month
+        // Load transactions and filter locally because some data is stored as Firestore Timestamp
+        // and some as YYYY-MM-DD strings; Firestore cannot range-query across mixed types.
         const txQuery = query(
           collection(firebaseDb, 'users', user.uid, 'transactions'),
-          where('transaction_date', '>=', monthStart),
-          where('transaction_date', '<=', monthEnd)
+          orderBy('transaction_date', 'desc'),
+          limit(5000)
         )
         console.log('Fetching transactions...')
         const txSnap = await getDocs(txQuery)
@@ -119,14 +120,22 @@ export default function Dashboard() {
         const sourceById = new Map(sourceSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
         const profileById = new Map(profiles.map(p => [p.id, p]))
 
-        const txData: Transaction[] = txSnap.docs.map(d => {
-          const raw = d.data()
+        const txDocs = txSnap.docs
+          .map(d => ({ id: d.id, ...d.data() } as any))
+          .filter((raw) => profileIds.includes(raw.profile_id))
+          .map((raw) => ({
+            ...raw,
+            transaction_date: normalizeDate(raw.transaction_date)
+          }))
+          .filter((raw) => raw.transaction_date >= monthStart && raw.transaction_date <= monthEnd)
+
+        const txData: Transaction[] = txDocs.map(raw => {
           return {
-            id: d.id,
+            id: raw.id,
             profile_id: raw.profile_id || '',
             type: raw.type || 'expense',
             amount: Number(raw.amount) || 0,
-            transaction_date: normalizeDate(raw.transaction_date),
+            transaction_date: raw.transaction_date,
             description: raw.description || '',
             notes: raw.notes || '',
             tags: raw.tags || [],
