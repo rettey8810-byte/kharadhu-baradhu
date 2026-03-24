@@ -102,6 +102,12 @@ service cloud.firestore {
         allow write: if isOwner(userId);
       }
       
+      // User's loan payments
+      match /loanPayments/{paymentId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
       // User's bill reminders
       match /billReminders/{reminderId} {
         allow read: if isOwner(userId);

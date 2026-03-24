@@ -32,6 +32,7 @@ export default function GroceryBills() {
   const { t } = useLanguage()
   const [bills, setBills] = useState<BillWithItems[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [expandedBillId, setExpandedBillId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedShop, setSelectedShop] = useState<string>('all')
@@ -57,36 +58,44 @@ export default function GroceryBills() {
   const loadBills = async () => {
     if (!user || !currentProfile) return
     setLoading(true)
-
-    // Load grocery bills
-    const billsQuery = query(
-      collection(firebaseDb, 'users', user.uid, 'groceryBills'),
-      where('profile_id', '==', currentProfile.id),
-      orderBy('bill_date', 'desc')
-    )
-    const billsSnap = await getDocs(billsQuery)
-
-    // Load items for each bill
-    const billsWithItems: BillWithItems[] = []
-    for (const billDoc of billsSnap.docs) {
-      const bill = { id: billDoc.id, ...billDoc.data() } as GroceryBill
-      
-      const itemsQuery = query(
-        collection(firebaseDb, 'users', user.uid, 'groceryBillItems'),
-        where('grocery_bill_id', '==', billDoc.id),
-        orderBy('created_at')
-      )
-      const itemsSnap = await getDocs(itemsQuery)
-      const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as GroceryBillItem)
-      
-      billsWithItems.push({ ...bill, items })
-    }
+    setError(null)
     
-    setBills(billsWithItems)
+    try {
+      console.log('Loading grocery bills for profile:', currentProfile.id)
+      
+      // Load grocery bills
+      const billsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'groceryBills'),
+        where('profile_id', '==', currentProfile.id),
+        orderBy('bill_date', 'desc')
+      )
+      const billsSnap = await getDocs(billsQuery)
+      console.log('Found', billsSnap.docs.length, 'grocery bills')
 
-    // Build price comparison data
-    buildPriceComparisons(billsWithItems)
-    setLoading(false)
+      // Load items for each bill
+      const billsWithItems: BillWithItems[] = []
+      for (const billDoc of billsSnap.docs) {
+        const bill = { id: billDoc.id, ...billDoc.data() } as GroceryBill
+        
+        const itemsQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'groceryBillItems'),
+          where('grocery_bill_id', '==', billDoc.id)
+        )
+        const itemsSnap = await getDocs(itemsQuery)
+        const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as GroceryBillItem)
+        
+        billsWithItems.push({ ...bill, items })
+      }
+      
+      setBills(billsWithItems)
+      buildPriceComparisons(billsWithItems)
+    } catch (err: any) {
+      console.error('Error loading grocery bills:', err)
+      setError(err?.message || 'Failed to load grocery bills')
+      setBills([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const buildPriceComparisons = (billsData: BillWithItems[]) => {
@@ -149,6 +158,23 @@ export default function GroceryBills() {
       <div className="p-4">
         <div className="animate-pulse space-y-3">
           {[1,2,3,4,5].map(i => <div key={i} className="h-16 bg-gray-200 rounded-xl" />)}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+          <p className="text-red-700 font-medium">Error loading grocery bills</p>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
+          <button 
+            onClick={loadBills}
+            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     )

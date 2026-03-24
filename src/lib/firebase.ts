@@ -3,7 +3,17 @@
 
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  getFirestore,
+  orderBy,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -23,5 +33,39 @@ const app = initializeApp(firebaseConfig)
 export const firebaseAuth = getAuth(app)
 export const firebaseDb = getFirestore(app)
 export const firebaseStorage = getStorage(app)
+
+declare global {
+  interface Window {
+    firebaseAuth?: typeof firebaseAuth
+    firebaseDb?: typeof firebaseDb
+    firebaseStorage?: typeof firebaseStorage
+    firebaseFirestore?: {
+      addDoc: typeof addDoc
+      collection: typeof collection
+      doc: typeof doc
+      getDocs: typeof getDocs
+      orderBy: typeof orderBy
+      query: typeof query
+      setDoc: typeof setDoc
+      where: typeof where
+    }
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.firebaseAuth = firebaseAuth
+  window.firebaseDb = firebaseDb
+  window.firebaseStorage = firebaseStorage
+  window.firebaseFirestore = {
+    addDoc,
+    collection,
+    doc,
+    getDocs,
+    orderBy,
+    query,
+    setDoc,
+    where,
+  }
+}
 
 export default app
