@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext, createContext, ReactNode } from 'react'
 import type { ExpenseProfile } from '../types'
 import { onAuthStateChanged } from 'firebase/auth'
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 interface ProfileContextType {
@@ -11,6 +11,7 @@ interface ProfileContextType {
   setCurrentProfile: (profile: ExpenseProfile) => void
   refreshProfiles: () => Promise<void>
   createProfile: (name: string, type: 'personal' | 'family' | 'business') => Promise<void>
+  updateProfile: (id: string, name: string, type: 'personal' | 'family' | 'business') => Promise<void>
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
@@ -144,6 +145,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     await fetchProfiles()
   }
 
+  const updateProfile = async (id: string, name: string, type: 'personal' | 'family' | 'business') => {
+    const user = firebaseAuth.currentUser
+    if (!user) throw new Error('Not authenticated')
+
+    const profileRef = doc(firebaseDb, 'users', user.uid, 'profiles', id)
+    await updateDoc(profileRef, {
+      name,
+      type,
+      updated_at: new Date().toISOString()
+    })
+    await fetchProfiles()
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       if (!user) {
@@ -167,7 +181,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       loading,
       setCurrentProfile,
       refreshProfiles: fetchProfiles,
-      createProfile
+      createProfile,
+      updateProfile
     }}>
       {children}
     </ProfileContext.Provider>

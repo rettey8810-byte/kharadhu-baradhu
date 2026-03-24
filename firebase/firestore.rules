@@ -131,6 +131,18 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
+      
+      // User's grocery bills
+      match /groceryBills/{billId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's grocery bill items
+      match /groceryBillItems/{itemId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
     }
     
     // Profile shares - accessible by both owner and shared user

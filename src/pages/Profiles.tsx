@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import type { ExpenseProfile } from '../types'
-import { TrendingDown, Calendar, Wallet, Target } from 'lucide-react'
+import { TrendingDown, Calendar, Wallet, Target, Pencil } from 'lucide-react'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -95,10 +95,11 @@ function useProfileStats(profileId: string | undefined) {
   return { stats, loading }
 }
 
-function ProfileCard({ profile, isActive, onClick }: { 
+function ProfileCard({ profile, isActive, onClick, onEdit }: { 
   profile: ExpenseProfile
   isActive: boolean
-  onClick: () => void 
+  onClick: () => void
+  onEdit: () => void
 }) {
   const { stats, loading } = useProfileStats(profile.id)
 
@@ -117,11 +118,24 @@ function ProfileCard({ profile, isActive, onClick }: {
           <div className="font-bold text-gray-900">{profile.name}</div>
           <div className="text-xs text-gray-500 uppercase tracking-wide">{profile.type}</div>
         </div>
-        {isActive && (
-          <span className="text-xs bg-emerald-500 text-white px-2 py-1 rounded-full font-medium">
-            Active
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isActive && (
+            <span className="text-xs bg-emerald-500 text-white px-2 py-1 rounded-full font-medium">
+              Active
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+            className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+            title="Edit profile"
+          >
+            <Pencil size={16} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -170,11 +184,18 @@ function ProfileCard({ profile, isActive, onClick }: {
 }
 
 export default function Profiles() {
-  const { profiles, currentProfile, setCurrentProfile, createProfile } = useProfile()
+  const { profiles, currentProfile, setCurrentProfile, createProfile, updateProfile } = useProfile()
   const [name, setName] = useState('')
   const [type, setType] = useState<'personal' | 'family' | 'business'>('personal')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Edit modal state
+  const [editingProfile, setEditingProfile] = useState<ExpenseProfile | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState<'personal' | 'family' | 'business'>('personal')
+  const [editLoading, setEditLoading] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -188,6 +209,38 @@ export default function Profiles() {
       setError(err?.message ?? 'Failed to create profile')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const startEdit = (profile: ExpenseProfile) => {
+    setEditingProfile(profile)
+    setEditName(profile.name)
+    setEditType(profile.type)
+    setEditError(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingProfile(null)
+    setEditName('')
+    setEditType('personal')
+    setEditError(null)
+  }
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingProfile) return
+    
+    setEditError(null)
+    setEditLoading(true)
+    try {
+      await updateProfile(editingProfile.id, editName.trim(), editType)
+      setEditingProfile(null)
+      setEditName('')
+      setEditType('personal')
+    } catch (err: any) {
+      setEditError(err?.message ?? 'Failed to update profile')
+    } finally {
+      setEditLoading(false)
     }
   }
 
@@ -205,9 +258,76 @@ export default function Profiles() {
             profile={p}
             isActive={currentProfile?.id === p.id}
             onClick={() => setCurrentProfile(p)}
+            onEdit={() => startEdit(p)}
           />
         ))}
       </div>
+
+      {/* Edit Profile Modal */}
+      {editingProfile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <form 
+            onSubmit={saveEdit}
+            className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Profile</h3>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-600">Name</label>
+                <input
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g. Family"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Type</label>
+                <select
+                  className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2"
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value as any)}
+                >
+                  <option value="personal">Personal</option>
+                  <option value="family">Family</option>
+                  <option value="business">Business</option>
+                </select>
+              </div>
+
+              {editError && <div className="text-sm text-red-600">{editError}</div>}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="flex-1 border border-gray-200 text-gray-700 rounded-lg px-4 py-2 font-semibold hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-60"
+                disabled={editLoading}
+              >
+                {editLoading ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <form onSubmit={add} className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
         <div className="font-semibold text-gray-900">Add profile</div>
