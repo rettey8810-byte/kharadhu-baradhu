@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-03-24
+
+### Changed - Firebase Migration (Major Backend Change)
+- **Migrated from Supabase to Firebase** - Complete backend infrastructure change
+  - Authentication: Firebase Auth (email/password, Google OAuth)
+  - Database: Firestore (replacing Supabase PostgreSQL)
+  - Storage: Firebase Storage (replacing Supabase Storage)
+  - Real-time sync via Firestore listeners
+- **Data Structure Changes** - All data now stored under `users/{uid}/` subcollections:
+  - `profiles`, `transactions`, `categories`, `incomeSources`
+  - `recurringExpenses`, `recurringIncome`, `billPayments`
+  - `savingsGoals`, `loans`, `budgets`
+  - `taxiVehicles`, `taxiTrips`, `taxiVehicleExpenses`
+  - `groceryHistory`, `mt5Trades`, `mt5Expenses`
+  - `settings`, `profileShares`, `profileShareInvitations`
+- **Security Rules** - Firestore security rules implemented with:
+  - User ownership validation (`isOwner` function)
+  - Admin access for `retey.ay@hotmail.com`
+  - Profile sharing permissions (shared_by, shared_with)
+  - Invitation-based access control
+- **Indexes** - Firestore composite indexes created for complex queries
+  - transactions: profile_id + transaction_date
+  - recurringExpenses: profile_id + is_active + next_due_date
+  - billPayments: profile_id + is_paid + due_date
+  - loans: profile_id + status + due_date
+  - budgets: profile_id + year + month
+
+### Fixed
+- **Taxi Page Date Handling** - Fixed `trip_date.startsWith is not a function` error by normalizing Firestore Timestamps to string dates
+- **Firestore Rules** - Added missing `budgets` collection and corrected `taxiVehicleExpenses` naming
+- **TypeScript Errors** - Fixed lint errors in migrated components (AddTransaction, AdminDashboard, AcceptInvite)
+
+### Technical
+- **Migration Script** - `scripts/import-to-firebase.cjs` imports all Supabase data to Firestore
+- **Export Script** - `scripts/export-supabase-data.ts` exports Supabase data to JSON
+- **Service Account** - Firebase Admin SDK for bulk data import
+- **Environment Variables** - Updated for Firebase configuration
+
+### Dependencies Added
+- `firebase` - Firebase SDK (Auth, Firestore, Storage)
+- `firebase-admin` - Server-side Firebase operations
+
+### Dependencies Removed
+- `@supabase/supabase-js` - No longer used (to be fully removed in cleanup)
+
+---
+
 ## [1.3.4] - 2026-03-02
 
 ### Fixed
@@ -370,4 +417,4 @@ PATCH - Bug fixes (backwards compatible)
 
 ---
 
-*Last updated: March 1, 2026*
+*Last updated: March 24, 2026*
