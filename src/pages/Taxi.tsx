@@ -256,8 +256,16 @@ export default function Taxi() {
       
       const [tSnap, eSnap] = await Promise.all([getDocs(tQuery), getDocs(eQuery)])
 
-      setTrips(tSnap.docs.map(d => ({ id: d.id, ...d.data() }) as TaxiTrip).slice(0, 30))
-      setExpenses(eSnap.docs.map(d => ({ id: d.id, ...d.data() }) as TaxiVehicleExpense).slice(0, 30))
+      setTrips(tSnap.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        trip_date: normalizeDate(d.data().trip_date)
+      }) as TaxiTrip).slice(0, 30))
+      setExpenses(eSnap.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        expense_date: normalizeDate(d.data().expense_date)
+      }) as TaxiVehicleExpense).slice(0, 30))
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load vehicle activity')
     }
