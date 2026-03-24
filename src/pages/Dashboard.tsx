@@ -72,6 +72,16 @@ export default function Dashboard() {
 
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
 
+  const normalizeDate = (value: any): string => {
+    if (!value) return ''
+    if (typeof value === 'string') return value
+    if (value?.toDate && typeof value.toDate === 'function') {
+      return formatDateLocal(value.toDate())
+    }
+    if (value instanceof Date) return formatDateLocal(value)
+    return String(value)
+  }
+
   useEffect(() => {
     const load = async () => {
       if (!user || profiles.length === 0) return
@@ -116,7 +126,7 @@ export default function Dashboard() {
             profile_id: raw.profile_id || '',
             type: raw.type || 'expense',
             amount: Number(raw.amount) || 0,
-            transaction_date: raw.transaction_date || '',
+            transaction_date: normalizeDate(raw.transaction_date),
             description: raw.description || '',
             notes: raw.notes || '',
             tags: raw.tags || [],
@@ -173,7 +183,10 @@ export default function Dashboard() {
         const recurringSnaps = await Promise.all(recurringPromises)
         const allRecurring = recurringSnaps.flatMap(snap =>
           snap.docs.map(d => ({ id: d.id, ...d.data() } as any))
-        )
+        ).map((re: any) => ({
+          ...re,
+          next_due_date: normalizeDate(re.next_due_date)
+        }))
 
         const bestAmountByName: Record<string, number | null> = {}
         allRecurring.forEach((re: any) => {
@@ -195,6 +208,7 @@ export default function Dashboard() {
         const pending: PendingBill[] = []
 
         billPaymentsData.forEach((row: any) => {
+          const dueDate = normalizeDate(row.due_date)
           const paymentAmount = row.amount == null ? null : Number(row.amount)
           const joinAmount = row.recurring_expense?.amount == null ? null : Number(row.recurring_expense.amount)
           const bestAmount = bestAmountByName[row.recurring_expense?.name] ?? null
@@ -206,7 +220,7 @@ export default function Dashboard() {
             profile_id: row.profile_id,
             profile_name: profileById.get(row.profile_id)?.name ?? 'Profile',
             name: row.recurring_expense?.name ?? 'Bill',
-            due_date: row.due_date,
+            due_date: dueDate,
             amount: effectiveAmount,
             source: 'variable',
           })
@@ -242,7 +256,10 @@ export default function Dashboard() {
         const loanSnaps = await Promise.all(loanPromises)
         const loans = loanSnaps.flatMap(snap =>
           snap.docs.map(d => ({ id: d.id, ...d.data() }) as DashboardLoan)
-        )
+        ).map((l: any) => ({
+          ...l,
+          due_date: normalizeDate(l.due_date)
+        }))
 
         const borrowedRemaining = loans
           .filter(l => l.loan_type === 'borrowed')
