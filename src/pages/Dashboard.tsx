@@ -88,7 +88,7 @@ export default function Dashboard() {
       setLoading(true)
       console.log('Dashboard loading for profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
 
-      const profileIds = profiles.map(p => p.id)
+      const profileIds = profiles.map(p => p.id).filter((id): id is string => !!id)
       const start = new Date(year, month - 1, 1)
       const end = new Date(year, month, 0)
       const monthStart = formatDateLocal(start)
