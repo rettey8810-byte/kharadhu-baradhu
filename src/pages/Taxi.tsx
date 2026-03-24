@@ -263,27 +263,48 @@ export default function Taxi() {
     }
   }
 
+  // Helper to normalize date fields (handles both strings and Firestore Timestamps)
+  const normalizeDate = (date: any): string => {
+    if (!date) return ''
+    if (typeof date === 'string') return date
+    if (date.toDate && typeof date.toDate === 'function') {
+      // Firestore Timestamp
+      return date.toDate().toISOString().slice(0, 10)
+    }
+    return String(date)
+  }
+
   const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
     const monthKey = new Date().toISOString().slice(0, 7)
     const yearKey = new Date().toISOString().slice(0, 4)
 
+    // Normalize trips data
+    const normalizedTrips = trips.map(t => ({
+      ...t,
+      trip_date: normalizeDate(t.trip_date)
+    }))
+    const normalizedExpenses = expenses.map(e => ({
+      ...e,
+      expense_date: normalizeDate(e.expense_date)
+    }))
+
     // Day stats
-    const todayTrips = trips.filter(t => t.trip_date === today)
+    const todayTrips = normalizedTrips.filter(t => t.trip_date === today)
     const dayIncome = todayTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const dayExpense = expenses.filter(e => e.expense_date === today).reduce((sum, it) => sum + Number(it.amount), 0)
+    const dayExpense = normalizedExpenses.filter(e => e.expense_date === today).reduce((sum, it) => sum + Number(it.amount), 0)
     const dayTripCount = todayTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
     // Month stats
-    const monthTrips = trips.filter(t => t.trip_date.startsWith(monthKey))
+    const monthTrips = normalizedTrips.filter(t => t.trip_date.startsWith(monthKey))
     const monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const monthlyExpense = expenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
+    const monthlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
     const monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
     // Year stats
-    const yearTrips = trips.filter(t => t.trip_date.startsWith(yearKey))
+    const yearTrips = normalizedTrips.filter(t => t.trip_date.startsWith(yearKey))
     const yearlyIncome = yearTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const yearlyExpense = expenses.filter(e => e.expense_date.startsWith(yearKey)).reduce((sum, it) => sum + Number(it.amount), 0)
+    const yearlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(yearKey)).reduce((sum, it) => sum + Number(it.amount), 0)
 
     // Overall stats
     const overallIncome = trips.reduce((sum, it) => sum + Number(it.total_income), 0)
@@ -314,9 +335,9 @@ export default function Taxi() {
       d.setDate(d.getDate() - i)
       weekDates.push(d.toISOString().slice(0, 10))
     }
-    const weekTrips = trips.filter(t => weekDates.includes(t.trip_date))
+    const weekTrips = normalizedTrips.filter(t => weekDates.includes(t.trip_date))
     const weekIncome = weekTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const weekExpense = expenses.filter(e => weekDates.includes(e.expense_date)).reduce((sum, it) => sum + Number(it.amount), 0)
+    const weekExpense = normalizedExpenses.filter(e => weekDates.includes(e.expense_date)).reduce((sum, it) => sum + Number(it.amount), 0)
 
     // Average per trip
     const avgPerTrip = totalTrips > 0 ? overallIncome / totalTrips : 0

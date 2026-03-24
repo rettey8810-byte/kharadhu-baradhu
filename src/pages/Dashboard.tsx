@@ -85,17 +85,25 @@ export default function Dashboard() {
       const monthEnd = formatDateLocal(end)
 
       try {
+        console.log('Loading transactions for user:', user.uid)
         // Load transactions for this month
         const txQuery = query(
           collection(firebaseDb, 'users', user.uid, 'transactions'),
           where('transaction_date', '>=', monthStart),
           where('transaction_date', '<=', monthEnd)
         )
+        console.log('Fetching transactions...')
         const txSnap = await getDocs(txQuery)
+        console.log('Transactions fetched:', txSnap.docs.length)
 
+        console.log('Fetching categories...')
         // Load categories and income sources for enrichment
         const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
+        console.log('Categories fetched:', catSnap.docs.length)
+        
+        console.log('Fetching income sources...')
         const sourceSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'incomeSources'))
+        console.log('Income sources fetched:', sourceSnap.docs.length)
 
         const categoryById = new Map(catSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
         const sourceById = new Map(sourceSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
@@ -268,8 +276,13 @@ export default function Dashboard() {
         }).sort((a, b) => b.totalSpent - a.totalSpent)
 
         setProfileSpendings(spendings)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Dashboard load error:', err)
+        console.error('Error code:', err.code)
+        console.error('Error message:', err.message)
+        if (err.code === 'permission-denied') {
+          console.error('PERMISSION DENIED - Check Firestore rules for collection being accessed')
+        }
       } finally {
         setLoading(false)
       }

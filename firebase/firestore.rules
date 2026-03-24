@@ -24,9 +24,39 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
       
+      // User's profiles subcollection
+      match /profiles/{profileId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's settings subcollection
+      match /settings/{settingId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's profile shares (created by this user)
+      match /profileShares/{shareId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's share invitations (created by this user)
+      match /profileShareInvitations/{inviteId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
       // User's transactions subcollection
       match /transactions/{transactionId} {
         allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId);
+      }
+      
+      // User's budgets subcollection
+      match /budgets/{budgetId} {
+        allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
       
@@ -90,8 +120,8 @@ service cloud.firestore {
         allow write: if isOwner(userId);
       }
       
-      // User's taxi expenses
-      match /taxiExpenses/{expenseId} {
+      // User's taxi vehicle expenses
+      match /taxiVehicleExpenses/{expenseId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
@@ -105,11 +135,28 @@ service cloud.firestore {
     
     // Profile shares - accessible by both owner and shared user
     match /profileShares/{shareId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.ownerId == request.auth.uid || 
-         resource.data.sharedWithId == request.auth.uid);
-      allow write: if isAuthenticated() && 
-        (resource.data.ownerId == request.auth.uid);
+      allow read: if isAuthenticated() &&
+        (resource.data.shared_by == request.auth.uid ||
+         resource.data.shared_with == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.shared_by == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.shared_by == request.auth.uid || isAdmin());
+    }
+
+    // Profile share invitations - readable by inviter and invitee (by email)
+    match /profileShareInvitations/{inviteId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.invited_by == request.auth.uid ||
+         resource.data.email == request.auth.token.email ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.invited_by == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.invited_by == request.auth.uid ||
+         resource.data.email == request.auth.token.email ||
+         isAdmin());
     }
     
     // Shared profiles data (for viewing shared profiles)
