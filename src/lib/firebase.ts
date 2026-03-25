@@ -12,6 +12,7 @@ import {
   orderBy,
   query,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
@@ -47,6 +48,7 @@ declare global {
       orderBy: typeof orderBy
       query: typeof query
       setDoc: typeof setDoc
+      updateDoc: typeof updateDoc
       where: typeof where
     }
   }
@@ -64,6 +66,7 @@ if (typeof window !== 'undefined') {
     orderBy,
     query,
     setDoc,
+    updateDoc,
     where,
   }
 }
