@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore'
-import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil } from 'lucide-react'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy, getDoc, arrayUnion, onSnapshot } from 'firebase/firestore'
+import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil, Share2 } from 'lucide-react'
 
 // Format currency as MVR
 const formatMVR = (amount: number) => {
@@ -313,6 +313,29 @@ interface LoanPayment {
   installment_number: number | null
 }
 
+// Shared Loan interfaces
+interface SharedLoan {
+  id: string
+  loan_id: string
+  owner_user_id: string
+  shared_with_user_id: string
+  shared_with_email: string
+  status: 'pending' | 'accepted' | 'rejected'
+  created_at: string
+  accepted_at: string | null
+  loan?: Loan // populated when loading
+}
+
+interface LoanInvite {
+  id: string
+  loan_id: string
+  from_user_id: string
+  from_user_email: string
+  to_user_email: string
+  status: 'pending' | 'accepted' | 'rejected'
+  created_at: string
+}
+
 // Helper functions (must be outside component to be accessible by LoanCard)
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -333,8 +356,17 @@ export default function Loans() {
   const [showAdd, setShowAdd] = useState(false)
   const [showPay, setShowPay] = useState<string | null>(null)
   const [showDetails, setShowDetails] = useState<string | null>(null)
+  const [selectedDetailsLoan, setSelectedDetailsLoan] = useState<Loan | null>(null)
   const [showEdit, setShowEdit] = useState<string | null>(null)
+  const [editOwnerUserId, setEditOwnerUserId] = useState<string | null>(null)
   const [savedParties, setSavedParties] = useState<string[]>([])
+  
+  // Shared loans state
+  const [activeTab, setActiveTab] = useState<'my' | 'shared'>('my')
+  const [sharedLoans, setSharedLoans] = useState<SharedLoan[]>([])
+  const [showShareModal, setShowShareModal] = useState<string | null>(null)
+  const [shareEmail, setShareEmail] = useState('')
+  const [pendingInvites, setPendingInvites] = useState<LoanInvite[]>([])
 
   const [formData, setFormData] = useState({
     loan_type: 'borrowed' as 'borrowed' | 'lended',
@@ -361,6 +393,7 @@ export default function Loans() {
     category: 'individual',
     party_name: '',
     principal_amount: '',
+    currency: 'MVR',
     interest_rate: '0',
     interest_type: 'none',
     loan_date: new Date().toISOString().slice(0, 10),
@@ -383,8 +416,53 @@ export default function Loans() {
   useEffect(() => {
     if (user && currentProfile) {
       loadLoans()
+      loadSharedLoans()
+      loadPendingInvites()
     }
   }, [currentProfile, user])
+
+  useEffect(() => {
+    if (!user) return
+
+    const invitesQuery = query(
+      collection(firebaseDb, 'loanInvites'),
+      where('to_user_email', '==', user.email),
+      where('status', '==', 'pending')
+    )
+
+    const unsubInvites = onSnapshot(invitesQuery, (snap) => {
+      setPendingInvites(snap.docs.map(d => ({ id: d.id, ...d.data() }) as LoanInvite))
+    })
+
+    const sharesQuery = query(
+      collection(firebaseDb, 'loanShares'),
+      where('shared_with_user_id', '==', user.uid),
+      where('status', '==', 'accepted')
+    )
+
+    const unsubShares = onSnapshot(sharesQuery, async (snap) => {
+      const sharedData = snap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedLoan)
+
+      const loansWithData = (await Promise.all(
+        sharedData.map(async (shared) => {
+          const loanRef = doc(firebaseDb, 'users', shared.owner_user_id, 'loans', shared.loan_id)
+          const loanSnap = await getDoc(loanRef)
+          if (!loanSnap.exists()) return null
+          return {
+            ...shared,
+            loan: { id: loanSnap.id, ...loanSnap.data() } as Loan
+          } as SharedLoan
+        })
+      )).filter(Boolean) as SharedLoan[]
+
+      setSharedLoans(loansWithData)
+    })
+
+    return () => {
+      unsubInvites()
+      unsubShares()
+    }
+  }, [user])
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -439,6 +517,100 @@ export default function Loans() {
     }
 
     setLoading(false)
+  }
+
+  const loadSharedLoans = async () => {
+    if (!user) return
+    
+    // Load loans shared with me
+    const sharedQuery = query(
+      collection(firebaseDb, 'loanShares'),
+      where('shared_with_user_id', '==', user.uid),
+      where('status', '==', 'accepted')
+    )
+    const sharedSnap = await getDocs(sharedQuery)
+    const sharedData = sharedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedLoan)
+    
+    // Load the actual loan data for each shared loan
+    const loansWithData: SharedLoan[] = []
+    for (const shared of sharedData) {
+      const loanRef = doc(firebaseDb, 'users', shared.owner_user_id, 'loans', shared.loan_id)
+      const loanSnap = await getDoc(loanRef)
+      if (loanSnap.exists()) {
+        loansWithData.push({
+          ...shared,
+          loan: { id: loanSnap.id, ...loanSnap.data() } as Loan
+        })
+      }
+    }
+    
+    setSharedLoans(loansWithData)
+  }
+
+  const loadPendingInvites = async () => {
+    if (!user) return
+    
+    // Load invites sent to me
+    const invitesQuery = query(
+      collection(firebaseDb, 'loanInvites'),
+      where('to_user_email', '==', user.email),
+      where('status', '==', 'pending')
+    )
+    const invitesSnap = await getDocs(invitesQuery)
+    setPendingInvites(invitesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as LoanInvite))
+  }
+
+  const shareLoan = async (loanId: string, email: string) => {
+    if (!user) return
+    
+    // Create invite
+    await addDoc(collection(firebaseDb, 'loanInvites'), {
+      loan_id: loanId,
+      from_user_id: user.uid,
+      from_user_email: user.email,
+      to_user_email: email,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    })
+    
+    setShowShareModal(null)
+    setShareEmail('')
+    alert('Invite sent! The user will see this loan once they accept.')
+  }
+
+  const acceptInvite = async (invite: LoanInvite) => {
+    if (!user) return
+    
+    // Create loan share record
+    await addDoc(collection(firebaseDb, 'loanShares'), {
+      loan_id: invite.loan_id,
+      owner_user_id: invite.from_user_id,
+      shared_with_user_id: user.uid,
+      shared_with_email: user.email,
+      status: 'accepted',
+      created_at: new Date().toISOString(),
+      accepted_at: new Date().toISOString()
+    })
+    
+    // Update invite status
+    await updateDoc(doc(firebaseDb, 'loanInvites', invite.id), {
+      status: 'accepted'
+    })
+
+    // Grant shared user access on the owner's loan document
+    await updateDoc(doc(firebaseDb, 'users', invite.from_user_id, 'loans', invite.loan_id), {
+      shared_with_user_ids: arrayUnion(user.uid)
+    })
+    
+    loadPendingInvites()
+    loadSharedLoans()
+  }
+
+  const rejectInvite = async (inviteId: string) => {
+    await updateDoc(doc(firebaseDb, 'loanInvites', inviteId), {
+      status: 'rejected'
+    })
+    loadPendingInvites()
   }
 
   const handleAddLoan = async (e: React.FormEvent) => {
@@ -588,7 +760,7 @@ export default function Loans() {
     loadLoans()
   }
 
-  const openEdit = (loan: Loan) => {
+  const openEdit = (loan: Loan, ownerUserId?: string) => {
     setEditFormData({
       loan_type: loan.loan_type,
       profile_id: loan.profile_id,
@@ -607,12 +779,14 @@ export default function Loans() {
       account_number: loan.account_number || '',
       bank_name: loan.bank_name || ''
     })
+    setEditOwnerUserId(ownerUserId || user?.uid || null)
     setShowEdit(loan.id)
   }
 
   const handleUpdateLoan = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !showEdit) return
+    const ownerUid = editOwnerUserId || user.uid
 
     const principal = Number(editFormData.principal_amount)
     const interestRate = Number(editFormData.interest_rate)
@@ -623,7 +797,7 @@ export default function Loans() {
       totalAmount = principal + (principal * interestRate * years / 100)
     }
 
-    await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', showEdit), {
+    await updateDoc(doc(firebaseDb, 'users', ownerUid, 'loans', showEdit), {
       profile_id: editFormData.profile_id,
       loan_type: editFormData.loan_type,
       category: editFormData.category,
@@ -642,21 +816,11 @@ export default function Loans() {
       account_number: editFormData.account_number || null,
       bank_name: editFormData.bank_name || null,
     })
-      principal_amount: principal,
-      interest_rate: interestRate,
-      interest_type: editFormData.interest_type,
-      loan_date: editFormData.loan_date,
-      due_date: editFormData.due_date || null,
-      total_amount: totalAmount,
-      emi_amount: editFormData.emi_amount ? Number(editFormData.emi_amount) : null,
-      total_installments: editFormData.total_installments ? Number(editFormData.total_installments) : null,
-      description: editFormData.description || null,
-      account_number: editFormData.account_number || null,
-      bank_name: editFormData.bank_name || null
-    })
 
     setShowEdit(null)
+    setEditOwnerUserId(null)
     loadLoans()
+    loadSharedLoans()
   }
 
   const handlePayment = async (e: React.FormEvent) => {
@@ -788,7 +952,60 @@ export default function Loans() {
         </button>
       </div>
 
-      {/* Net Balance by Person */}
+      {/* Tab Navigation */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab('my')}
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'my'
+              ? 'text-emerald-600 border-b-2 border-emerald-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          My Loans
+        </button>
+        <button
+          onClick={() => setActiveTab('shared')}
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'shared'
+              ? 'text-emerald-600 border-b-2 border-emerald-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Shared Loans ({sharedLoans.length})
+        </button>
+      </div>
+
+      {/* Pending Invites */}
+      {pendingInvites.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">Pending Loan Invites</h3>
+          <div className="space-y-2">
+            {pendingInvites.map(invite => (
+              <div key={invite.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-medium">From: {invite.from_user_email}</p>
+                  <p className="text-xs text-gray-500">Loan ID: {invite.loan_id.slice(0, 8)}...</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => acceptInvite(invite)}
+                    className="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => rejectInvite(invite.id)}
+                    className="px-3 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {netBalanceList.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
@@ -931,7 +1148,7 @@ export default function Loans() {
       ) : (
         <div className="space-y-3">
           {/* Active Borrowed Loans */}
-          {borrowedLoans.length > 0 && (
+          {activeTab === 'my' && borrowedLoans.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Borrowed (You Owe)</h3>
               {borrowedLoans.map(loan => (
@@ -939,16 +1156,20 @@ export default function Loans() {
                   key={loan.id}
                   loan={loan}
                   onPay={() => setShowPay(loan.id)}
-                  onDetails={() => setShowDetails(loan.id)}
+                  onDetails={() => {
+                    setSelectedDetailsLoan(null)
+                    setShowDetails(loan.id)
+                  }}
                   onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
+                  onShare={() => setShowShareModal(loan.id)}
                 />
               ))}
             </div>
           )}
 
           {/* Active Lended Loans */}
-          {lendedLoans.length > 0 && (
+          {activeTab === 'my' && lendedLoans.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Lended (Owed to You)</h3>
               {lendedLoans.map(loan => (
@@ -956,11 +1177,43 @@ export default function Loans() {
                   key={loan.id}
                   loan={loan}
                   onPay={() => setShowPay(loan.id)}
-                  onDetails={() => setShowDetails(loan.id)}
+                  onDetails={() => {
+                    setSelectedDetailsLoan(null)
+                    setShowDetails(loan.id)
+                  }}
                   onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
+                  onShare={() => setShowShareModal(loan.id)}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Shared Loans */}
+          {activeTab === 'shared' && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Shared With You</h3>
+              {sharedLoans.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Share2 size={32} className="mx-auto mb-2 opacity-50" />
+                  <p>No shared loans yet</p>
+                  <p className="text-xs">When someone shares a loan with you, it will appear here</p>
+                </div>
+              ) : (
+                sharedLoans.map(shared => (
+                  <LoanCard
+                    key={shared.id}
+                    loan={shared.loan!}
+                    onPay={() => {}}
+                    onDetails={() => {
+                      setSelectedDetailsLoan(shared.loan!)
+                      setShowDetails(shared.loan!.id)
+                    }}
+                    onEdit={() => openEdit(shared.loan!, shared.owner_user_id)}
+                    onDelete={() => {}}
+                  />
+                ))
+              )}
             </div>
           )}
 
@@ -973,7 +1226,10 @@ export default function Loans() {
                   key={loan.id}
                   loan={loan}
                   onPay={() => {}}
-                  onDetails={() => setShowDetails(loan.id)}
+                  onDetails={() => {
+                    setSelectedDetailsLoan(null)
+                    setShowDetails(loan.id)
+                  }}
                   onEdit={() => openEdit(loan)}
                   onDelete={() => deleteLoan(loan.id)}
                 />
@@ -1018,12 +1274,62 @@ export default function Loans() {
         />
       )}
 
+      {/* Share Loan Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Share Loan</h2>
+              <button onClick={() => setShowShareModal(null)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Share this loan with another user. They will be able to see and edit the loan details.
+              </p>
+
+              <div>
+                <label className="text-sm text-gray-600">User Email</label>
+                <input
+                  type="email"
+                  value={shareEmail}
+                  onChange={(e) => setShareEmail(e.target.value)}
+                  placeholder="Enter email address"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowShareModal(null)}
+                  className="flex-1 py-2 border border-gray-200 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => shareLoan(showShareModal, shareEmail)}
+                  disabled={!shareEmail}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Send Invite
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Details Modal */}
       {showDetails && (
         <DetailsModal
-          loan={loans.find(l => l.id === showDetails)!}
+          loan={selectedDetailsLoan || loans.find(l => l.id === showDetails)!}
           payments={payments[showDetails] || []}
-          onClose={() => setShowDetails(null)}
+          onClose={() => {
+            setShowDetails(null)
+            setSelectedDetailsLoan(null)
+          }}
         />
       )}
     </div>
@@ -1036,13 +1342,15 @@ function LoanCard({
   onPay,
   onDetails,
   onEdit,
-  onDelete
+  onDelete,
+  onShare
 }: {
   loan: Loan
   onPay: () => void
   onDetails: () => void
   onEdit: () => void
   onDelete: () => void
+  onShare?: () => void
 }) {
   const remaining = loan.total_amount - loan.amount_paid
   const progress = Math.min(100, (loan.amount_paid / loan.total_amount) * 100)
@@ -1104,6 +1412,15 @@ function LoanCard({
           >
             <Pencil size={16} />
           </button>
+          {onShare && (
+            <button
+              onClick={onShare}
+              className="mt-2 ml-1 p-1 text-blue-600 hover:bg-blue-50 rounded"
+              title="Share loan"
+            >
+              <Share2 size={16} />
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="mt-2 ml-1 p-1 text-red-600 hover:bg-red-50 rounded"

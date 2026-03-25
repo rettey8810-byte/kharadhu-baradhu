@@ -17,6 +17,11 @@ service cloud.firestore {
         request.auth.token.email == 'retey.ay@hotmail.com';
     }
 
+    // Helper function to check if user is in an array field
+    function uidIn(listField) {
+      return isAuthenticated() && (listField is list) && request.auth.uid in listField;
+    }
+
     // Users collection - each user owns their own document
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
@@ -98,8 +103,10 @@ service cloud.firestore {
       
       // User's loans
       match /loans/{loanId} {
-        allow read: if isOwner(userId);
-        allow write: if isOwner(userId);
+        allow read: if isOwner(userId) || uidIn(resource.data.shared_with_user_ids) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || uidIn(resource.data.shared_with_user_ids) || isAdmin();
+        allow delete: if isOwner(userId) || isAdmin();
       }
       
       // User's loan payments
@@ -175,6 +182,36 @@ service cloud.firestore {
         (resource.data.invited_by == request.auth.uid ||
          resource.data.email == request.auth.token.email ||
          isAdmin());
+    }
+
+    // Loan share invitations - readable by inviter and invitee (by email)
+    match /loanInvites/{inviteId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.from_user_id == request.auth.uid ||
+         resource.data.to_user_email == request.auth.token.email ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.from_user_id == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        (resource.data.from_user_id == request.auth.uid ||
+         resource.data.to_user_email == request.auth.token.email ||
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Loan shares - accessible by owner and shared user
+    match /loanShares/{shareId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.owner_user_id == request.auth.uid ||
+         resource.data.shared_with_user_id == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.shared_with_user_id == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        (resource.data.owner_user_id == request.auth.uid ||
+         resource.data.shared_with_user_id == request.auth.uid ||
+         isAdmin());
+      allow delete: if isAdmin();
     }
     
     // Shared profiles data (for viewing shared profiles)
