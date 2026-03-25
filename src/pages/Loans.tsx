@@ -589,7 +589,37 @@ export default function Loans() {
     loadLoans()
   }
 
-  // Calculate statistics
+  // Calculate net balance per person
+  const netBalances = loans
+    .filter(l => l.status === 'active')
+    .reduce((acc, loan) => {
+      const partyName = loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name
+      if (!partyName) return acc
+      
+      const remaining = loan.total_amount - loan.amount_paid
+      if (!acc[partyName]) {
+        acc[partyName] = { lent: 0, borrowed: 0 }
+      }
+      
+      if (loan.loan_type === 'lended') {
+        acc[partyName].lent += remaining
+      } else {
+        acc[partyName].borrowed += remaining
+      }
+      
+      return acc
+    }, {} as Record<string, { lent: number; borrowed: number }>)
+
+  // Convert to array and calculate net
+  const netBalanceList = Object.entries(netBalances)
+    .map(([name, amounts]) => ({
+      name,
+      lent: amounts.lent,
+      borrowed: amounts.borrowed,
+      net: amounts.lent - amounts.borrowed // positive = they owe you, negative = you owe them
+    }))
+    .filter(p => p.net !== 0) // Only show if there's a balance
+    .sort((a, b) => Math.abs(b.net) - Math.abs(a.net)) // Sort by largest balance first
   const borrowedLoans = loans.filter(l => l.loan_type === 'borrowed' && l.status === 'active')
   const lendedLoans = loans.filter(l => l.loan_type === 'lended' && l.status === 'active')
 
@@ -632,6 +662,43 @@ export default function Loans() {
           <Plus size={24} />
         </button>
       </div>
+
+      {/* Net Balance by Person */}
+      {netBalanceList.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+            <ArrowRightLeft size={16} />
+            Net Balance by Person
+          </h3>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {netBalanceList.map(person => (
+              <div 
+                key={person.name}
+                className={`flex items-center justify-between p-3 rounded-lg ${
+                  person.net > 0 ? 'bg-emerald-50' : 'bg-red-50'
+                }`}
+              >
+                <div>
+                  <p className="font-medium text-gray-900">{person.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {person.lent > 0 && `You lent: ${formatMVR(person.lent)}`}
+                    {person.lent > 0 && person.borrowed > 0 && ' · '}
+                    {person.borrowed > 0 && `You borrowed: ${formatMVR(person.borrowed)}`}
+                  </p>
+                </div>
+                <div className={`text-right ${person.net > 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  <p className="font-bold">
+                    {person.net > 0 ? '+' : '-'}{formatMVR(Math.abs(person.net))}
+                  </p>
+                  <p className="text-xs">
+                    {person.net > 0 ? 'owes you' : 'you owe'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
@@ -799,6 +866,7 @@ export default function Loans() {
           onSubmit={handleAddLoan}
           onClose={() => setShowAdd(false)}
           savedParties={savedParties}
+          netBalanceList={netBalanceList}
         />
       )}
 
@@ -925,14 +993,22 @@ function AddLoanModal({
   setFormData,
   onSubmit,
   onClose,
-  savedParties
+  savedParties,
+  netBalanceList
 }: {
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
   savedParties: string[]
+  netBalanceList: { name: string; lent: number; borrowed: number; net: number }[]
 }) {
+  // Find net balance for selected party
+  const selectedPartyBalance = netBalanceList.find(p => p.name === formData.party_name)
+  const showNetWarning = selectedPartyBalance && (
+    (formData.loan_type === 'borrowed' && selectedPartyBalance.net > 0) ||
+    (formData.loan_type === 'lended' && selectedPartyBalance.net < 0)
+  )
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -998,6 +1074,23 @@ function AddLoanModal({
                 <option key={name} value={name} />
               ))}
             </datalist>
+            
+            {/* Net Balance Warning */}
+            {showNetWarning && selectedPartyBalance && (
+              <div className={`mt-2 p-3 rounded-lg text-sm ${
+                formData.loan_type === 'borrowed' ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'
+              }`}>
+                <p className="font-medium">
+                  {formData.loan_type === 'borrowed' 
+                    ? `${selectedPartyBalance.name} currently owes you ${formatMVR(selectedPartyBalance.net)}`
+                    : `You currently owe ${selectedPartyBalance.name} ${formatMVR(Math.abs(selectedPartyBalance.net))}`
+                  }
+                </p>
+                <p className="text-xs mt-1 text-gray-600">
+                  This new loan will offset against that balance
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Principal Amount */}
