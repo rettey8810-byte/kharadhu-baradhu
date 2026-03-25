@@ -45,6 +45,9 @@ export default function AddTransaction() {
   const [activeAutocompleteIndex, setActiveAutocompleteIndex] = useState<number | null>(null)
   const [autocompleteQuery, setAutocompleteQuery] = useState('')
   const [groceryItemHistory, setGroceryItemHistory] = useState<string[]>([])
+  const [shopNames, setShopNames] = useState<string[]>([])
+  const [itemPriceHistory, setItemPriceHistory] = useState<Record<string, Array<{shop: string, price: number, date: string}>>>({})
+  const [priceAlert, setPriceAlert] = useState<{item: string, currentPrice: number, history: Array<{shop: string, price: number, date: string}>} | null>(null)
 
   const selectedCategory = categories.find(c => c.id === categoryId)
   const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
@@ -73,6 +76,61 @@ export default function AddTransaction() {
     }
     
     loadGroceryHistory()
+  }, [isGroceries, user])
+
+  // Load shop names and item price history
+  useEffect(() => {
+    if (!isGroceries || !user) {
+      setShopNames([])
+      setItemPriceHistory({})
+      return
+    }
+    
+    const loadShopAndPriceHistory = async () => {
+      try {
+        // Load all grocery bills to extract shop names and prices
+        const billsQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'groceryBills'),
+          orderBy('bill_date', 'desc')
+        )
+        const billsSnap = await getDocs(billsQuery)
+        
+        const shops = new Set<string>()
+        const priceMap: Record<string, Array<{shop: string, price: number, date: string}>> = {}
+        
+        for (const billDoc of billsSnap.docs) {
+          const bill = billDoc.data()
+          if (bill.shop_name) shops.add(bill.shop_name)
+          
+          // Load items for this bill
+          const itemsQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'groceryBillItems'),
+            where('grocery_bill_id', '==', billDoc.id)
+          )
+          const itemsSnap = await getDocs(itemsQuery)
+          
+          itemsSnap.docs.forEach(itemDoc => {
+            const item = itemDoc.data()
+            if (item.item_name && item.unit_price) {
+              const key = item.item_name.toLowerCase().trim()
+              if (!priceMap[key]) priceMap[key] = []
+              priceMap[key].push({
+                shop: bill.shop_name || 'Unknown',
+                price: item.unit_price,
+                date: bill.bill_date || ''
+              })
+            }
+          })
+        }
+        
+        setShopNames(Array.from(shops).sort())
+        setItemPriceHistory(priceMap)
+      } catch (err) {
+        console.log('Failed to load shop/price history:', err)
+      }
+    }
+    
+    loadShopAndPriceHistory()
   }, [isGroceries, user])
 
   // Filtered autocomplete suggestions
@@ -762,12 +820,20 @@ export default function AddTransaction() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-emerald-800">{t('form_shop_name')}</label>
-                <input
-                  className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
-                  value={billShopName}
-                  onChange={(e) => setBillShopName(e.target.value)}
-                  placeholder={t('form_shop_placeholder')}
-                />
+                <div className="relative">
+                  <input
+                    className="mt-1 w-full border border-emerald-200 rounded-lg px-3 py-2 text-sm"
+                    value={billShopName}
+                    onChange={(e) => setBillShopName(e.target.value)}
+                    placeholder={t('form_shop_placeholder')}
+                    list="shop-suggestions"
+                  />
+                  <datalist id="shop-suggestions">
+                    {shopNames.map(shop => (
+                      <option key={shop} value={shop} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
               <div>
                 <label className="text-xs text-emerald-800">{t('form_bill_date')}</label>
@@ -841,6 +907,27 @@ export default function AddTransaction() {
                   return (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                       <div className="col-span-6 relative">
+                        {priceAlert && priceAlert.item === it.item_name.toLowerCase().trim() && (
+                          <div className="absolute -top-16 left-0 right-0 z-20 bg-amber-50 border border-amber-200 rounded-lg p-2 shadow-lg">
+                            <div className="text-xs font-semibold text-amber-800 mb-1">Previous Prices:</div>
+                            <div className="space-y-1 max-h-20 overflow-auto">
+                              {priceAlert.history.slice(0, 3).map((h, i) => (
+                                <div key={i} className="flex justify-between text-xs">
+                                  <span className="text-amber-700">{h.shop}</span>
+                                  <span className={h.price < priceAlert.currentPrice ? 'text-green-600' : 'text-red-600'}>
+                                    MVR {h.price.toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <button 
+                              onClick={() => setPriceAlert(null)}
+                              className="absolute top-1 right-1 text-amber-400 hover:text-amber-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
                         <input
                           className="w-full border border-emerald-200 rounded-lg px-2 py-1.5 text-sm"
                           value={it.item_name}
@@ -871,6 +958,17 @@ export default function AddTransaction() {
                                   next[idx] = { ...next[idx], item_name: suggestion }
                                   setBillItems(next)
                                   setActiveAutocompleteIndex(null)
+                                  
+                                  // Show price alert
+                                  const key = suggestion.toLowerCase().trim()
+                                  const history = itemPriceHistory[key]
+                                  if (history && history.length > 0) {
+                                    setPriceAlert({
+                                      item: key,
+                                      currentPrice: Number(next[idx].unit_price) || 0,
+                                      history: history.slice(0, 5)
+                                    })
+                                  }
                                 }}
                                 className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 focus:bg-emerald-50"
                               >

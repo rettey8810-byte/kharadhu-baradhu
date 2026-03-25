@@ -27,12 +27,18 @@ function EditLoanModal({
   formData,
   setFormData,
   onSubmit,
-  onClose
+  onClose,
+  profiles,
+  savedLenders,
+  savedBorrowers
 }: {
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
+  profiles: any[]
+  savedLenders: string[]
+  savedBorrowers: string[]
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -44,6 +50,20 @@ function EditLoanModal({
           </button>
         </div>
         <form onSubmit={onSubmit} className="p-4 space-y-4">
+          {/* Profile Selection */}
+          <div>
+            <label className="text-sm text-gray-600">Profile</label>
+            <select
+              value={formData.profile_id}
+              onChange={(e) => setFormData({ ...formData, profile_id: e.target.value })}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+            >
+              {profiles.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               type="button"
@@ -86,8 +106,19 @@ function EditLoanModal({
               value={formData.party_name}
               onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              list={formData.loan_type === 'borrowed' ? 'edit-lender-list' : 'edit-borrower-list'}
               required
             />
+            <datalist id="edit-lender-list">
+              {savedLenders.map((name: string) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            <datalist id="edit-borrower-list">
+              {savedBorrowers.map((name: string) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
           </div>
 
           <div>
@@ -282,7 +313,7 @@ const getStatusColor = (status: string) => {
 }
 
 export default function Loans() {
-  const { currentProfile } = useProfile()
+  const { currentProfile, profiles } = useProfile()
   const { user } = useAuth()
   const [loans, setLoans] = useState<Loan[]>([])
   const [payments, setPayments] = useState<Record<string, LoanPayment[]>>({})
@@ -292,6 +323,8 @@ export default function Loans() {
   const [showPay, setShowPay] = useState<string | null>(null)
   const [showDetails, setShowDetails] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState<string | null>(null)
+  const [savedLenders, setSavedLenders] = useState<string[]>([])
+  const [savedBorrowers, setSavedBorrowers] = useState<string[]>([])
 
   const [formData, setFormData] = useState({
     loan_type: 'borrowed' as 'borrowed' | 'lended',
@@ -312,6 +345,7 @@ export default function Loans() {
 
   const [editFormData, setEditFormData] = useState({
     loan_type: 'borrowed' as 'borrowed' | 'lended',
+    profile_id: '',
     category: 'individual',
     party_name: '',
     principal_amount: '',
@@ -368,6 +402,16 @@ export default function Loans() {
     const loansSnap = await getDocs(loansQuery)
     const loansData = loansSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Loan)
     setLoans(loansData)
+
+    // Extract saved lenders and borrowers from all loans
+    const lenders = new Set<string>()
+    const borrowers = new Set<string>()
+    loansData.forEach(loan => {
+      if (loan.lender_name) lenders.add(loan.lender_name)
+      if (loan.borrower_name) borrowers.add(loan.borrower_name)
+    })
+    setSavedLenders(Array.from(lenders).sort())
+    setSavedBorrowers(Array.from(borrowers).sort())
 
     // Load payments for each loan
     const loanIds = loansData.map(l => l.id)
@@ -447,6 +491,7 @@ export default function Loans() {
   const openEdit = (loan: Loan) => {
     setEditFormData({
       loan_type: loan.loan_type,
+      profile_id: loan.profile_id,
       category: loan.category || 'individual',
       party_name: loan.loan_type === 'borrowed' ? (loan.lender_name || '') : (loan.borrower_name || ''),
       principal_amount: String(loan.principal_amount ?? ''),
@@ -478,6 +523,7 @@ export default function Loans() {
     }
 
     await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', showEdit), {
+      profile_id: editFormData.profile_id,
       loan_type: editFormData.loan_type,
       category: editFormData.category,
       lender_name: editFormData.loan_type === 'borrowed' ? editFormData.party_name : null,
@@ -763,6 +809,8 @@ export default function Loans() {
           setFormData={setFormData}
           onSubmit={handleAddLoan}
           onClose={() => setShowAdd(false)}
+          savedLenders={savedLenders}
+          savedBorrowers={savedBorrowers}
         />
       )}
 
@@ -772,6 +820,9 @@ export default function Loans() {
           setFormData={setEditFormData}
           onSubmit={handleUpdateLoan}
           onClose={() => setShowEdit(null)}
+          profiles={profiles}
+          savedLenders={savedLenders}
+          savedBorrowers={savedBorrowers}
         />
       )}
 
@@ -886,12 +937,16 @@ function AddLoanModal({
   formData,
   setFormData,
   onSubmit,
-  onClose
+  onClose,
+  savedLenders,
+  savedBorrowers
 }: {
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
+  savedLenders: string[]
+  savedBorrowers: string[]
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -950,8 +1005,19 @@ function AddLoanModal({
               onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
               placeholder={formData.loan_type === 'borrowed' ? 'e.g., BML, MIB, John' : 'e.g., John, Ahmed'}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              list={formData.loan_type === 'borrowed' ? 'lender-list' : 'borrower-list'}
               required
             />
+            <datalist id="lender-list">
+              {savedLenders.map(name => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            <datalist id="borrower-list">
+              {savedBorrowers.map(name => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
           </div>
 
           {/* Principal Amount */}
