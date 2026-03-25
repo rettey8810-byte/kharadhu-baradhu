@@ -333,6 +333,7 @@ export default function Loans() {
     description: '',
     account_number: '',
     bank_name: '',
+    offset_mode: false,
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -434,6 +435,93 @@ export default function Loans() {
       totalAmount = principal + (principal * interestRate * years / 100)
     }
 
+    // Check if offset mode is enabled
+    if (formData.offset_mode && formData.party_name) {
+      // Find the opposite loan to offset against
+      const oppositeType = formData.loan_type === 'borrowed' ? 'lended' : 'borrowed'
+      const oppositeLoans = loans.filter(l => 
+        l.status === 'active' && 
+        l.loan_type === oppositeType &&
+        (oppositeType === 'lended' ? l.borrower_name === formData.party_name : l.lender_name === formData.party_name)
+      )
+      
+      if (oppositeLoans.length > 0) {
+        // Sort by remaining amount (largest first)
+        oppositeLoans.sort((a, b) => (b.total_amount - b.amount_paid) - (a.total_amount - a.amount_paid))
+        const targetLoan = oppositeLoans[0]
+        
+        // Add payment to offset
+        const paymentAmount = Math.min(principal, targetLoan.total_amount - targetLoan.amount_paid)
+        
+        // Add loan payment record
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'loanPayments'), {
+          loan_id: targetLoan.id,
+          profile_id: currentProfile.id,
+          payment_date: formData.loan_date,
+          amount_paid: paymentAmount,
+          transaction_id: null,
+          notes: `Offset from ${formData.loan_type === 'borrowed' ? 'borrowing' : 'lending'} ${principal} MVR`,
+          installment_number: targetLoan.installments_paid + 1,
+          created_at: new Date().toISOString()
+        })
+        
+        // Update loan amount paid
+        await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', targetLoan.id), {
+          amount_paid: targetLoan.amount_paid + paymentAmount,
+          installments_paid: targetLoan.installments_paid + 1
+        })
+        
+        // If there's remaining amount after offset, create the new loan for remainder
+        const remainingAfterOffset = principal - paymentAmount
+        if (remainingAfterOffset > 0) {
+          await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
+            profile_id: currentProfile.id,
+            loan_type: formData.loan_type,
+            category: formData.category,
+            lender_name: formData.loan_type === 'borrowed' ? formData.party_name : null,
+            borrower_name: formData.loan_type === 'lended' ? formData.party_name : null,
+            principal_amount: remainingAfterOffset,
+            interest_rate: interestRate,
+            interest_type: formData.interest_type,
+            loan_date: formData.loan_date,
+            due_date: formData.due_date || null,
+            total_amount: remainingAfterOffset,
+            amount_paid: 0,
+            emi_amount: formData.emi_amount ? Number(formData.emi_amount) : null,
+            total_installments: formData.total_installments ? Number(formData.total_installments) : null,
+            installments_paid: 0,
+            status: 'active',
+            description: `Remaining after offset: ${formData.description || ''}`,
+            account_number: formData.account_number || null,
+            bank_name: formData.bank_name || null,
+            created_at: new Date().toISOString()
+          })
+        }
+        
+        setShowAdd(false)
+        setFormData({
+          loan_type: 'borrowed',
+          category: 'individual',
+          party_name: '',
+          principal_amount: '',
+          interest_rate: '0',
+          interest_type: 'none',
+          loan_date: new Date().toISOString().slice(0, 10),
+          due_date: '',
+          total_amount: '',
+          emi_amount: '',
+          total_installments: '',
+          description: '',
+          account_number: '',
+          bank_name: '',
+          offset_mode: false,
+        })
+        loadLoans()
+        return
+      }
+    }
+
+    // Regular loan creation (no offset)
     await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
       profile_id: currentProfile.id,
       loan_type: formData.loan_type,
@@ -473,6 +561,7 @@ export default function Loans() {
       description: '',
       account_number: '',
       bank_name: '',
+      offset_mode: false,
     })
     loadLoans()
   }
@@ -1075,7 +1164,7 @@ function AddLoanModal({
               ))}
             </datalist>
             
-            {/* Net Balance Warning */}
+            {/* Net Balance Warning & Offset Option */}
             {showNetWarning && selectedPartyBalance && (
               <div className={`mt-2 p-3 rounded-lg text-sm ${
                 formData.loan_type === 'borrowed' ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'
@@ -1086,9 +1175,28 @@ function AddLoanModal({
                     : `You currently owe ${selectedPartyBalance.name} ${formatMVR(Math.abs(selectedPartyBalance.net))}`
                   }
                 </p>
-                <p className="text-xs mt-1 text-gray-600">
-                  This new loan will offset against that balance
-                </p>
+                
+                {/* Offset Mode Checkbox */}
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.offset_mode}
+                    onChange={(e) => setFormData({ ...formData, offset_mode: e.target.checked })}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-xs">
+                    Offset this amount against existing balance
+                  </span>
+                </label>
+                
+                {formData.offset_mode && (
+                  <p className="text-xs mt-1 text-gray-600">
+                    {formData.loan_type === 'borrowed'
+                      ? `After offset: ${selectedPartyBalance.name} will owe you ${formatMVR(Math.max(0, selectedPartyBalance.net - Number(formData.principal_amount || 0)))}`
+                      : `After offset: You will owe ${selectedPartyBalance.name} ${formatMVR(Math.max(0, Math.abs(selectedPartyBalance.net) - Number(formData.principal_amount || 0)))}`
+                    }
+                  </p>
+                )}
               </div>
             )}
           </div>
