@@ -1012,9 +1012,12 @@ function LoanCard({
   const progress = Math.min(100, (loan.amount_paid / loan.total_amount) * 100)
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-200">
+    <div 
+      className="bg-white rounded-xl p-4 border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={onDetails}
+    >
       <div className="flex items-start justify-between">
-        <div className="flex-1" onClick={onDetails}>
+        <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(loan.status)}`}>
               {loan.status}
@@ -1045,7 +1048,7 @@ function LoanCard({
           )}
         </div>
 
-        <div className="text-right ml-3">
+        <div className="text-right ml-3" onClick={(e) => e.stopPropagation()}>
           <p className="font-bold text-gray-900">{formatMVR(loan.principal_amount)}</p>
           {loan.interest_rate > 0 && (
             <p className="text-xs text-gray-500">{loan.interest_rate}% {loan.interest_type}</p>
