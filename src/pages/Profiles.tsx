@@ -58,11 +58,35 @@ function useProfileStats(profileId: string | undefined) {
       const totalSpent = transactions.reduce((sum, t) => sum + Number(t.amount), 0)
       const transactionCount = transactions.length
 
-      const dates = transactions.map(t => new Date(t.transaction_date))
-      const firstDate = new Date(Math.min(...dates.map(d => d.getTime())))
-      const lastDate = new Date(Math.max(...dates.map(d => d.getTime())))
-      const daysActive = Math.max(1, Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-      const avgPerDay = totalSpent / daysActive
+      // Parse dates with Firestore Timestamp support
+      const parseDate = (value: any): Date | null => {
+        if (!value) return null
+        if (value?.toDate && typeof value.toDate === 'function') {
+          return value.toDate()
+        }
+        if (typeof value === 'string') {
+          const d = new Date(value)
+          return isNaN(d.getTime()) ? null : d
+        }
+        if (value instanceof Date) {
+          return isNaN(value.getTime()) ? null : value
+        }
+        return null
+      }
+
+      const dates = transactions
+        .map(t => parseDate(t.transaction_date))
+        .filter((d): d is Date => d !== null)
+
+      let daysActive = 1
+      let avgPerDay = 0
+
+      if (dates.length > 0) {
+        const firstDate = new Date(Math.min(...dates.map(d => d.getTime())))
+        const lastDate = new Date(Math.max(...dates.map(d => d.getTime())))
+        daysActive = Math.max(1, Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+        avgPerDay = totalSpent / daysActive
+      }
 
       // Load categories for names
       const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
