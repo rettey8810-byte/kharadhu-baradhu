@@ -104,26 +104,43 @@ function EditLoanModal({
               value={formData.party_name}
               onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              list="party-list"
+              list="edit-party-list"
               required
             />
-            <datalist id="party-list">
+            <datalist id="edit-party-list">
               {savedParties.map((name: string) => (
                 <option key={name} value={name} />
               ))}
             </datalist>
+            <p className="text-xs text-gray-500 mt-1">Select from dropdown to reassign to existing person</p>
           </div>
 
-          <div>
-            <label className="text-sm text-gray-600">Principal Amount (MVR)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.principal_amount}
-              onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              required
-            />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="text-sm text-gray-600">Principal Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.principal_amount}
+                onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Currency</label>
+              <select
+                value={formData.currency || 'MVR'}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              >
+                <option value="MVR">MVR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR">INR</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -268,6 +285,7 @@ interface Loan {
   lender_name: string | null
   borrower_name: string | null
   principal_amount: number
+  currency: string
   interest_rate: number
   interest_type: string
   loan_date: string
@@ -323,6 +341,7 @@ export default function Loans() {
     category: 'individual',
     party_name: '',
     principal_amount: '',
+    currency: 'MVR',
     interest_rate: '0',
     interest_type: 'none',
     loan_date: new Date().toISOString().slice(0, 10),
@@ -504,6 +523,7 @@ export default function Loans() {
           category: 'individual',
           party_name: '',
           principal_amount: '',
+          currency: 'MVR',
           interest_rate: '0',
           interest_type: 'none',
           loan_date: new Date().toISOString().slice(0, 10),
@@ -529,6 +549,7 @@ export default function Loans() {
       lender_name: formData.loan_type === 'borrowed' ? formData.party_name : null,
       borrower_name: formData.loan_type === 'lended' ? formData.party_name : null,
       principal_amount: principal,
+      currency: formData.currency || 'MVR',
       interest_rate: interestRate,
       interest_type: formData.interest_type,
       loan_date: formData.loan_date,
@@ -551,6 +572,7 @@ export default function Loans() {
       category: 'individual',
       party_name: '',
       principal_amount: '',
+      currency: 'MVR',
       interest_rate: '0',
       interest_type: 'none',
       loan_date: new Date().toISOString().slice(0, 10),
@@ -573,6 +595,7 @@ export default function Loans() {
       category: loan.category || 'individual',
       party_name: loan.loan_type === 'borrowed' ? (loan.lender_name || '') : (loan.borrower_name || ''),
       principal_amount: String(loan.principal_amount ?? ''),
+      currency: loan.currency || 'MVR',
       interest_rate: String(loan.interest_rate ?? '0'),
       interest_type: loan.interest_type || 'none',
       loan_date: loan.loan_date,
@@ -606,6 +629,19 @@ export default function Loans() {
       category: editFormData.category,
       lender_name: editFormData.loan_type === 'borrowed' ? editFormData.party_name : null,
       borrower_name: editFormData.loan_type === 'lended' ? editFormData.party_name : null,
+      principal_amount: principal,
+      currency: editFormData.currency || 'MVR',
+      interest_rate: interestRate,
+      interest_type: editFormData.interest_type,
+      loan_date: editFormData.loan_date,
+      due_date: editFormData.due_date || null,
+      total_amount: totalAmount,
+      emi_amount: editFormData.emi_amount ? Number(editFormData.emi_amount) : null,
+      total_installments: editFormData.total_installments ? Number(editFormData.total_installments) : null,
+      description: editFormData.description || null,
+      account_number: editFormData.account_number || null,
+      bank_name: editFormData.bank_name || null,
+    })
       principal_amount: principal,
       interest_rate: interestRate,
       interest_type: editFormData.interest_type,
@@ -1023,6 +1059,7 @@ function LoanCard({
               {loan.status}
             </span>
             <span className="text-xs text-gray-500">{loan.category}</span>
+            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{loan.currency || 'MVR'}</span>
           </div>
           <h4 className="font-semibold text-gray-900">
             {loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}
@@ -1049,7 +1086,7 @@ function LoanCard({
         </div>
 
         <div className="text-right ml-3" onClick={(e) => e.stopPropagation()}>
-          <p className="font-bold text-gray-900">{formatMVR(loan.principal_amount)}</p>
+          <p className="font-bold text-gray-900">{loan.principal_amount.toLocaleString()} <span className="text-sm text-gray-500">{loan.currency || 'MVR'}</span></p>
           {loan.interest_rate > 0 && (
             <p className="text-xs text-gray-500">{loan.interest_rate}% {loan.interest_type}</p>
           )}
@@ -1204,17 +1241,33 @@ function AddLoanModal({
             )}
           </div>
 
-          {/* Principal Amount */}
-          <div>
-            <label className="text-sm text-gray-600">Principal Amount (MVR)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.principal_amount}
-              onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              required
-            />
+          {/* Principal Amount with Currency */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <label className="text-sm text-gray-600">Principal Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.principal_amount}
+                onChange={(e) => setFormData({ ...formData, principal_amount: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-600">Currency</label>
+              <select
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+              >
+                <option value="MVR">MVR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="INR">INR</option>
+              </select>
+            </div>
           </div>
 
           {/* Interest */}
