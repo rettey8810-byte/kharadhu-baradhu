@@ -872,8 +872,30 @@ export default function Loans() {
   }
 
   const deleteLoan = async (id: string) => {
-    if (!confirm('Delete this loan? This will also delete all payment records.')) return
+    if (!confirm('Delete this loan? This will also delete all payment records and transactions.')) return
     if (!user) return
+    
+    // First, get all loan payments for this loan
+    const paymentsQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'loanPayments'),
+      where('loan_id', '==', id)
+    )
+    const paymentsSnap = await getDocs(paymentsQuery)
+    
+    // Delete associated transactions and loan payments
+    const deletePromises = paymentsSnap.docs.map(async (paymentDoc) => {
+      const paymentData = paymentDoc.data()
+      // Delete the associated transaction if it exists
+      if (paymentData.transaction_id) {
+        await deleteDoc(doc(firebaseDb, 'users', user.uid, 'transactions', paymentData.transaction_id))
+      }
+      // Delete the loan payment record
+      await deleteDoc(doc(firebaseDb, 'users', user.uid, 'loanPayments', paymentDoc.id))
+    })
+    
+    await Promise.all(deletePromises)
+    
+    // Finally, delete the loan itself
     await deleteDoc(doc(firebaseDb, 'users', user.uid, 'loans', id))
     loadLoans()
   }
