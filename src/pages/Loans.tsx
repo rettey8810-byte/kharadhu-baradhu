@@ -29,16 +29,14 @@ function EditLoanModal({
   onSubmit,
   onClose,
   profiles,
-  savedLenders,
-  savedBorrowers
+  savedParties
 }: {
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
   profiles: any[]
-  savedLenders: string[]
-  savedBorrowers: string[]
+  savedParties: string[]
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -106,16 +104,11 @@ function EditLoanModal({
               value={formData.party_name}
               onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              list={formData.loan_type === 'borrowed' ? 'edit-lender-list' : 'edit-borrower-list'}
+              list="party-list"
               required
             />
-            <datalist id="edit-lender-list">
-              {savedLenders.map((name: string) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            <datalist id="edit-borrower-list">
-              {savedBorrowers.map((name: string) => (
+            <datalist id="party-list">
+              {savedParties.map((name: string) => (
                 <option key={name} value={name} />
               ))}
             </datalist>
@@ -323,8 +316,7 @@ export default function Loans() {
   const [showPay, setShowPay] = useState<string | null>(null)
   const [showDetails, setShowDetails] = useState<string | null>(null)
   const [showEdit, setShowEdit] = useState<string | null>(null)
-  const [savedLenders, setSavedLenders] = useState<string[]>([])
-  const [savedBorrowers, setSavedBorrowers] = useState<string[]>([])
+  const [savedParties, setSavedParties] = useState<string[]>([])
 
   const [formData, setFormData] = useState({
     loan_type: 'borrowed' as 'borrowed' | 'lended',
@@ -403,15 +395,12 @@ export default function Loans() {
     const loansData = loansSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Loan)
     setLoans(loansData)
 
-    // Extract saved lenders and borrowers from all loans
-    const lenders = new Set<string>()
-    const borrowers = new Set<string>()
-    loansData.forEach(loan => {
-      if (loan.lender_name) lenders.add(loan.lender_name)
-      if (loan.borrower_name) borrowers.add(loan.borrower_name)
-    })
-    setSavedLenders(Array.from(lenders).sort())
-    setSavedBorrowers(Array.from(borrowers).sort())
+    // Extract all unique party names from loans
+    const allParties = loansData
+      .map(l => l.lender_name || l.borrower_name)
+      .filter((name): name is string => !!name && name.trim() !== '')
+    const uniqueParties = [...new Set(allParties)].sort()
+    setSavedParties(uniqueParties)
 
     // Load payments for each loan
     const loanIds = loansData.map(l => l.id)
@@ -809,8 +798,7 @@ export default function Loans() {
           setFormData={setFormData}
           onSubmit={handleAddLoan}
           onClose={() => setShowAdd(false)}
-          savedLenders={savedLenders}
-          savedBorrowers={savedBorrowers}
+          savedParties={savedParties}
         />
       )}
 
@@ -821,8 +809,7 @@ export default function Loans() {
           onSubmit={handleUpdateLoan}
           onClose={() => setShowEdit(null)}
           profiles={profiles}
-          savedLenders={savedLenders}
-          savedBorrowers={savedBorrowers}
+          savedParties={savedParties}
         />
       )}
 
@@ -938,15 +925,13 @@ function AddLoanModal({
   setFormData,
   onSubmit,
   onClose,
-  savedLenders,
-  savedBorrowers
+  savedParties
 }: {
   formData: any
   setFormData: (data: any) => void
   onSubmit: (e: React.FormEvent) => void
   onClose: () => void
-  savedLenders: string[]
-  savedBorrowers: string[]
+  savedParties: string[]
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -1005,16 +990,11 @@ function AddLoanModal({
               onChange={(e) => setFormData({ ...formData, party_name: e.target.value })}
               placeholder={formData.loan_type === 'borrowed' ? 'e.g., BML, MIB, John' : 'e.g., John, Ahmed'}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              list={formData.loan_type === 'borrowed' ? 'lender-list' : 'borrower-list'}
+              list="party-list"
               required
             />
-            <datalist id="lender-list">
-              {savedLenders.map(name => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-            <datalist id="borrower-list">
-              {savedBorrowers.map(name => (
+            <datalist id="party-list">
+              {savedParties.map((name: string) => (
                 <option key={name} value={name} />
               ))}
             </datalist>
