@@ -85,7 +85,12 @@ function useProfileStats(profileId: string | undefined) {
         const firstDate = new Date(Math.min(...dates.map(d => d.getTime())))
         const lastDate = new Date(Math.max(...dates.map(d => d.getTime())))
         daysActive = Math.max(1, Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)
-        avgPerDay = totalSpent / daysActive
+        
+        // Calculate avg/day based on days elapsed in current month (not just days with transactions)
+        const today = new Date()
+        const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+        const daysElapsedThisMonth = Math.max(1, Math.ceil((today.getTime() - currentMonthStart.getTime()) / (1000 * 60 * 60 * 24)))
+        avgPerDay = totalSpent / daysElapsedThisMonth
       }
 
       // Load categories for names
