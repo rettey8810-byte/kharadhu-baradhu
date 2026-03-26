@@ -311,6 +311,13 @@ interface LoanPayment {
   interest_paid: number | null
   notes: string | null
   installment_number: number | null
+  status?: 'pending' | 'accepted' | 'rejected'
+  added_by_user_id?: string
+  added_by_email?: string
+  approved_by_user_id?: string | null
+  rejection_reason?: string | null
+  created_at?: string
+  responded_at?: string | null
 }
 
 // Shared Loan interfaces
@@ -412,6 +419,11 @@ export default function Loans() {
     notes: '',
     category_id: '',
   })
+  
+  // State for shared loan payments
+  const [showSharedPay, setShowSharedPay] = useState<string | null>(null)
+  const [sharedPayOwnerId, setSharedPayOwnerId] = useState<string | null>(null)
+  const [pendingPayments, setPendingPayments] = useState<LoanPayment[]>([])
 
   useEffect(() => {
     if (user && currentProfile) {
@@ -462,6 +474,23 @@ export default function Loans() {
       unsubInvites()
       unsubShares()
     }
+  }, [user])
+
+  // Real-time listener for pending shared loan payments
+  useEffect(() => {
+    if (!user) return
+
+    // Load pending payments for loans I own that were added by shared users
+    const pendingQuery = query(
+      collection(firebaseDb, 'users', user.uid, 'loanPayments'),
+      where('status', '==', 'pending')
+    )
+
+    const unsubPending = onSnapshot(pendingQuery, (snap) => {
+      setPendingPayments(snap.docs.map(d => ({ id: d.id, ...d.data() }) as LoanPayment))
+    })
+
+    return () => unsubPending()
   }, [user])
 
   useEffect(() => {
@@ -871,6 +900,137 @@ export default function Loans() {
     loadLoans()
   }
 
+  // Handle payment for shared loans - creates pending payment that needs approval
+  const handleSharedPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user || !showSharedPay || !sharedPayOwnerId) return
+
+    const sharedLoan = sharedLoans.find(s => s.loan?.id === showSharedPay)
+    if (!sharedLoan || !sharedLoan.loan) return
+
+    const amount = Number(paymentForm.amount)
+    const loan = sharedLoan.loan
+
+    // Add PENDING payment record to the OWNER's loanPayments collection
+    // This payment needs to be approved by the loan owner
+    await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'loanPayments'), {
+      loan_id: showSharedPay,
+      profile_id: loan.profile_id,
+      payment_date: paymentForm.payment_date,
+      amount_paid: amount,
+      notes: paymentForm.notes || `Payment added by ${user.email}`,
+      installment_number: loan.installments_paid + 1,
+      status: 'pending',
+      added_by_user_id: user.uid,
+      added_by_email: user.email,
+      approved_by_user_id: null,
+      rejection_reason: null,
+      created_at: new Date().toISOString()
+    })
+
+    // Add notification record for the owner
+    await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'notifications'), {
+      type: 'payment_pending',
+      title: 'New Payment Pending Approval',
+      message: `${user.email} added a payment of ${formatMVR(amount)} for loan "${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}"`,
+      loan_id: showSharedPay,
+      payment_amount: amount,
+      from_user_id: user.uid,
+      from_user_email: user.email,
+      status: 'unread',
+      created_at: new Date().toISOString()
+    })
+
+    setShowSharedPay(null)
+    setSharedPayOwnerId(null)
+    setPaymentForm({
+      amount: '',
+      payment_date: new Date().toISOString().slice(0, 10),
+      notes: '',
+      category_id: '',
+    })
+    alert('Payment submitted! The loan owner needs to approve it.')
+    loadSharedLoans()
+  }
+
+  // Accept a pending payment (called by loan owner)
+  const acceptPayment = async (payment: LoanPayment) => {
+    if (!user || !payment.id) return
+
+    // Get the loan details
+    const loanRef = doc(firebaseDb, 'users', user.uid, 'loans', payment.loan_id)
+    const loanSnap = await getDoc(loanRef)
+    if (!loanSnap.exists()) return
+
+    const loan = loanSnap.data() as Loan
+
+    // Update payment status to accepted
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'loanPayments', payment.id), {
+      status: 'accepted',
+      approved_by_user_id: user.uid,
+      responded_at: new Date().toISOString()
+    })
+
+    // Update loan amount paid
+    await updateDoc(loanRef, {
+      amount_paid: loan.amount_paid + payment.amount_paid,
+      installments_paid: (loan.installments_paid || 0) + 1
+    })
+
+    // Create transaction for the payment
+    await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+      profile_id: loan.profile_id,
+      type: loan.loan_type === 'borrowed' ? 'income' : 'expense',
+      amount: payment.amount_paid,
+      description: `Loan Payment Accepted - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
+      transaction_date: payment.payment_date,
+      category_id: null,
+      created_at: new Date().toISOString()
+    })
+
+    // Notify the user who added the payment
+    if (payment.added_by_user_id) {
+      await addDoc(collection(firebaseDb, 'users', payment.added_by_user_id, 'notifications'), {
+        type: 'payment_accepted',
+        title: 'Payment Accepted',
+        message: `Your payment of ${formatMVR(payment.amount_paid)} for loan "${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}" was accepted.`,
+        loan_id: payment.loan_id,
+        status: 'unread',
+        created_at: new Date().toISOString()
+      })
+    }
+
+    loadLoans()
+    alert('Payment accepted! Loan balance updated.')
+  }
+
+  // Reject a pending payment (called by loan owner)
+  const rejectPayment = async (payment: LoanPayment, reason: string) => {
+    if (!user || !payment.id) return
+
+    // Update payment status to rejected
+    await updateDoc(doc(firebaseDb, 'users', user.uid, 'loanPayments', payment.id), {
+      status: 'rejected',
+      approved_by_user_id: null,
+      rejection_reason: reason,
+      responded_at: new Date().toISOString()
+    })
+
+    // Notify the user who added the payment
+    if (payment.added_by_user_id) {
+      await addDoc(collection(firebaseDb, 'users', payment.added_by_user_id, 'notifications'), {
+        type: 'payment_rejected',
+        title: 'Payment Rejected',
+        message: `Your payment of ${formatMVR(payment.amount_paid)} was rejected. Reason: ${reason}`,
+        loan_id: payment.loan_id,
+        status: 'unread',
+        created_at: new Date().toISOString()
+      })
+    }
+
+    alert('Payment rejected. The other user will be notified.')
+  }
+
   const deleteLoan = async (id: string) => {
     if (!confirm('Delete this loan? This will also delete all payment records and transactions.')) return
     if (!user) return
@@ -1025,6 +1185,52 @@ export default function Loans() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Payments - Need Approval */}
+      {pendingPayments.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-yellow-900 mb-2">
+            Pending Payments (Need Your Approval)
+          </h3>
+          <div className="space-y-2">
+            {pendingPayments.map(payment => {
+              const loan = loans.find(l => l.id === payment.loan_id)
+              return (
+                <div key={payment.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {payment.added_by_email} paid {formatMVR(payment.amount_paid)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      For: {loan?.loan_type === 'borrowed' ? loan?.lender_name : loan?.borrower_name}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {payment.payment_date}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => acceptPayment(payment)}
+                      className="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => {
+                        const reason = prompt('Reason for rejecting this payment:')
+                        if (reason) rejectPayment(payment, reason)
+                      }}
+                      className="px-3 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -1226,7 +1432,10 @@ export default function Loans() {
                   <LoanCard
                     key={shared.id}
                     loan={shared.loan!}
-                    onPay={() => {}}
+                    onPay={() => {
+                      setShowSharedPay(shared.loan!.id)
+                      setSharedPayOwnerId(shared.owner_user_id)
+                    }}
                     onDetails={() => {
                       setSelectedDetailsLoan(shared.loan!)
                       setShowDetails(shared.loan!.id)
@@ -1293,6 +1502,21 @@ export default function Loans() {
           setFormData={setPaymentForm}
           onSubmit={handlePayment}
           onClose={() => setShowPay(null)}
+        />
+      )}
+
+      {/* Shared Loan Payment Modal */}
+      {showSharedPay && sharedPayOwnerId && (
+        <PaymentModal
+          loan={sharedLoans.find(s => s.loan?.id === showSharedPay)?.loan!}
+          categories={categories}
+          formData={paymentForm}
+          setFormData={setPaymentForm}
+          onSubmit={handleSharedPayment}
+          onClose={() => {
+            setShowSharedPay(null)
+            setSharedPayOwnerId(null)
+          }}
         />
       )}
 
