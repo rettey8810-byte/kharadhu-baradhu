@@ -1209,7 +1209,8 @@ export default function Loans() {
           </h3>
           <div className="space-y-2">
             {pendingPayments.map(payment => {
-              const loan = loans.find(l => l.id === payment.loan_id)
+              // Look for loan in both own loans and shared loans
+              const loan = loans.find(l => l.id === payment.loan_id) || sharedLoans.find(s => s.loan?.id === payment.loan_id)?.loan
               return (
                 <div key={payment.id} className="flex items-center justify-between bg-white rounded-lg p-3">
                   <div>
