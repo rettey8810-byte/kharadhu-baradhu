@@ -59,6 +59,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [deletedTxIds, setDeletedTxIds] = useState<Set<string>>(new Set())
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
   const [pendingBills, setPendingBills] = useState<PendingBill[]>([])
@@ -71,6 +72,14 @@ export default function Dashboard() {
   } | null>(null)
 
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
+
+  // Load deleted transaction IDs from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('deletedTransactionIds')
+    if (stored) {
+      setDeletedTxIds(new Set(JSON.parse(stored)))
+    }
+  }, [])
 
   const normalizeDate = (value: any): string => {
     if (!value) return ''
@@ -318,10 +327,13 @@ export default function Dashboard() {
   }, [profiles, year, month, user])
 
   const stats: DashboardStats = useMemo(() => {
-    const totalIncome = transactions
+    // Filter out deleted transactions from calculations
+    const activeTransactions = transactions.filter(t => !deletedTxIds.has(t.id))
+    
+    const totalIncome = activeTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + Number(t.amount), 0)
-    const totalExpense = transactions
+    const totalExpense = activeTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + Number(t.amount), 0)
 
@@ -532,32 +544,39 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {transactions.slice(0, 8).map(tx => (
-              <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    tx.type === 'income' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
+            {transactions.slice(0, 8).map(tx => {
+              const isDeleted = deletedTxIds.has(tx.id)
+              return (
+                <div key={tx.id} className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${isDeleted ? 'bg-red-50' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isDeleted ? 'bg-red-100 text-red-400' :
+                      tx.type === 'income' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {isDeleted ? <span className="text-xs font-bold">DEL</span> :
+                       tx.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium ${isDeleted ? 'text-red-600 line-through' : 'text-gray-900'}`}>
+                        {isDeleted ? `[DELETED] ` : ''}{tx.description || (tx.type === 'income' ? t('common_income') : t('common_expense'))}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {tx.transaction_date} • {tx.type === 'income' 
+                          ? ((tx.income_source as any)?.name || t('common_income')) 
+                          : ((tx.category as any)?.name || t('common_expense'))}
+                        {isDeleted && <span className="ml-2 text-red-500 font-semibold">(DELETED)</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-semibold ${
+                    isDeleted ? 'text-red-400 line-through' :
+                    tx.type === 'income' ? 'text-blue-600' : 'text-gray-900'
                   }`}>
-                    {tx.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {tx.description || (tx.type === 'income' ? t('common_income') : t('common_expense'))}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {tx.transaction_date} • {tx.type === 'income' 
-                        ? ((tx.income_source as any)?.name || t('common_income')) 
-                        : ((tx.category as any)?.name || t('common_expense'))}
-                    </p>
-                  </div>
+                    {tx.type === 'income' ? '+' : '-'}{formatMVR(Number(tx.amount))}
+                  </span>
                 </div>
-                <span className={`text-sm font-semibold ${
-                  tx.type === 'income' ? 'text-blue-600' : 'text-gray-900'
-                }`}>
-                  {tx.type === 'income' ? '+' : '-'}{formatMVR(Number(tx.amount))}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

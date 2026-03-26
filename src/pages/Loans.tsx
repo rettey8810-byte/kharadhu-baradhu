@@ -1048,6 +1048,18 @@ export default function Loans() {
       // Delete the associated transaction if it exists
       if (paymentData.transaction_id) {
         await deleteDoc(doc(firebaseDb, 'users', user.uid, 'transactions', paymentData.transaction_id))
+        // Track deleted transaction ID in localStorage for dashboard display
+        try {
+          const stored = localStorage.getItem('deletedTransactionIds')
+          const deletedIds = stored ? JSON.parse(stored) : []
+          if (!deletedIds.includes(paymentData.transaction_id)) {
+            deletedIds.push(paymentData.transaction_id)
+            if (deletedIds.length > 100) deletedIds.shift()
+            localStorage.setItem('deletedTransactionIds', JSON.stringify(deletedIds))
+          }
+        } catch (e) {
+          console.error('Failed to track deleted transaction:', e)
+        }
       }
       // Delete the loan payment record
       await deleteDoc(doc(firebaseDb, 'users', user.uid, 'loanPayments', paymentDoc.id))

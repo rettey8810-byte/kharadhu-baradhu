@@ -10,6 +10,24 @@ interface OfflineContextType {
   queueChange: (operation: string, data: any) => void
 }
 
+// Track deleted transaction IDs in localStorage for dashboard display
+function trackDeletedTransaction(txId: string) {
+  try {
+    const stored = localStorage.getItem('deletedTransactionIds')
+    const deletedIds = stored ? JSON.parse(stored) : []
+    if (!deletedIds.includes(txId)) {
+      deletedIds.push(txId)
+      // Keep only last 100 deleted IDs to prevent storage bloat
+      if (deletedIds.length > 100) {
+        deletedIds.shift()
+      }
+      localStorage.setItem('deletedTransactionIds', JSON.stringify(deletedIds))
+    }
+  } catch (e) {
+    console.error('Failed to track deleted transaction:', e)
+  }
+}
+
 const OfflineContext = createContext<OfflineContextType | undefined>(undefined)
 
 // IndexedDB setup for offline storage
@@ -145,6 +163,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
             break
           case 'delete_transaction':
             await deleteDoc(doc(firebaseDb, 'users', change.data.user_id, 'transactions', change.data.id))
+            trackDeletedTransaction(change.data.id)
             break
           case 'add_expense':
             await addDoc(collection(firebaseDb, 'users', change.data.user_id, 'recurringExpenses'), change.data)
