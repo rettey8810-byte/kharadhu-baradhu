@@ -260,12 +260,12 @@ export default function Taxi() {
         id: d.id, 
         ...d.data(),
         trip_date: normalizeDate(d.data().trip_date)
-      }) as TaxiTrip).slice(0, 30))
+      }) as TaxiTrip))
       setExpenses(eSnap.docs.map(d => ({ 
         id: d.id, 
         ...d.data(),
         expense_date: normalizeDate(d.data().expense_date)
-      }) as TaxiVehicleExpense).slice(0, 30))
+      }) as TaxiVehicleExpense))
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load vehicle activity')
     }
