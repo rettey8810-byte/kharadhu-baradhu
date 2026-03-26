@@ -109,10 +109,15 @@ service cloud.firestore {
         allow delete: if isOwner(userId) || isAdmin();
       }
       
-      // User's loan payments
+      // User's loan payments - owner can read/write, shared users can create (for pending payments)
       match /loanPayments/{paymentId} {
         allow read: if isOwner(userId);
-        allow write: if isOwner(userId);
+        allow create: if isOwner(userId) || 
+          (isAuthenticated() && 
+           request.resource.data.added_by_user_id == request.auth.uid &&
+           request.resource.data.status == 'pending');
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
       }
       
       // User's bill reminders

@@ -906,51 +906,68 @@ export default function Loans() {
     if (!user || !showSharedPay || !sharedPayOwnerId) return
 
     const sharedLoan = sharedLoans.find(s => s.loan?.id === showSharedPay)
-    if (!sharedLoan || !sharedLoan.loan) return
+    if (!sharedLoan || !sharedLoan.loan) {
+      alert('Error: Shared loan not found')
+      return
+    }
 
     const amount = Number(paymentForm.amount)
+    if (!amount || amount <= 0) {
+      alert('Error: Please enter a valid amount')
+      return
+    }
+
     const loan = sharedLoan.loan
 
-    // Add PENDING payment record to the OWNER's loanPayments collection
-    // This payment needs to be approved by the loan owner
-    await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'loanPayments'), {
-      loan_id: showSharedPay,
-      profile_id: loan.profile_id,
-      payment_date: paymentForm.payment_date,
-      amount_paid: amount,
-      notes: paymentForm.notes || `Payment added by ${user.email}`,
-      installment_number: loan.installments_paid + 1,
-      status: 'pending',
-      added_by_user_id: user.uid,
-      added_by_email: user.email,
-      approved_by_user_id: null,
-      rejection_reason: null,
-      created_at: new Date().toISOString()
-    })
+    try {
+      // Add PENDING payment record to the OWNER's loanPayments collection
+      // This payment needs to be approved by the loan owner
+      await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'loanPayments'), {
+        loan_id: showSharedPay,
+        profile_id: loan.profile_id,
+        payment_date: paymentForm.payment_date,
+        amount_paid: amount,
+        notes: paymentForm.notes || `Payment added by ${user.email}`,
+        installment_number: loan.installments_paid + 1,
+        status: 'pending',
+        added_by_user_id: user.uid,
+        added_by_email: user.email,
+        approved_by_user_id: null,
+        rejection_reason: null,
+        created_at: new Date().toISOString()
+      })
 
-    // Add notification record for the owner
-    await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'notifications'), {
-      type: 'payment_pending',
-      title: 'New Payment Pending Approval',
-      message: `${user.email} added a payment of ${formatMVR(amount)} for loan "${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}"`,
-      loan_id: showSharedPay,
-      payment_amount: amount,
-      from_user_id: user.uid,
-      from_user_email: user.email,
-      status: 'unread',
-      created_at: new Date().toISOString()
-    })
+      // Add notification record for the owner
+      await addDoc(collection(firebaseDb, 'users', sharedPayOwnerId, 'notifications'), {
+        type: 'payment_pending',
+        title: 'New Payment Pending Approval',
+        message: `${user.email} added a payment of ${formatMVR(amount)} for loan "${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}"`,
+        loan_id: showSharedPay,
+        payment_amount: amount,
+        from_user_id: user.uid,
+        from_user_email: user.email,
+        status: 'unread',
+        created_at: new Date().toISOString()
+      })
 
-    setShowSharedPay(null)
-    setSharedPayOwnerId(null)
-    setPaymentForm({
-      amount: '',
-      payment_date: new Date().toISOString().slice(0, 10),
-      notes: '',
-      category_id: '',
-    })
-    alert('Payment submitted! The loan owner needs to approve it.')
-    loadSharedLoans()
+      setShowSharedPay(null)
+      setSharedPayOwnerId(null)
+      setPaymentForm({
+        amount: '',
+        payment_date: new Date().toISOString().slice(0, 10),
+        notes: '',
+        category_id: '',
+      })
+      alert('Payment submitted! The loan owner needs to approve it.')
+      loadSharedLoans()
+    } catch (error: any) {
+      console.error('Failed to submit shared payment:', error)
+      if (error.code === 'permission-denied') {
+        alert('Permission denied. Please make sure you have access to this loan.')
+      } else {
+        alert(`Error submitting payment: ${error.message}`)
+      }
+    }
   }
 
   // Accept a pending payment (called by loan owner)

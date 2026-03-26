@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
-import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
@@ -27,7 +26,6 @@ function formatMVR(value: number) {
 }
 
 export default function GroceryBills() {
-  const { currentProfile } = useProfile()
   const { user } = useAuth()
   const { t } = useLanguage()
   const [bills, setBills] = useState<BillWithItems[]>([])
@@ -37,36 +35,40 @@ export default function GroceryBills() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedShop, setSelectedShop] = useState<string>('all')
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([])
-  const [activeTab, setActiveTab] = useState<'bills' | 'compare'>('bills')
+  const [activeTab, setActiveTab] = useState<'bills' | 'compare' | 'search'>('bills')
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
+  const [searchItemResults, setSearchItemResults] = useState<Array<{
+    item: GroceryBillItem
+    bill: BillWithItems
+  }>>([])
 
   useEffect(() => {
-    if (user && currentProfile) {
+    if (user) {
       loadBills()
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user && currentProfile) {
+      if (document.visibilityState === 'visible' && user) {
         loadBills()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [currentProfile, user])
+  }, [user])
 
   const loadBills = async () => {
-    if (!user || !currentProfile) return
+    if (!user) return
     setLoading(true)
     setError(null)
     
     try {
-      console.log('Loading grocery bills for profile:', currentProfile.id)
+      console.log('Loading all grocery bills for user:', user.uid)
       
-      // Load grocery bills
+      // Load ALL grocery bills for this user (not filtered by profile)
+      // This ensures old bills from other profiles are still visible
       const billsQuery = query(
         collection(firebaseDb, 'users', user.uid, 'groceryBills'),
-        where('profile_id', '==', currentProfile.id),
         orderBy('bill_date', 'desc')
       )
       const billsSnap = await getDocs(billsQuery)
@@ -153,6 +155,34 @@ export default function GroceryBills() {
     return matchesMonth && matchesYear && matchesShop && matchesSearch
   })
 
+  // Build search item results when query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchItemResults([])
+      return
+    }
+    
+    const query = searchQuery.toLowerCase()
+    const results: Array<{item: GroceryBillItem, bill: BillWithItems}> = []
+    
+    bills.forEach(bill => {
+      bill.items?.forEach(item => {
+        if (item.item_name?.toLowerCase().includes(query)) {
+          results.push({ item, bill })
+        }
+      })
+    })
+    
+    // Sort by item name, then by date (newest first)
+    results.sort((a, b) => {
+      const nameCompare = a.item.item_name.localeCompare(b.item.item_name)
+      if (nameCompare !== 0) return nameCompare
+      return new Date(b.bill.bill_date || '').getTime() - new Date(a.bill.bill_date || '').getTime()
+    })
+    
+    setSearchItemResults(results)
+  }, [searchQuery, bills])
+
   if (loading) {
     return (
       <div className="p-4">
@@ -203,6 +233,13 @@ export default function GroceryBills() {
         >
           <TrendingDown size={16} className="inline mr-1" />
           {t('tab_compare') || 'Price Compare'}
+        </button>
+        <button
+          onClick={() => setActiveTab('search')}
+          className={`flex-1 py-2 text-sm rounded-lg ${activeTab === 'search' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+        >
+          <Search size={16} className="inline mr-1" />
+          Search
         </button>
       </div>
 
@@ -411,6 +448,60 @@ export default function GroceryBills() {
                   </div>
                 )
               })
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'search' && (
+        <>
+          {/* Search Input */}
+          <div className="bg-white rounded-xl p-3 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search for items..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Search Results */}
+          <div className="space-y-3">
+            {searchItemResults.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <Search size={48} className="mx-auto mb-3 opacity-50" />
+                <p>{searchQuery ? 'No items found' : 'Enter a search term to find items'}</p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 mb-2">
+                  Found {searchItemResults.length} item{searchItemResults.length !== 1 ? 's' : ''}
+                </p>
+                {searchItemResults.map(({ item, bill }, idx) => (
+                  <div key={`${item.id}-${idx}`} className="bg-white rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.item_name}</p>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                          <Store size={14} />
+                          <span>{bill.shop_name || 'Unknown Shop'}</span>
+                          <span>•</span>
+                          <Calendar size={14} />
+                          <span>{bill.bill_date || 'No date'}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-emerald-600">{formatMVR(item.unit_price || 0)}</p>
+                        {item.qty && <p className="text-xs text-gray-500">Qty: {item.qty}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </>
