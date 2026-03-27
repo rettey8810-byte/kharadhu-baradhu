@@ -302,6 +302,15 @@ export default function GroceryBills() {
     setSelectedItemIds(newSet)
   }
 
+  // Edit item state
+  const [editingItem, setEditingItem] = useState<GroceryBillItem | null>(null)
+  const [editItemForm, setEditItemForm] = useState({
+    item_name: '',
+    qty: '',
+    unit_price: '',
+    line_total: ''
+  })
+
   const selectAllItems = (bill: BillWithItems) => {
     if (selectedBillId === bill.id) {
       setSelectedItemIds(new Set())
@@ -310,6 +319,94 @@ export default function GroceryBills() {
       const allItemIds = new Set(bill.items?.map(i => i.id) || [])
       setSelectedItemIds(allItemIds)
       setSelectedBillId(bill.id)
+    }
+  }
+
+  const startEditingItem = (item: GroceryBillItem) => {
+    setEditingItem(item)
+    setEditItemForm({
+      item_name: item.item_name,
+      qty: String(item.qty || ''),
+      unit_price: String(item.unit_price || ''),
+      line_total: String(item.line_total || '')
+    })
+  }
+
+  const saveEditedItem = async () => {
+    if (!user || !editingItem) return
+    
+    try {
+      const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', editingItem.id)
+      const newQty = Number(editItemForm.qty) || 0
+      const newUnitPrice = Number(editItemForm.unit_price) || 0
+      const newLineTotal = newQty * newUnitPrice
+      
+      await updateDoc(itemRef, {
+        item_name: editItemForm.item_name,
+        qty: newQty,
+        unit_price: newUnitPrice,
+        line_total: newLineTotal
+      })
+      
+      // Update bill totals
+      const bill = bills.find(b => b.items?.some(i => i.id === editingItem.id))
+      if (bill) {
+        const updatedItems = bill.items?.map(i => 
+          i.id === editingItem.id 
+            ? { ...i, item_name: editItemForm.item_name, qty: newQty, unit_price: newUnitPrice, line_total: newLineTotal }
+            : i
+        ) || []
+        const newSubtotal = updatedItems.reduce((sum, i) => sum + (i.line_total || 0), 0)
+        const newTotal = newSubtotal + (bill.gst_amount || 0)
+        
+        const billRef = doc(firebaseDb, 'users', user.uid, 'groceryBills', bill.id)
+        await updateDoc(billRef, {
+          subtotal: newSubtotal,
+          total: newTotal
+        })
+      }
+      
+      setEditingItem(null)
+      await loadBills()
+      alert('Item updated successfully')
+    } catch (err) {
+      console.error('Error updating item:', err)
+      alert('Failed to update item')
+    }
+  }
+
+  const deleteItem = async (itemId: string) => {
+    if (!user) return
+    if (!confirm('Delete this item?')) return
+    
+    try {
+      // Find the bill this item belongs to
+      const bill = bills.find(b => b.items?.some(i => i.id === itemId))
+      if (!bill) return
+      
+      const batch = writeBatch(firebaseDb)
+      
+      // Delete the item
+      const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', itemId)
+      batch.delete(itemRef)
+      
+      // Update bill totals
+      const remainingItems = bill.items?.filter(i => i.id !== itemId) || []
+      const newSubtotal = remainingItems.reduce((sum, i) => sum + (i.line_total || 0), 0)
+      const newTotal = newSubtotal + (bill.gst_amount || 0)
+      
+      const billRef = doc(firebaseDb, 'users', user.uid, 'groceryBills', bill.id)
+      batch.update(billRef, {
+        subtotal: newSubtotal,
+        total: newTotal
+      })
+      
+      await batch.commit()
+      await loadBills()
+      alert('Item deleted and bill totals updated')
+    } catch (err) {
+      console.error('Error deleting item:', err)
+      alert('Failed to delete item')
     }
   }
 
@@ -512,6 +609,7 @@ export default function GroceryBills() {
                                 <th className="text-center pb-2">{t('th_qty') || 'Qty'}</th>
                                 <th className="text-right pb-2">{t('th_price') || 'Price'}</th>
                                 <th className="text-right pb-2">{t('th_total') || 'Total'}</th>
+                                <th className="text-center pb-2">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -521,22 +619,40 @@ export default function GroceryBills() {
                                   <td className="py-2 text-center text-gray-600">{item.qty}</td>
                                   <td className="py-2 text-right text-gray-600">{formatMVR(item.unit_price || 0)}</td>
                                   <td className="py-2 text-right font-medium">{formatMVR(item.line_total || 0)}</td>
+                                  <td className="py-2 text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <button
+                                        onClick={() => startEditingItem(item)}
+                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                        title="Edit item"
+                                      >
+                                        <Pencil size={14} />
+                                      </button>
+                                      <button
+                                        onClick={() => deleteItem(item.id)}
+                                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                        title="Delete item"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
                             <tfoot className="border-t-2 border-gray-200">
                               <tr>
-                                <td colSpan={3} className="pt-2 text-right text-gray-600">{t('label_subtotal') || 'Subtotal'}:</td>
+                                <td colSpan={4} className="pt-2 text-right text-gray-600">{t('label_subtotal') || 'Subtotal'}:</td>
                                 <td className="pt-2 text-right font-medium">{formatMVR(bill.subtotal || 0)}</td>
                               </tr>
                               {bill.gst_amount && bill.gst_amount > 0 && (
                                 <tr>
-                                  <td colSpan={3} className="text-right text-gray-600">{t('label_gst') || 'GST'}:</td>
+                                  <td colSpan={4} className="text-right text-gray-600">{t('label_gst') || 'GST'}:</td>
                                   <td className="text-right">{formatMVR(bill.gst_amount)}</td>
                                 </tr>
                               )}
                               <tr>
-                                <td colSpan={3} className="pt-1 text-right font-semibold text-gray-900">{t('label_total') || 'Total'}:</td>
+                                <td colSpan={4} className="pt-1 text-right font-semibold text-gray-900">{t('label_total') || 'Total'}:</td>
                                 <td className="pt-1 text-right font-bold text-emerald-600">{formatMVR(bill.total || 0)}</td>
                               </tr>
                             </tfoot>
@@ -868,6 +984,66 @@ export default function GroceryBills() {
               </button>
               <button
                 onClick={() => setEditingBill(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Edit Item</h3>
+              <button onClick={() => setEditingItem(null)}>
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                <input
+                  type="text"
+                  value={editItemForm.item_name}
+                  onChange={e => setEditItemForm({...editItemForm, item_name: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    value={editItemForm.qty}
+                    onChange={e => setEditItemForm({...editItemForm, qty: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price (MVR)</label>
+                  <input
+                    type="number"
+                    value={editItemForm.unit_price}
+                    onChange={e => setEditItemForm({...editItemForm, unit_price: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-4 border-t flex gap-2">
+              <button
+                onClick={saveEditedItem}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingItem(null)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg"
               >
                 Cancel
