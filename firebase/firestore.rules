@@ -120,6 +120,16 @@ service cloud.firestore {
         allow delete: if isOwner(userId);
       }
       
+      // User's notifications - owner can read/write, others can create notifications for the owner
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) || 
+          (isAuthenticated() && 
+           request.resource.data.from_user_id == request.auth.uid);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+      
       // User's bill reminders
       match /billReminders/{reminderId} {
         allow read: if isOwner(userId);

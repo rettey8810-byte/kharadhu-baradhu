@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, deleteDoc, doc, orderBy, writeBatch } from 'firebase/firestore'
+import { collection, query, where, getDocs, deleteDoc, doc, orderBy, writeBatch, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
-import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2 } from 'lucide-react'
+import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2, Pencil, X } from 'lucide-react'
 
 interface BillWithItems extends GroceryBill {
   items: GroceryBillItem[]
@@ -43,6 +43,16 @@ export default function GroceryBills() {
   const [targetBillId, setTargetBillId] = useState<string>('')
   const [isMoving, setIsMoving] = useState(false)
   const [searchItemResults, setSearchItemResults] = useState<Array<{item: GroceryBillItem, bill: BillWithItems}>>([])
+  
+  // Edit bill state
+  const [editingBill, setEditingBill] = useState<BillWithItems | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    shop_name: '',
+    bill_date: '',
+    total: '',
+    subtotal: '',
+    gst_amount: ''
+  })
 
   useEffect(() => {
     if (user) {
@@ -217,10 +227,17 @@ export default function GroceryBills() {
   const deleteBill = async (billId: string) => {
     if (!user) return
     
+    const bill = bills.find(b => b.id === billId)
+    const itemCount = bill?.items?.length || 0
+    const confirmMsg = itemCount > 0 
+      ? `Delete this bill and ${itemCount} items? This cannot be undone.`
+      : 'Delete this empty bill?'
+    
+    if (!confirm(confirmMsg)) return
+    
     try {
       const batch = writeBatch(firebaseDb)
       
-      const bill = bills.find(b => b.id === billId)
       if (bill?.items) {
         for (const item of bill.items) {
           const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', item.id)
@@ -239,6 +256,39 @@ export default function GroceryBills() {
     } catch (err) {
       console.error('Error deleting bill:', err)
       alert('Failed to delete bill')
+    }
+  }
+
+  const startEditingBill = (bill: BillWithItems) => {
+    setEditingBill(bill)
+    setEditFormData({
+      shop_name: bill.shop_name || '',
+      bill_date: bill.bill_date || '',
+      total: String(bill.total || ''),
+      subtotal: String(bill.subtotal || ''),
+      gst_amount: String(bill.gst_amount || '')
+    })
+  }
+
+  const saveEditedBill = async () => {
+    if (!user || !editingBill) return
+    
+    try {
+      const billRef = doc(firebaseDb, 'users', user.uid, 'groceryBills', editingBill.id)
+      await updateDoc(billRef, {
+        shop_name: editFormData.shop_name,
+        bill_date: editFormData.bill_date,
+        total: Number(editFormData.total),
+        subtotal: Number(editFormData.subtotal),
+        gst_amount: Number(editFormData.gst_amount) || 0
+      })
+      
+      setEditingBill(null)
+      await loadBills()
+      alert('Bill updated successfully')
+    } catch (err) {
+      console.error('Error updating bill:', err)
+      alert('Failed to update bill')
     }
   }
 
@@ -425,6 +475,29 @@ export default function GroceryBills() {
                           <p className="font-bold text-gray-900">{formatMVR(bill.total || 0)}</p>
                           {isExpanded ? <ChevronUp size={20} className="text-gray-400 ml-auto" /> : <ChevronDown size={20} className="text-gray-400 ml-auto" />}
                         </div>
+                      </div>
+                      {/* Edit/Delete buttons for this bill */}
+                      <div className="flex items-center gap-2 mt-3 ml-13 pl-12">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            startEditingBill(bill)
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteBill(bill.id)
+                          }}
+                          className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
                       </div>
                     </button>
 
@@ -728,6 +801,80 @@ export default function GroceryBills() {
             )}
           </div>
         </>
+      )}
+      {/* Edit Modal */}
+      {editingBill && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold text-lg">Edit Bill</h3>
+              <button onClick={() => setEditingBill(null)}>
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+                <input
+                  type="text"
+                  value={editFormData.shop_name}
+                  onChange={e => setEditFormData({...editFormData, shop_name: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bill Date</label>
+                <input
+                  type="date"
+                  value={editFormData.bill_date}
+                  onChange={e => setEditFormData({...editFormData, bill_date: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subtotal (MVR)</label>
+                <input
+                  type="number"
+                  value={editFormData.subtotal}
+                  onChange={e => setEditFormData({...editFormData, subtotal: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">GST Amount (MVR)</label>
+                <input
+                  type="number"
+                  value={editFormData.gst_amount}
+                  onChange={e => setEditFormData({...editFormData, gst_amount: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total (MVR)</label>
+                <input
+                  type="number"
+                  value={editFormData.total}
+                  onChange={e => setEditFormData({...editFormData, total: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t flex gap-2">
+              <button
+                onClick={saveEditedBill}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingBill(null)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
