@@ -32,6 +32,7 @@ export default function AddTransaction() {
   const [, setReceipt] = useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrText, setOcrText] = useState<string | null>(null)
@@ -773,6 +774,14 @@ export default function AddTransaction() {
             ref={fileInputRef}
             type="file"
             accept="image/*"
+            capture="environment"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -789,14 +798,24 @@ export default function AddTransaction() {
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-2 w-full py-8 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center gap-2 text-gray-500 hover:border-emerald-400 hover:text-emerald-600"
-            >
-              <Camera size={24} />
-              <span className="text-sm">{t('form_tap_add_receipt')}</span>
-            </button>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="py-6 border-2 border-dashed border-emerald-300 rounded-lg flex flex-col items-center gap-2 text-emerald-600 hover:bg-emerald-50"
+              >
+                <Camera size={24} />
+                <span className="text-sm font-medium">Scan with Camera</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="py-6 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center gap-2 text-gray-500 hover:border-gray-400 hover:text-gray-600"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+                <span className="text-sm">From Gallery</span>
+              </button>
+            </div>
           )}
         </div>
 
