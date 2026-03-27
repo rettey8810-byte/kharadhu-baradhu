@@ -29,6 +29,7 @@ import Taxi from './pages/Taxi'
 import MT5 from './pages/MT5'
 import QRCode from './pages/QRCode'
 import AdminDashboard from './pages/AdminDashboard'
+import ContactUs from './pages/ContactUs'
 
 function App() {
   const { user, loading } = useAuth()
@@ -78,6 +79,7 @@ function App() {
                   <Route path="/grocery-bills" element={<GroceryBills />} />
                   <Route path="/qr-code" element={<QRCode />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/contact" element={<ContactUs />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

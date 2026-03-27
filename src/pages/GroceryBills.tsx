@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, orderBy, writeBatch } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
-import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package } from 'lucide-react'
+import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2, Check, X } from 'lucide-react'
 
 interface BillWithItems extends GroceryBill {
   items: GroceryBillItem[]
@@ -35,13 +35,17 @@ export default function GroceryBills() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedShop, setSelectedShop] = useState<string>('all')
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([])
-  const [activeTab, setActiveTab] = useState<'bills' | 'compare' | 'search'>('bills')
+  const [activeTab, setActiveTab] = useState<'bills' | 'compare' | 'search' | 'manage'>('bills')
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
-  const [searchItemResults, setSearchItemResults] = useState<Array<{
-    item: GroceryBillItem
-    bill: BillWithItems
-  }>>([])
+  // Manage mode states
+  const [manageMode, setManageMode] = useState(false)
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null)
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
+  const [targetBillId, setTargetBillId] = useState<string>('')
+  const [isMoving, setIsMoving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  const [searchItemResults, setSearchItemResults] = useState<Array<{item: GroceryBillItem, bill: BillWithItems}>>([])
 
   useEffect(() => {
     if (user) {
@@ -183,6 +187,106 @@ export default function GroceryBills() {
     setSearchItemResults(results)
   }, [searchQuery, bills])
 
+  // Move selected items to target bill
+  const moveItems = async () => {
+    if (!user || !selectedBillId || !targetBillId || selectedItemIds.size === 0) return
+    
+    setIsMoving(true)
+    try {
+      const batch = writeBatch(firebaseDb)
+      
+      // Update each selected item to point to target bill
+      for (const itemId of selectedItemIds) {
+        const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', itemId)
+        batch.update(itemRef, { grocery_bill_id: targetBillId })
+      }
+      
+      await batch.commit()
+      
+      // Check if source bill is now empty
+      const sourceBill = bills.find(b => b.id === selectedBillId)
+      const remainingItems = sourceBill?.items?.filter(i => !selectedItemIds.has(i.id)) || []
+      
+      if (remainingItems.length === 0) {
+        // Delete empty bill
+        await deleteDoc(doc(firebaseDb, 'users', user.uid, 'groceryBills', selectedBillId))
+        console.log('Deleted empty bill:', selectedBillId)
+      }
+      
+      // Reset selection
+      setSelectedItemIds(new Set())
+      setSelectedBillId(null)
+      setTargetBillId('')
+      
+      // Reload bills
+      await loadBills()
+      
+      alert(`Moved ${selectedItemIds.size} items. ${remainingItems.length === 0 ? 'Empty bill deleted.' : ''}`)
+    } catch (err) {
+      console.error('Error moving items:', err)
+      alert('Failed to move items')
+    } finally {
+      setIsMoving(false)
+    }
+  }
+
+  // Delete a bill and all its items
+  const deleteBill = async (billId: string) => {
+    if (!user) return
+    
+    try {
+      const batch = writeBatch(firebaseDb)
+      
+      // Delete all items for this bill
+      const bill = bills.find(b => b.id === billId)
+      if (bill?.items) {
+        for (const item of bill.items) {
+          const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', item.id)
+          batch.delete(itemRef)
+        }
+      }
+      
+      // Delete the bill
+      const billRef = doc(firebaseDb, 'users', user.uid, 'groceryBills', billId)
+      batch.delete(billRef)
+      
+      await batch.commit()
+      
+      setShowDeleteConfirm(null)
+      await loadBills()
+      
+      alert('Bill deleted successfully')
+    } catch (err) {
+      console.error('Error deleting bill:', err)
+      alert('Failed to delete bill')
+    }
+  }
+
+  // Toggle item selection
+  const toggleItemSelection = (itemId: string) => {
+    const newSet = new Set(selectedItemIds)
+    if (newSet.has(itemId)) {
+      newSet.delete(itemId)
+    } else {
+      newSet.add(itemId)
+    }
+    setSelectedItemIds(newSet)
+  }
+
+  // Select all items in a bill
+  const selectAllItems = (bill: BillWithItems) => {
+    if (selectedBillId === bill.id) {
+      // Deselect all
+      setSelectedItemIds(new Set())
+      setSelectedBillId(null)
+    } else {
+      // Select all items in this bill
+      const allItemIds = new Set(bill.items?.map(i => i.id) || [])
+      setSelectedItemIds(allItemIds)
+      setSelectedBillId(bill.id)
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-4">
@@ -241,7 +345,13 @@ export default function GroceryBills() {
           <Search size={16} className="inline mr-1" />
           Search
         </button>
-      </div>
+        <button
+          onClick={() => setActiveTab('manage')}
+          className={`flex-1 py-2 text-sm rounded-lg ${activeTab === 'manage' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+        >
+          <ArrowRight size={16} className="inline mr-1" />
+          Manage
+        </button>
 
       {activeTab === 'bills' && (
         <>
@@ -505,7 +615,143 @@ export default function GroceryBills() {
             )}
           </div>
         </>
+      {activeTab === 'manage' && (
+        <>
+          {/* Manage Instructions */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+            <p className="text-sm text-amber-800">
+              <strong>Move Items:</strong> Select items from one bill and move them to another. 
+              If a bill becomes empty, it will be auto-deleted.
+            </p>
+          </div>
+
+          {/* Bills to Manage */}
+          <div className="space-y-3">
+            {bills.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">
+                <Receipt size={48} className="mx-auto mb-3 opacity-50" />
+                <p>No bills to manage</p>
+              </div>
+            ) : (
+              bills.map(bill => {
+                const isSelected = selectedBillId === bill.id
+                const hasItems = (bill.items?.length || 0) > 0
+
+                return (
+                  <div key={bill.id} className={`bg-white rounded-xl overflow-hidden border-2 ${isSelected ? 'border-amber-400' : 'border-transparent'}`}>
+                    {/* Bill Header */}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                            <Store size={20} className="text-emerald-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{bill.shop_name || 'Unknown Shop'}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Calendar size={12} />
+                              <span>{bill.bill_date || 'No date'}</span>
+                              <span>•</span>
+                              <Package size={12} />
+                              <span>{bill.items?.length || 0} items</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-900">{formatMVR(bill.total || 0)}</p>
+                          {hasItems && (
+                            <button
+                              onClick={() => selectAllItems(bill)}
+                              className={`px-3 py-1 text-sm rounded-lg ${isSelected ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                              {isSelected ? 'Deselect' : 'Select All'}
+                            </button>
+                          )}
+                          {!hasItems && (
+                            <button
+                              onClick={() => deleteBill(bill.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Delete empty bill"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Items with Checkboxes */}
+                      {hasItems && (
+                        <div className="space-y-2">
+                          {bill.items?.map(item => (
+                            <label key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                              <input
+                                type="checkbox"
+                                checked={selectedItemIds.has(item.id)}
+                                onChange={() => toggleItemSelection(item.id)}
+                                disabled={selectedBillId !== null && selectedBillId !== bill.id}
+                                className="w-4 h-4 text-amber-600 rounded"
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{item.item_name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {item.qty} x {formatMVR(item.unit_price || 0)}
+                                </p>
+                              </div>
+                              <p className="text-sm font-semibold text-gray-700">{formatMVR(item.line_total || 0)}</p>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Move Controls for Selected Bill */}
+                      {isSelected && selectedItemIds.size > 0 && (
+                        <div className="mt-4 p-3 bg-amber-50 rounded-lg space-y-3">
+                          <p className="text-sm font-medium text-amber-900">
+                            {selectedItemIds.size} item(s) selected
+                          </p>
+                          <select
+                            value={targetBillId}
+                            onChange={e => setTargetBillId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                          >
+                            <option value="">Select target bill...</option>
+                            {bills.filter(b => b.id !== bill.id).map(b => (
+                              <option key={b.id} value={b.id}>
+                                {b.shop_name} ({b.bill_date}) - {b.items?.length || 0} items
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={moveItems}
+                              disabled={!targetBillId || isMoving}
+                              className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            >
+                              {isMoving ? 'Moving...' : 'Move Items'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedItemIds(new Set())
+                                setSelectedBillId(null)
+                                setTargetBillId('')
+                              }}
+                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </>
       )}
-    </div>
-  )
-}
+            ) } 
+         < / d i v > 
+     ) 
+ }  
+ 

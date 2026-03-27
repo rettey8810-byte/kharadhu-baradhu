@@ -49,9 +49,9 @@ async function deleteEmptyBills() {
   }
 
   // Show empty bills
-  for (const b of emptyBills) {
-    const merged = b.is_merged ? ' [MERGED]' : '';
-    console.log(`  - ${b.shop_name} | ${b.bill_date} | MVR ${b.total}${merged} | ID: ${b.id}`);
+  for (const emptyBill of emptyBills) {
+    const merged = emptyBill.is_merged ? ' [MERGED]' : '';
+    console.log(`  - ${emptyBill.shop_name} | ${emptyBill.bill_date} | MVR ${emptyBill.total}${merged} | ID: ${emptyBill.id}`);
   }
 
   console.log(`\nDeleting ${emptyBills.length} empty bills...\n`);
