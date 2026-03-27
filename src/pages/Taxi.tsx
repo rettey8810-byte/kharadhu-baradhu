@@ -350,6 +350,16 @@ export default function Taxi() {
     // Average per trip
     const avgPerTrip = totalTrips > 0 ? overallIncome / totalTrips : 0
 
+    const minExpenseDate = normalizedExpenses
+      .map(e => e.expense_date)
+      .filter(Boolean)
+      .sort()[0] || ''
+    const maxExpenseDate = normalizedExpenses
+      .map(e => e.expense_date)
+      .filter(Boolean)
+      .sort()
+      .slice(-1)[0] || ''
+
     return {
       dayIncome,
       dayExpense,
@@ -372,6 +382,14 @@ export default function Taxi() {
       weekExpense,
       weekProfit: weekIncome - weekExpense,
       avgPerTrip,
+      debug: {
+        tripsCount: trips.length,
+        expensesCount: expenses.length,
+        minExpenseDate,
+        maxExpenseDate,
+        overallExpense,
+        weekExpense,
+      },
     }
   }, [trips, expenses])
 
@@ -764,6 +782,30 @@ export default function Taxi() {
           </p>
         </div>
       </div>
+
+      {stats.debug && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-2">Debug</h3>
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-700">
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-gray-500">Trips loaded</div>
+              <div className="font-semibold">{stats.debug.tripsCount}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-gray-500">Expenses loaded</div>
+              <div className="font-semibold">{stats.debug.expensesCount}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-gray-500">Expense date range</div>
+              <div className="font-semibold">{stats.debug.minExpenseDate || '-'} → {stats.debug.maxExpenseDate || '-'}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="text-gray-500">Overall vs 7D expense</div>
+              <div className="font-semibold">{formatMVR(stats.debug.overallExpense)} / {formatMVR(stats.debug.weekExpense)}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {vehicles.length === 0 ? (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
