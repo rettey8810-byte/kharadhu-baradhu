@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-03-27
+
+### Added
+- **Contact Us Page** - New page to contact developer (Rettey Gasim) with email, WhatsApp, Viber, and phone
+- **Grocery Bills Management** - Manage tab to move items between bills and auto-delete empty bills
+- **Debug Panel for Taxi** - Added debug info on Taxi page showing loaded trips, expenses, date ranges, and calculations
+- **Migration Scripts** - Created scripts for data cleanup and migration:
+  - `migrate-grocery-items.js` - Import grocery items from CSV
+  - `migrate-taxi-expenses.cjs` - Import taxi expenses from JSON
+  - `merge-duplicate-grocery-bills.cjs` - Merge duplicate bills
+  - `rename-shop.cjs` - Rename shop names in database
+  - `delete-empty-bills.cjs` - Delete bills with no items
+  - `check-shop-names.cjs` - List all shops for diagnostics
+
+### Fixed
+- **Taxi Statistics** - Fixed All Time Expenses calculation (was showing ~MVR 584, now correctly shows ~MVR 1,149)
+  - Removed 30-item limit on data loading
+  - Migrated all 9 historical taxi expenses from JSON export to Firestore
+- **Grocery Bills** - Fixed missing old bill items
+  - Migrated items from CSV export to Firestore
+  - Merged duplicate bills using shop+date+total key
+  - Fixed shop name issues (Dharavandhoo → Ufanveli)
+  - Removed empty bills after merging
+- **GroceryBills.tsx Syntax** - Fixed JSX syntax errors causing build failure
+
+### Data Migration Summary
+- **Taxi Expenses**: 9 expenses migrated from JSON
+- **Grocery Bills**: Multiple bills merged and cleaned
+- **Shop Names**: All "Dharavandhoo" entries renamed to "Ufanveli"
+- **Items**: CSV items mapped to correct Firestore bills
+
+---
+
 ## [2.0.0] - 2026-03-24
 
 ### Changed - Firebase Migration (Major Backend Change)

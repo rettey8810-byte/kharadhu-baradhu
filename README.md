@@ -81,13 +81,14 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Profit Summary** - Day-to-Date, Month-to-Date, Year-to-Date, and Overall profit/loss
 - **Connected to Main System** - Trades and expenses create linked transactions for full reporting
 
-### Grocery Receipt OCR
-- **Supabase Auth** - Email/password and OAuth sign-in
-- **Row Level Security** - Your data is private and secure
+### Grocery Receipt OCR (NEW!)
+- **Receipt Scanning** - OCR to extract items from receipts using Tesseract.js
+- **Price Comparison** - Compare prices for the same item across different shops
+- **Shop Filter** - Filter bills by shop name
+- **Item Search** - Search for specific items across all bills
+- **Bill Management** - Move items between bills, auto-delete empty bills
+- **Manage Tab** - Select and move items to correct bills
 - **Real-time Updates** - Live sync across devices
-- **PWA Ready** - Install as mobile app
-- **Responsive Design** - Works on mobile, tablet, desktop
-- **Maldives Currency** - MVR (Maldivian Rufiyaa) support
 
 ### Recurring Automation
 
@@ -283,6 +284,8 @@ You will also see an **Install banner** at the top of the Dashboard when your de
 - [x] **Loans tracking** (NEW!)
 - [x] **Taxi management** (NEW!)
 - [x] **MetaTrader 5 trading** (NEW!)
+- [x] **Grocery Bill Management** - Move items between bills, auto-delete empty bills (NEW!)
+- [x] **Contact Developer** - Direct support via WhatsApp, Viber, Email (NEW!)
 
 ### Upcoming
 - [ ] Multi-currency support
@@ -297,9 +300,15 @@ MIT License - see [LICENSE](./LICENSE) file
 
 ---
 
-## Contact & Support
+### Contact & Support
+
+**Developer:** Rettey Gasim  
+**Email:** retey.ay@hotmail.com  
+**WhatsApp:** +9609795529  
+**Viber:** +9609795529  
 
 - **Issues:** [GitHub Issues](https://github.com/rettey8810-byte/kharadhu-baradhu/issues)
+- **Contact Page:** Access from app menu → "Contact Us"
 
 ---
 

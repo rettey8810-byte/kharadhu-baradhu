@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, updateDoc, deleteDoc, doc, orderBy, writeBatch } from 'firebase/firestore'
+import { collection, query, where, getDocs, deleteDoc, doc, orderBy, writeBatch } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
-import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2, Check, X } from 'lucide-react'
+import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2 } from 'lucide-react'
 
 interface BillWithItems extends GroceryBill {
   items: GroceryBillItem[]
@@ -38,13 +38,10 @@ export default function GroceryBills() {
   const [activeTab, setActiveTab] = useState<'bills' | 'compare' | 'search' | 'manage'>('bills')
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all')
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all')
-  // Manage mode states
-  const [manageMode, setManageMode] = useState(false)
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null)
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
   const [targetBillId, setTargetBillId] = useState<string>('')
   const [isMoving, setIsMoving] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [searchItemResults, setSearchItemResults] = useState<Array<{item: GroceryBillItem, bill: BillWithItems}>>([])
 
   useEffect(() => {
@@ -69,8 +66,6 @@ export default function GroceryBills() {
     try {
       console.log('Loading all grocery bills for user:', user.uid)
       
-      // Load ALL grocery bills for this user (not filtered by profile)
-      // This ensures old bills from other profiles are still visible
       const billsQuery = query(
         collection(firebaseDb, 'users', user.uid, 'groceryBills'),
         orderBy('bill_date', 'desc')
@@ -78,7 +73,6 @@ export default function GroceryBills() {
       const billsSnap = await getDocs(billsQuery)
       console.log('Found', billsSnap.docs.length, 'grocery bills')
 
-      // Load items for each bill
       const billsWithItems: BillWithItems[] = []
       for (const billDoc of billsSnap.docs) {
         const bill = { id: billDoc.id, ...billDoc.data() } as GroceryBill
@@ -137,7 +131,6 @@ export default function GroceryBills() {
       })
     })
 
-    // Filter items that appear in multiple shops
     const comparisons = Array.from(itemMap.values())
       .filter(c => c.shops.length > 1)
       .sort((a, b) => (b.mostExpensivePrice - b.cheapestPrice) - (a.mostExpensivePrice - a.cheapestPrice))
@@ -147,7 +140,6 @@ export default function GroceryBills() {
 
   const uniqueShops = Array.from(new Set(bills.map(b => b.shop_name).filter(Boolean)))
 
-  // Filter bills by selected month/year
   const filteredBills = bills.filter(bill => {
     const billDate = new Date(bill.bill_date || '')
     const matchesMonth = selectedMonth === 'all' || billDate.getMonth() === selectedMonth
@@ -159,7 +151,6 @@ export default function GroceryBills() {
     return matchesMonth && matchesYear && matchesShop && matchesSearch
   })
 
-  // Build search item results when query changes
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchItemResults([])
@@ -177,7 +168,6 @@ export default function GroceryBills() {
       })
     })
     
-    // Sort by item name, then by date (newest first)
     results.sort((a, b) => {
       const nameCompare = a.item.item_name.localeCompare(b.item.item_name)
       if (nameCompare !== 0) return nameCompare
@@ -187,7 +177,6 @@ export default function GroceryBills() {
     setSearchItemResults(results)
   }, [searchQuery, bills])
 
-  // Move selected items to target bill
   const moveItems = async () => {
     if (!user || !selectedBillId || !targetBillId || selectedItemIds.size === 0) return
     
@@ -195,7 +184,6 @@ export default function GroceryBills() {
     try {
       const batch = writeBatch(firebaseDb)
       
-      // Update each selected item to point to target bill
       for (const itemId of selectedItemIds) {
         const itemRef = doc(firebaseDb, 'users', user.uid, 'groceryBillItems', itemId)
         batch.update(itemRef, { grocery_bill_id: targetBillId })
@@ -203,22 +191,18 @@ export default function GroceryBills() {
       
       await batch.commit()
       
-      // Check if source bill is now empty
       const sourceBill = bills.find(b => b.id === selectedBillId)
       const remainingItems = sourceBill?.items?.filter(i => !selectedItemIds.has(i.id)) || []
       
       if (remainingItems.length === 0) {
-        // Delete empty bill
         await deleteDoc(doc(firebaseDb, 'users', user.uid, 'groceryBills', selectedBillId))
         console.log('Deleted empty bill:', selectedBillId)
       }
       
-      // Reset selection
       setSelectedItemIds(new Set())
       setSelectedBillId(null)
       setTargetBillId('')
       
-      // Reload bills
       await loadBills()
       
       alert(`Moved ${selectedItemIds.size} items. ${remainingItems.length === 0 ? 'Empty bill deleted.' : ''}`)
@@ -230,14 +214,12 @@ export default function GroceryBills() {
     }
   }
 
-  // Delete a bill and all its items
   const deleteBill = async (billId: string) => {
     if (!user) return
     
     try {
       const batch = writeBatch(firebaseDb)
       
-      // Delete all items for this bill
       const bill = bills.find(b => b.id === billId)
       if (bill?.items) {
         for (const item of bill.items) {
@@ -246,13 +228,11 @@ export default function GroceryBills() {
         }
       }
       
-      // Delete the bill
       const billRef = doc(firebaseDb, 'users', user.uid, 'groceryBills', billId)
       batch.delete(billRef)
       
       await batch.commit()
       
-      setShowDeleteConfirm(null)
       await loadBills()
       
       alert('Bill deleted successfully')
@@ -262,7 +242,6 @@ export default function GroceryBills() {
     }
   }
 
-  // Toggle item selection
   const toggleItemSelection = (itemId: string) => {
     const newSet = new Set(selectedItemIds)
     if (newSet.has(itemId)) {
@@ -273,14 +252,11 @@ export default function GroceryBills() {
     setSelectedItemIds(newSet)
   }
 
-  // Select all items in a bill
   const selectAllItems = (bill: BillWithItems) => {
     if (selectedBillId === bill.id) {
-      // Deselect all
       setSelectedItemIds(new Set())
       setSelectedBillId(null)
     } else {
-      // Select all items in this bill
       const allItemIds = new Set(bill.items?.map(i => i.id) || [])
       setSelectedItemIds(allItemIds)
       setSelectedBillId(bill.id)
@@ -352,6 +328,7 @@ export default function GroceryBills() {
           <ArrowRight size={16} className="inline mr-1" />
           Manage
         </button>
+      </div>
 
       {activeTab === 'bills' && (
         <>
@@ -615,6 +592,8 @@ export default function GroceryBills() {
             )}
           </div>
         </>
+      )}
+
       {activeTab === 'manage' && (
         <>
           {/* Manage Instructions */}
@@ -750,8 +729,6 @@ export default function GroceryBills() {
           </div>
         </>
       )}
-            ) } 
-         < / d i v > 
-     ) 
- }  
- 
+    </div>
+  )
+}
