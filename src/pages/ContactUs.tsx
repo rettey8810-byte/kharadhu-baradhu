@@ -1,9 +1,6 @@
-import { useLanguage } from '../hooks/useLanguage'
 import { Mail, Phone, MessageCircle, User, ExternalLink } from 'lucide-react'
 
 export default function ContactUs() {
-  const { t } = useLanguage()
-
   const developer = {
     name: 'Rettey Gasim',
     email: 'retey.ay@hotmail.com',
@@ -16,9 +13,9 @@ export default function ContactUs() {
     <div className="p-4 pb-24">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('contact_us') || 'Contact Us'}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Contact Us</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {t('contact_subtitle') || 'Get in touch with the developer for support or feedback'}
+          Get in touch with the developer for support or feedback
         </p>
       </div>
 
@@ -30,7 +27,7 @@ export default function ContactUs() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">{developer.name}</h2>
-            <p className="text-sm text-gray-500">{t('developer') || 'Developer'}</p>
+            <p className="text-sm text-gray-500">Developer</p>
           </div>
         </div>
 
@@ -45,7 +42,7 @@ export default function ContactUs() {
               <Mail size={20} className="text-blue-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-500">{t('email') || 'Email'}</p>
+              <p className="text-sm text-gray-500">Email</p>
               <p className="font-medium text-gray-900">{developer.email}</p>
             </div>
             <ExternalLink size={16} className="text-gray-400" />
@@ -60,7 +57,7 @@ export default function ContactUs() {
               <Phone size={20} className="text-green-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-500">{t('phone') || 'Phone'}</p>
+              <p className="text-sm text-gray-500">Phone</p>
               <p className="font-medium text-gray-900">{developer.phone}</p>
             </div>
             <ExternalLink size={16} className="text-gray-400" />
@@ -77,7 +74,7 @@ export default function ContactUs() {
               <MessageCircle size={20} className="text-emerald-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-500">{t('whatsapp') || 'WhatsApp'}</p>
+              <p className="text-sm text-gray-500">WhatsApp</p>
               <p className="font-medium text-gray-900">{developer.whatsapp}</p>
             </div>
             <ExternalLink size={16} className="text-gray-400" />
@@ -92,7 +89,7 @@ export default function ContactUs() {
               <MessageCircle size={20} className="text-purple-600" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-500">{t('viber') || 'Viber'}</p>
+              <p className="text-sm text-gray-500">Viber</p>
               <p className="font-medium text-gray-900">{developer.viber}</p>
             </div>
             <ExternalLink size={16} className="text-gray-400" />
@@ -102,11 +99,9 @@ export default function ContactUs() {
 
       {/* Quick Actions */}
       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-        <h3 className="font-semibold text-emerald-900 mb-2">
-          {t('quick_contact') || 'Quick Contact'}
-        </h3>
+        <h3 className="font-semibold text-emerald-900 mb-2">Quick Contact</h3>
         <p className="text-sm text-emerald-700 mb-4">
-          {t('contact_description') || 'Need help? Click any option above to contact the developer directly.'}
+          Need help? Click any option above to contact the developer directly.
         </p>
         <div className="flex flex-wrap gap-2">
           <a
