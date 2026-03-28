@@ -528,7 +528,8 @@ export default function Loans() {
         )
         const pendingSnap = await getDocs(myPendingQuery)
         pendingSnap.docs.forEach(d => {
-          allMyPending.push({ id: d.id, ...d.data(), owner_user_id: ownerId } as LoanPayment)
+          const paymentData = d.data() as LoanPayment
+          allMyPending.push({ ...paymentData, id: d.id, owner_user_id: ownerId })
         })
       }
       
@@ -629,11 +630,10 @@ export default function Loans() {
           orderBy('payment_date', 'desc')
         )
         const paySnap = await getDocs(payQuery)
-        sharedPaymentsMap[shared.loan_id] = paySnap.docs.map(d => ({ 
-          id: d.id, 
-          ...d.data(),
-          owner_user_id: shared.owner_user_id 
-        }) as LoanPayment)
+        sharedPaymentsMap[shared.loan_id] = paySnap.docs.map(d => {
+          const paymentData = d.data() as LoanPayment
+          return { ...paymentData, id: d.id, owner_user_id: shared.owner_user_id }
+        })
       }
     }
     
