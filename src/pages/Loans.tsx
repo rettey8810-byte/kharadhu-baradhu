@@ -424,6 +424,10 @@ export default function Loans() {
   const [showSharedPay, setShowSharedPay] = useState<string | null>(null)
   const [sharedPayOwnerId, setSharedPayOwnerId] = useState<string | null>(null)
   const [pendingPayments, setPendingPayments] = useState<LoanPayment[]>([])
+  // Track payments I submitted that are waiting for approval
+  const [myPendingSubmissions, setMyPendingSubmissions] = useState<LoanPayment[]>([])
+  // Store payment history for shared loans (from owners' collections)
+  const [sharedPayments, setSharedPayments] = useState<Record<string, LoanPayment[]>>({})
 
   useEffect(() => {
     if (user && currentProfile) {
@@ -476,7 +480,7 @@ export default function Loans() {
     }
   }, [user])
 
-  // Real-time listener for pending shared loan payments
+  // Real-time listener for pending shared loan payments (need my approval)
   useEffect(() => {
     if (!user) return
 
@@ -492,6 +496,51 @@ export default function Loans() {
 
     return () => unsubPending()
   }, [user])
+
+  // Real-time listener for my pending payment submissions (waiting for owner approval)
+  useEffect(() => {
+    if (!user) return
+
+    // We need to check all loanShares where I'm the shared user and load payments I added
+    const loadMyPendingSubmissions = async () => {
+      // Get all shared loans where I'm the shared user
+      const sharesQuery = query(
+        collection(firebaseDb, 'loanShares'),
+        where('shared_with_user_id', '==', user.uid),
+        where('status', '==', 'accepted')
+      )
+      const sharesSnap = await getDocs(sharesQuery)
+      
+      const allMyPending: LoanPayment[] = []
+      
+      // For each shared loan, check the owner's loanPayments for payments I added
+      for (const shareDoc of sharesSnap.docs) {
+        const share = shareDoc.data() as SharedLoan
+        const ownerId = share.owner_user_id
+        const loanId = share.loan_id
+        
+        // Query owner's loanPayments for payments I added to this loan that are pending
+        const myPendingQuery = query(
+          collection(firebaseDb, 'users', ownerId, 'loanPayments'),
+          where('loan_id', '==', loanId),
+          where('added_by_user_id', '==', user.uid),
+          where('status', '==', 'pending')
+        )
+        const pendingSnap = await getDocs(myPendingQuery)
+        pendingSnap.docs.forEach(d => {
+          allMyPending.push({ id: d.id, ...d.data(), owner_user_id: ownerId } as LoanPayment)
+        })
+      }
+      
+      setMyPendingSubmissions(allMyPending)
+    }
+
+    loadMyPendingSubmissions()
+    
+    // Set up a timer to refresh this data periodically (every 30 seconds)
+    const interval = setInterval(loadMyPendingSubmissions, 30000)
+    return () => clearInterval(interval)
+  }, [user, sharedLoans])
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -560,8 +609,10 @@ export default function Loans() {
     const sharedSnap = await getDocs(sharedQuery)
     const sharedData = sharedSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedLoan)
     
-    // Load the actual loan data for each shared loan
+    // Load the actual loan data and payment history for each shared loan
     const loansWithData: SharedLoan[] = []
+    const sharedPaymentsMap: Record<string, LoanPayment[]> = {}
+    
     for (const shared of sharedData) {
       const loanRef = doc(firebaseDb, 'users', shared.owner_user_id, 'loans', shared.loan_id)
       const loanSnap = await getDoc(loanRef)
@@ -570,10 +621,24 @@ export default function Loans() {
           ...shared,
           loan: { id: loanSnap.id, ...loanSnap.data() } as Loan
         })
+        
+        // Load payment history from owner's collection for this shared loan
+        const payQuery = query(
+          collection(firebaseDb, 'users', shared.owner_user_id, 'loanPayments'),
+          where('loan_id', '==', shared.loan_id),
+          orderBy('payment_date', 'desc')
+        )
+        const paySnap = await getDocs(payQuery)
+        sharedPaymentsMap[shared.loan_id] = paySnap.docs.map(d => ({ 
+          id: d.id, 
+          ...d.data(),
+          owner_user_id: shared.owner_user_id 
+        }) as LoanPayment)
       }
     }
     
     setSharedLoans(loansWithData)
+    setSharedPayments(sharedPaymentsMap)
   }
 
   const loadPendingInvites = async () => {
@@ -1264,6 +1329,38 @@ export default function Loans() {
           </div>
         </div>
       )}
+
+      {/* My Pending Submissions - Waiting for Owner Approval */}
+      {myPendingSubmissions.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <h3 className="text-sm font-semibold text-orange-900 mb-2">
+            My Pending Submissions (Waiting for Approval)
+          </h3>
+          <div className="space-y-2">
+            {myPendingSubmissions.map(payment => {
+              const loan = sharedLoans.find(s => s.loan?.id === payment.loan_id)?.loan
+              return (
+                <div key={payment.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                  <div>
+                    <p className="text-sm font-medium">
+                      You paid {formatMVR(payment.amount_paid)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      For: {loan?.loan_type === 'borrowed' ? loan?.lender_name : loan?.borrower_name}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {payment.payment_date}
+                    </p>
+                  </div>
+                  <div className="px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-lg">
+                    Waiting for approval
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {netBalanceList.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
@@ -1600,8 +1697,14 @@ export default function Loans() {
       {/* Details Modal */}
       {showDetails && (
         <DetailsModal
-          loan={selectedDetailsLoan || loans.find(l => l.id === showDetails)!}
-          payments={payments[showDetails] || []}
+          loan={selectedDetailsLoan || loans.find(l => l.id === showDetails) || sharedLoans.find(s => s.loan?.id === showDetails)?.loan!}
+          payments={
+            // Check if it's a shared loan first, use sharedPayments
+            sharedPayments[showDetails] || 
+            // Otherwise use own payments
+            payments[showDetails] || 
+            []
+          }
           onClose={() => {
             setShowDetails(null)
             setSelectedDetailsLoan(null)
