@@ -318,6 +318,7 @@ interface LoanPayment {
   rejection_reason?: string | null
   created_at?: string
   responded_at?: string | null
+  owner_user_id?: string // For shared loan payments, tracks which user owns this payment record
 }
 
 // Shared Loan interfaces
