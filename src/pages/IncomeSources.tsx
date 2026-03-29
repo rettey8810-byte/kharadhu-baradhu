@@ -4,6 +4,16 @@ import { collection, query, where, getDocs, addDoc, doc, updateDoc, orderBy } fr
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import type { IncomeSource } from '../types'
+import { Wand2 } from 'lucide-react'
+
+// Default income sources for new profiles
+const DEFAULT_INCOME_SOURCES = [
+  { name: 'Salary' },
+  { name: 'Freelance' },
+  { name: 'Business' },
+  { name: 'Investment' },
+  { name: 'Other' }
+]
 
 export default function IncomeSources() {
   const { currentProfile } = useProfile()
@@ -58,6 +68,35 @@ export default function IncomeSources() {
     await load()
   }
 
+  const createDefaults = async () => {
+    if (!user || !currentProfile) return
+    setLoading(true)
+    setError(null)
+    try {
+      const now = new Date().toISOString()
+      const existingNames = new Set(sources.map(s => s.name.toLowerCase()))
+      
+      const promises = DEFAULT_INCOME_SOURCES
+        .filter(src => !existingNames.has(src.name.toLowerCase()))
+        .map((src) => 
+          addDoc(collection(firebaseDb, 'users', user.uid, 'incomeSources'), {
+            profile_id: currentProfile.id,
+            name: src.name,
+            is_archived: false,
+            created_at: now,
+            updated_at: now
+          })
+        )
+      
+      await Promise.all(promises)
+      await load()
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to create default income sources')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const rename = async (source: IncomeSource, nextName: string) => {
     if (!user) return
     const trimmed = nextName.trim()
@@ -89,6 +128,27 @@ export default function IncomeSources() {
         </form>
         {error && <div className="text-sm text-red-600 mt-2">{error}</div>}
       </div>
+
+      {sources.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-amber-800 font-medium mb-2">
+            <Wand2 size={18} />
+            No income sources found
+          </div>
+          <p className="text-sm text-amber-700 mb-3">
+            You don't have any income sources yet. Create default sources to get started quickly.
+          </p>
+          <button
+            onClick={createDefaults}
+            disabled={loading}
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <Wand2 size={16} />
+            {loading ? 'Creating...' : 'Create Default Income Sources'}
+          </button>
+          {error && <div className="text-sm text-red-600 mt-2">{error}</div>}
+        </div>
+      )}
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4">
         <div className="font-semibold">All income sources</div>
