@@ -80,6 +80,12 @@ export default function Taxi() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('')
   const [trips, setTrips] = useState<TaxiTrip[]>([])
   const [expenses, setExpenses] = useState<TaxiVehicleExpense[]>([])
+  // Store all trips/expenses across all vehicles for true all-time stats
+  const [allTrips, setAllTrips] = useState<TaxiTrip[]>([])
+  const [allExpenses, setAllExpenses] = useState<TaxiVehicleExpense[]>([])
+  // Month filter state
+  const [selectedMonth, setSelectedMonth] = useState<string>('all') // 'all' or 'YYYY-MM'
+  const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [taxiExpenseCategoryId, setTaxiExpenseCategoryId] = useState<string | null>(null)
   const [taxiIncomeSourceId, setTaxiIncomeSourceId] = useState<string | null>(null)
 
@@ -271,6 +277,60 @@ export default function Taxi() {
     }
   }
 
+  // Load all trips and expenses across all vehicles for true all-time stats
+  const loadAllHistoricalData = async () => {
+    if (!user) return
+    try {
+      // Load all trips for this user (across all vehicles)
+      const allTripsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
+        where('user_id', '==', user.uid),
+        orderBy('trip_date', 'desc')
+      )
+      const allExpensesQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
+        where('user_id', '==', user.uid),
+        orderBy('expense_date', 'desc')
+      )
+      
+      const [tripsSnap, expensesSnap] = await Promise.all([getDocs(allTripsQuery), getDocs(allExpensesQuery)])
+      
+      const tripsData = tripsSnap.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        trip_date: normalizeDate(d.data().trip_date)
+      }) as TaxiTrip)
+      
+      const expensesData = expensesSnap.docs.map(d => ({ 
+        id: d.id, 
+        ...d.data(),
+        expense_date: normalizeDate(d.data().expense_date)
+      }) as TaxiVehicleExpense)
+      
+      setAllTrips(tripsData)
+      setAllExpenses(expensesData)
+      
+      // Extract available months from all trips and expenses
+      const months = new Set<string>()
+      tripsData.forEach(t => {
+        if (t.trip_date && t.trip_date.length >= 7) {
+          months.add(t.trip_date.slice(0, 7))
+        }
+      })
+      expensesData.forEach(e => {
+        if (e.expense_date && e.expense_date.length >= 7) {
+          months.add(e.expense_date.slice(0, 7))
+        }
+      })
+      
+      // Sort months descending (newest first)
+      const sortedMonths = Array.from(months).sort().reverse()
+      setAvailableMonths(sortedMonths)
+    } catch (e) {
+      console.error('Failed to load all historical data:', e)
+    }
+  }
+
   // Helper to normalize date fields (handles both strings and Firestore Timestamps)
   const normalizeDate = (date: any): string => {
     if (!date) return ''
@@ -282,12 +342,22 @@ export default function Taxi() {
     return String(date)
   }
 
+  // Load all historical data on mount
+  useEffect(() => {
+    if (user) {
+      loadAllHistoricalData()
+    }
+  }, [user])
+
   const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10)
-    const monthKey = new Date().toISOString().slice(0, 7)
+    const currentMonthKey = new Date().toISOString().slice(0, 7)
     const yearKey = new Date().toISOString().slice(0, 4)
+    
+    // Use selected month if specified, otherwise use current month
+    const monthKey = selectedMonth === 'all' ? currentMonthKey : selectedMonth
 
-    // Normalize trips data
+    // Normalize trips data (for current vehicle)
     const normalizedTrips = trips.map(t => ({
       ...t,
       trip_date: normalizeDate(t.trip_date)
@@ -297,46 +367,46 @@ export default function Taxi() {
       expense_date: normalizeDate(e.expense_date)
     }))
 
-    // Day stats
+    // Day stats (current vehicle) - always show today's stats
     const todayTrips = normalizedTrips.filter(t => t.trip_date === today)
     const dayIncome = todayTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const dayExpense = normalizedExpenses.filter(e => e.expense_date === today).reduce((sum, it) => sum + Number(it.amount), 0)
     const dayTripCount = todayTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Month stats
+    // Month stats - use selected month filter
     const monthTrips = normalizedTrips.filter(t => t.trip_date.startsWith(monthKey))
     const monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const monthlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
     const monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Year stats
+    // Year stats (current vehicle)
     const yearTrips = normalizedTrips.filter(t => t.trip_date.startsWith(yearKey))
     const yearlyIncome = yearTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const yearlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(yearKey)).reduce((sum, it) => sum + Number(it.amount), 0)
 
-    // Overall stats
-    const overallIncome = trips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const overallExpense = expenses.reduce((sum, it) => sum + Number(it.amount), 0)
-    const totalTrips = trips.reduce((sum, it) => sum + Number(it.trip_count), 0)
+    // ALL TIME STATS - Use allTrips and allExpenses across all vehicles
+    const overallIncome = allTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+    const overallExpense = allExpenses.reduce((sum, it) => sum + Number(it.amount), 0)
+    const totalTrips = allTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Most popular route
+    // Most popular route (all time)
     const routeCounts: Record<string, number> = {}
-    trips.forEach(t => {
+    allTrips.forEach(t => {
       if (t.route) {
         routeCounts[t.route] = (routeCounts[t.route] || 0) + Number(t.trip_count)
       }
     })
     const mostPopularRoute = Object.entries(routeCounts).sort((a, b) => b[1] - a[1])[0] || ['-', 0]
 
-    // Trips by app
+    // Trips by app (all time)
     const appCounts: Record<string, number> = {}
-    trips.forEach(t => {
+    allTrips.forEach(t => {
       const app = t.app_name || 'Other'
       appCounts[app] = (appCounts[app] || 0) + Number(t.trip_count)
     })
     const tripsByApp = Object.entries(appCounts).sort((a, b) => b[1] - a[1])
 
-    // This week stats (last 7 days)
+    // This week stats (current vehicle)
     const weekDates: string[] = []
     for (let i = 6; i >= 0; i--) {
       const d = new Date()
@@ -347,15 +417,15 @@ export default function Taxi() {
     const weekIncome = weekTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
     const weekExpense = normalizedExpenses.filter(e => weekDates.includes(e.expense_date)).reduce((sum, it) => sum + Number(it.amount), 0)
 
-    // Average per trip
+    // Average per trip (all time)
     const avgPerTrip = totalTrips > 0 ? overallIncome / totalTrips : 0
 
-    const minExpenseDate = normalizedExpenses
-      .map(e => e.expense_date)
+    const minExpenseDate = allExpenses
+      .map(e => normalizeDate(e.expense_date))
       .filter(Boolean)
       .sort()[0] || ''
-    const maxExpenseDate = normalizedExpenses
-      .map(e => e.expense_date)
+    const maxExpenseDate = allExpenses
+      .map(e => normalizeDate(e.expense_date))
       .filter(Boolean)
       .sort()
       .slice(-1)[0] || ''
@@ -385,13 +455,26 @@ export default function Taxi() {
       debug: {
         tripsCount: trips.length,
         expensesCount: expenses.length,
+        allTripsCount: allTrips.length,
+        allExpensesCount: allExpenses.length,
         minExpenseDate,
         maxExpenseDate,
         overallExpense,
         weekExpense,
       },
     }
-  }, [trips, expenses])
+  }, [trips, expenses, allTrips, allExpenses, selectedMonth])
+
+  // Filter trips and expenses by selected month
+  const filteredTrips = useMemo(() => {
+    if (selectedMonth === 'all') return trips
+    return trips.filter(t => normalizeDate(t.trip_date).startsWith(selectedMonth))
+  }, [trips, selectedMonth])
+
+  const filteredExpenses = useMemo(() => {
+    if (selectedMonth === 'all') return expenses
+    return expenses.filter(e => normalizeDate(e.expense_date).startsWith(selectedMonth))
+  }, [expenses, selectedMonth])
 
   const addVehicle = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -605,6 +688,25 @@ export default function Taxi() {
         </div>
       )}
 
+      {/* Month Filter */}
+      {availableMonths.length > 0 && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <label className="text-sm text-gray-600">Filter by Month</label>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+          >
+            <option value="all">All Time</option>
+            {availableMonths.map(month => (
+              <option key={month} value={month}>
+                {new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Enhanced Dashboard */}
       <div className="grid grid-cols-2 gap-3">
         {/* Today's Stats Card */}
@@ -641,7 +743,9 @@ export default function Taxi() {
             <div className="bg-white/20 p-2 rounded-lg">
               <TrendingUp size={18} />
             </div>
-            <span className="text-sm font-medium text-blue-50">This Month</span>
+            <span className="text-sm font-medium text-blue-50">
+              {selectedMonth === 'all' ? 'This Month' : new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            </span>
           </div>
           <div className="space-y-2">
             <div>
@@ -826,11 +930,11 @@ export default function Taxi() {
         <div className="grid grid-cols-1 gap-3">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <h3 className="font-semibold text-gray-900">Recent Trips</h3>
-            {trips.length === 0 ? (
+            {filteredTrips.length === 0 ? (
               <p className="text-sm text-gray-500 mt-2">No trips yet</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {trips.slice(0, 8).map(tr => (
+                {filteredTrips.slice(0, 8).map(tr => (
                   <div key={tr.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
@@ -858,11 +962,11 @@ export default function Taxi() {
 
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <h3 className="font-semibold text-gray-900">Recent Expenses</h3>
-            {expenses.length === 0 ? (
+            {filteredExpenses.length === 0 ? (
               <p className="text-sm text-gray-500 mt-2">No expenses yet</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {expenses.slice(0, 8).map(ex => (
+                {filteredExpenses.slice(0, 8).map(ex => (
                   <div key={ex.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{ex.expense_date} • {ex.expense_type}</p>

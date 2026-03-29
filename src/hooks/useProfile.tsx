@@ -1,8 +1,30 @@
 import { useState, useEffect, useContext, createContext, ReactNode } from 'react'
 import type { ExpenseProfile } from '../types'
 import { onAuthStateChanged } from 'firebase/auth'
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, where, updateDoc, addDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseDb } from '../lib/firebase'
+
+// Default categories for new profiles
+const DEFAULT_CATEGORIES = [
+  { name: 'Food & Dining', color: '#EF4444', icon: 'utensils' },
+  { name: 'Transport', color: '#3B82F6', icon: 'car' },
+  { name: 'Utilities', color: '#F59E0B', icon: 'bolt' },
+  { name: 'Entertainment', color: '#8B5CF6', icon: 'film' },
+  { name: 'Shopping', color: '#EC4899', icon: 'shopping-bag' },
+  { name: 'Health', color: '#10B981', icon: 'heart' },
+  { name: 'Education', color: '#6366F1', icon: 'graduation-cap' },
+  { name: 'Home', color: '#14B8A6', icon: 'home' },
+  { name: 'Other', color: '#6B7280', icon: 'circle' }
+]
+
+// Default income sources for new profiles
+const DEFAULT_INCOME_SOURCES = [
+  { name: 'Salary' },
+  { name: 'Freelance' },
+  { name: 'Business' },
+  { name: 'Investment' },
+  { name: 'Other' }
+]
 
 interface ProfileContextType {
   profiles: ExpenseProfile[]
@@ -20,6 +42,58 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<ExpenseProfile[]>([])
   const [currentProfile, setCurrentProfileState] = useState<ExpenseProfile | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const createDefaultCategoriesAndSources = async (uid: string, profileId: string) => {
+    const now = new Date().toISOString()
+    
+    // Check if categories already exist for this profile
+    const catQuery = query(
+      collection(firebaseDb, 'users', uid, 'categories'),
+      where('profile_id', '==', profileId),
+      limit(1)
+    )
+    const catSnap = await getDocs(catQuery)
+    
+    // Only create defaults if no categories exist
+    if (catSnap.empty) {
+      const categoryPromises = DEFAULT_CATEGORIES.map((cat, index) => 
+        addDoc(collection(firebaseDb, 'users', uid, 'categories'), {
+          profile_id: profileId,
+          name: cat.name,
+          color: cat.color,
+          icon: cat.icon,
+          is_default: true,
+          is_archived: false,
+          sort_order: index + 1,
+          created_at: now,
+          updated_at: now
+        })
+      )
+      await Promise.all(categoryPromises)
+    }
+    
+    // Check if income sources already exist for this profile
+    const srcQuery = query(
+      collection(firebaseDb, 'users', uid, 'incomeSources'),
+      where('profile_id', '==', profileId),
+      limit(1)
+    )
+    const srcSnap = await getDocs(srcQuery)
+    
+    // Only create defaults if no income sources exist
+    if (srcSnap.empty) {
+      const sourcePromises = DEFAULT_INCOME_SOURCES.map((src) => 
+        addDoc(collection(firebaseDb, 'users', uid, 'incomeSources'), {
+          profile_id: profileId,
+          name: src.name,
+          is_archived: false,
+          created_at: now,
+          updated_at: now
+        })
+      )
+      await Promise.all(sourcePromises)
+    }
+  }
 
   const ensureBootstrapProfiles = async (uid: string) => {
     const profilesCol = collection(firebaseDb, 'users', uid, 'profiles')
@@ -72,6 +146,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
 
       await setDoc(pRef, payload, { merge: true })
+      
+      // Create default categories and income sources for this profile
+      await createDefaultCategoriesAndSources(uid, pid)
+      
       index++
     }
   }
@@ -142,6 +220,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     await setDoc(newRef, payload)
+    
+    // Create default categories and income sources for the new profile
+    await createDefaultCategoriesAndSources(user.uid, newRef.id)
+    
     await fetchProfiles()
   }
 
