@@ -213,7 +213,7 @@ function ProfileCard({ profile, isActive, onClick, onEdit }: {
 }
 
 export default function Profiles() {
-  const { profiles, currentProfile, setCurrentProfile, createProfile, updateProfile } = useProfile()
+  const { profiles, currentProfile, setCurrentProfile, createProfile, updateProfile, deleteProfile } = useProfile()
   const [name, setName] = useState('')
   const [type, setType] = useState<'personal' | 'family' | 'business'>('personal')
   const [loading, setLoading] = useState(false)
@@ -225,6 +225,11 @@ export default function Profiles() {
   const [editType, setEditType] = useState<'personal' | 'family' | 'business'>('personal')
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+
+  // Delete modal state
+  const [deletingProfile, setDeletingProfile] = useState<ExpenseProfile | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -253,6 +258,32 @@ export default function Profiles() {
     setEditName('')
     setEditType('personal')
     setEditError(null)
+    setDeleteError(null)
+  }
+
+  const startDelete = (profile: ExpenseProfile) => {
+    setDeletingProfile(profile)
+    setDeleteError(null)
+  }
+
+  const cancelDelete = () => {
+    setDeletingProfile(null)
+    setDeleteError(null)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingProfile) return
+    
+    setDeleteError(null)
+    setDeleteLoading(true)
+    try {
+      await deleteProfile(deletingProfile.id)
+      setDeletingProfile(null)
+    } catch (err: any) {
+      setDeleteError(err?.message ?? 'Failed to delete profile')
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -354,7 +385,65 @@ export default function Profiles() {
                 {editLoading ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
+
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => startDelete(editingProfile)}
+                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg px-4 py-2 font-semibold transition-colors"
+                disabled={profiles.length <= 1}
+                title={profiles.length <= 1 ? 'Cannot delete the only profile' : 'Delete this profile'}
+              >
+                Delete Profile
+              </button>
+              {profiles.length <= 1 && (
+                <p className="text-xs text-gray-500 mt-1 text-center">Create another profile first to enable deletion</p>
+              )}
+            </div>
           </form>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingProfile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Profile</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Are you sure you want to delete <strong>"{deletingProfile.name}"</strong>?
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                This will permanently delete the profile. Associated transactions, categories, and income sources will remain but won't be linked to any profile.
+              </p>
+            </div>
+            
+            {deleteError && <div className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{deleteError}</div>}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={cancelDelete}
+                className="flex-1 border border-gray-200 text-gray-700 rounded-lg px-4 py-2 font-semibold hover:bg-gray-50"
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-60"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

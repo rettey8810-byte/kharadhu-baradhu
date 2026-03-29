@@ -26,6 +26,7 @@ const DEFAULT_INCOME_SOURCES = [
   { name: 'Other' }
 ]
 
+import { deleteDoc } from 'firebase/firestore'
 interface ProfileContextType {
   profiles: ExpenseProfile[]
   currentProfile: ExpenseProfile | null
@@ -34,6 +35,7 @@ interface ProfileContextType {
   refreshProfiles: () => Promise<void>
   createProfile: (name: string, type: 'personal' | 'family' | 'business') => Promise<void>
   updateProfile: (id: string, name: string, type: 'personal' | 'family' | 'business') => Promise<void>
+  deleteProfile: (id: string) => Promise<void>
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
@@ -240,6 +242,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     await fetchProfiles()
   }
 
+  const deleteProfile = async (id: string) => {
+    const user = firebaseAuth.currentUser
+    if (!user) throw new Error('Not authenticated')
+
+    // Don't allow deleting the only profile
+    if (profiles.length <= 1) {
+      throw new Error('Cannot delete the only profile. Create another profile first.')
+    }
+
+    const profileRef = doc(firebaseDb, 'users', user.uid, 'profiles', id)
+    await deleteDoc(profileRef)
+    await fetchProfiles()
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       if (!user) {
@@ -264,7 +280,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setCurrentProfile,
       refreshProfiles: fetchProfiles,
       createProfile,
-      updateProfile
+      updateProfile,
+      deleteProfile
     }}>
       {children}
     </ProfileContext.Provider>
