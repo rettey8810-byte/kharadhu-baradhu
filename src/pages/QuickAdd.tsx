@@ -5,7 +5,7 @@ import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/fir
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import type { ExpenseCategory } from '../types'
-import { ArrowLeft, Plus, Coffee, Utensils, Car, ShoppingBag, Zap, Check } from 'lucide-react'
+import { ArrowLeft, Plus, Coffee, Utensils, Car, ShoppingBag, Zap, Check, MessageSquare } from 'lucide-react'
 
 // Quick expense presets
 const QUICK_PRESETS = [
@@ -29,6 +29,60 @@ export default function QuickAdd() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const [smsText, setSmsText] = useState('')
+  const [showSmsParser, setShowSmsParser] = useState(false)
+
+  // Parse SMS to extract amount and merchant
+  const parseSms = (text: string) => {
+    // Extract amount - look for MVR followed by number (with optional comma and decimal)
+    const amountMatch = text.match(/MVR\s*([\d,]+\.?\d*)/i)
+    const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : null
+    
+    // Extract merchant - look for "at [MERCHANT]" pattern
+    const merchantMatch = text.match(/at\s+([A-Z0-9\s]+?)(?:\s+was\s+processed|\s+Ref|\s*$)/i)
+    let merchant = merchantMatch ? merchantMatch[1].trim() : null
+    
+    // Clean up merchant name (remove trailing numbers like 04)
+    if (merchant) {
+      merchant = merchant.replace(/\s+\d+\s*$/, '').trim()
+    }
+    
+    return { amount, merchant }
+  }
+
+  const handleSmsPaste = () => {
+    if (!smsText.trim()) return
+    
+    const { amount, merchant } = parseSms(smsText)
+    
+    if (amount) {
+      setCustomAmount(amount.toString())
+    }
+    
+    if (merchant) {
+      setCustomDescription(merchant)
+    }
+    
+    // Auto-suggest Groceries category if merchant contains certain keywords
+    const groceryKeywords = ['FSM', 'FILL', 'GROCERY', 'SUPERMARKET', 'FOOD']
+    const isGrocery = groceryKeywords.some(kw => 
+      merchant?.toUpperCase().includes(kw)
+    )
+    
+    if (isGrocery) {
+      const groceryCat = categories.find(c => 
+        c.name.toLowerCase().includes('grocer') || 
+        c.name.toLowerCase().includes('food')
+      )
+      if (groceryCat) {
+        setSelectedCategory(groceryCat.id)
+      }
+    }
+    
+    setShowSmsParser(false)
+    setSmsText('')
+  }
+
   // Get preset from URL param (for PWA shortcuts)
   const presetName = searchParams.get('preset')
 
@@ -36,7 +90,6 @@ export default function QuickAdd() {
     if (currentProfile && user) {
       loadCategories()
     }
-    // Auto-select if preset passed in URL
     if (presetName) {
       const preset = QUICK_PRESETS.find(p => p.name.toLowerCase() === presetName.toLowerCase())
       if (preset) {
@@ -119,6 +172,41 @@ export default function QuickAdd() {
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-4 space-y-4">
+      {/* SMS Parser Toggle */}
+        <button
+          onClick={() => setShowSmsParser(!showSmsParser)}
+          className="w-full bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center gap-3 text-blue-700 hover:bg-blue-100 transition-colors"
+        >
+          <MessageSquare size={24} />
+          <div className="text-left">
+            <p className="font-semibold">Paste SMS Transaction</p>
+            <p className="text-sm text-blue-600">Copy & paste your bank SMS to auto-fill</p>
+          </div>
+        </button>
+
+        {/* SMS Paste Area */}
+        {showSmsParser && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-3">
+            <h3 className="font-semibold text-gray-900">Paste SMS</h3>
+            <textarea
+              value={smsText}
+              onChange={(e) => setSmsText(e.target.value)}
+              placeholder="Paste your SMS here...\n\nExample: Transaction from 0702 on 26/03/26 at 21:08:25 for MVR66.92 at FSM EASY FILL 04 was processed. Reference No:032646296907"
+              className="w-full h-32 px-3 py-3 border border-gray-200 rounded-xl text-sm"
+            />
+            <button
+              onClick={handleSmsPaste}
+              disabled={!smsText.trim()}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+            >
+              Parse & Fill
+            </button>
+            <p className="text-xs text-gray-500">
+              We'll extract: Amount (MVR), Merchant name, and suggest a category
+            </p>
+          </div>
+        )}
+
         {/* Quick Presets */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h3 className="font-semibold text-gray-900 mb-3">Common Expenses</h3>
