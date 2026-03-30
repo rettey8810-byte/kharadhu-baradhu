@@ -393,6 +393,12 @@ export default function Loans() {
     account_number: '',
     bank_name: '',
     offset_mode: false,
+    // Calculator fields
+    use_calculator: false,
+    calculator_amount: '',
+    calculator_years: '',
+    calculator_rate: '',
+    calculator_type: 'simple',
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -802,6 +808,11 @@ export default function Loans() {
           account_number: '',
           bank_name: '',
           offset_mode: false,
+          use_calculator: false,
+          calculator_amount: '',
+          calculator_years: '',
+          calculator_rate: '',
+          calculator_type: 'simple',
         })
         loadLoans()
         return
@@ -851,6 +862,11 @@ export default function Loans() {
       account_number: '',
       bank_name: '',
       offset_mode: false,
+      use_calculator: false,
+      calculator_amount: '',
+      calculator_years: '',
+      calculator_rate: '',
+      calculator_type: 'simple',
     })
     loadLoans()
   }
@@ -1937,6 +1953,117 @@ function AddLoanModal({
               </div>
             )}
           </div>
+
+          {/* Loan Calculator Toggle */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.use_calculator}
+                onChange={(e) => setFormData({ ...formData, use_calculator: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-blue-700">Use Loan Calculator</span>
+            </label>
+            <p className="text-xs text-blue-600 mt-1">Auto-calculate EMI and installments</p>
+          </div>
+
+          {/* Loan Calculator Fields */}
+          {formData.use_calculator && (
+            <div className="space-y-3 border-l-4 border-blue-400 pl-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-gray-600">Loan Amount (MVR)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.calculator_amount}
+                    onChange={(e) => setFormData({ ...formData, calculator_amount: e.target.value })}
+                    placeholder="Total amount"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Years</label>
+                  <input
+                    type="number"
+                    value={formData.calculator_years}
+                    onChange={(e) => setFormData({ ...formData, calculator_years: e.target.value })}
+                    placeholder="e.g., 2"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-gray-600">Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.calculator_rate}
+                    onChange={(e) => setFormData({ ...formData, calculator_rate: e.target.value })}
+                    placeholder="e.g., 6"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">Interest Type</label>
+                  <select
+                    value={formData.calculator_type}
+                    onChange={(e) => setFormData({ ...formData, calculator_type: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  >
+                    <option value="simple">Simple</option>
+                    <option value="compound">Compound (Monthly)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const P = Number(formData.calculator_amount) || 0
+                  const years = Number(formData.calculator_years) || 0
+                  const r = (Number(formData.calculator_rate) || 0) / 100
+                  const months = years * 12
+                  
+                  if (P > 0 && years > 0) {
+                    let totalAmount = P
+                    if (formData.calculator_type === 'simple') {
+                      totalAmount = P + (P * r * years)
+                    } else {
+                      // Compound monthly
+                      totalAmount = P * Math.pow(1 + r / 12, months)
+                    }
+                    
+                    const emi = totalAmount / months
+                    
+                    setFormData({
+                      ...formData,
+                      principal_amount: String(P),
+                      total_amount: String(Math.round(totalAmount * 100) / 100),
+                      emi_amount: String(Math.round(emi * 100) / 100),
+                      total_installments: String(months),
+                      interest_rate: String(formData.calculator_rate),
+                      interest_type: formData.calculator_type
+                    })
+                  }
+                }}
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              >
+                Calculate EMI
+              </button>
+
+              {(formData.emi_amount || formData.total_installments) && (
+                <div className="bg-emerald-50 rounded-lg p-3 space-y-1">
+                  <p className="text-sm"><strong>Total Amount:</strong> {formatMVR(Number(formData.total_amount) || 0)}</p>
+                  <p className="text-sm"><strong>Monthly EMI:</strong> {formatMVR(Number(formData.emi_amount) || 0)}</p>
+                  <p className="text-sm"><strong>Installments:</strong> {formData.total_installments} months</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Principal Amount with Currency */}
           <div className="grid grid-cols-3 gap-3">
