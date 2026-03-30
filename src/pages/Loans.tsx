@@ -299,6 +299,7 @@ interface Loan {
   description: string | null
   account_number: string | null
   bank_name: string | null
+  is_recurring?: boolean
   created_at: string
 }
 
@@ -399,6 +400,8 @@ export default function Loans() {
     calculator_years: '',
     calculator_rate: '',
     calculator_type: 'simple',
+    // Recurring payment
+    is_recurring: false,
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -813,6 +816,7 @@ export default function Loans() {
           calculator_years: '',
           calculator_rate: '',
           calculator_type: 'simple',
+          is_recurring: false,
         })
         loadLoans()
         return
@@ -841,6 +845,7 @@ export default function Loans() {
       description: formData.description || null,
       account_number: formData.account_number || null,
       bank_name: formData.bank_name || null,
+      is_recurring: formData.is_recurring || false,
       created_at: new Date().toISOString()
     })
 
@@ -867,6 +872,7 @@ export default function Loans() {
       calculator_years: '',
       calculator_rate: '',
       calculator_type: 'simple',
+      is_recurring: false,
     })
     loadLoans()
   }
@@ -1764,6 +1770,11 @@ function LoanCard({
             </span>
             <span className="text-xs text-gray-500">{loan.category}</span>
             <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{loan.currency || 'MVR'}</span>
+            {loan.is_recurring && (
+              <span className="text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded flex items-center gap-1">
+                ⟳ Monthly
+              </span>
+            )}
           </div>
           <h4 className="font-semibold text-gray-900">
             {loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}
@@ -2191,6 +2202,24 @@ function AddLoanModal({
               rows={2}
             />
           </div>
+
+          {/* Recurring Payment Reminder */}
+          {formData.emi_amount && formData.loan_type === 'borrowed' && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_recurring}
+                  onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm font-medium text-purple-700">Monthly Payment Reminder</span>
+              </label>
+              <p className="text-xs text-purple-600 mt-1">
+                Remind me to pay {formatMVR(Number(formData.emi_amount) || 0)} every month
+              </p>
+            </div>
+          )}
 
           {/* Bank Details (if bank loan) */}
           {formData.category === 'bank' && (
