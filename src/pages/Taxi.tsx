@@ -86,6 +86,10 @@ export default function Taxi() {
   // Month filter state
   const [selectedMonth, setSelectedMonth] = useState<string>('all') // 'all' or 'YYYY-MM'
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
+  // Custom date range filter
+  const [dateFilterType, setDateFilterType] = useState<'month' | 'custom'>('month')
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
   const [taxiExpenseCategoryId, setTaxiExpenseCategoryId] = useState<string | null>(null)
   const [taxiIncomeSourceId, setTaxiIncomeSourceId] = useState<string | null>(null)
 
@@ -377,11 +381,33 @@ export default function Taxi() {
     const dayExpense = normalizedExpenses.filter(e => e.expense_date === today).reduce((sum, it) => sum + Number(it.amount), 0)
     const dayTripCount = todayTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
 
-    // Month stats - use selected month filter
-    const monthTrips = normalizedTrips.filter(t => t.trip_date.startsWith(monthKey))
-    const monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
-    const monthlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
-    const monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
+    // Month stats - use selected month filter or custom date range
+    let monthTrips: typeof normalizedTrips = []
+    let monthlyIncome = 0
+    let monthlyExpense = 0
+    let monthTripCount = 0
+    
+    if (dateFilterType === 'custom' && (customStartDate || customEndDate)) {
+      // Custom date range
+      monthTrips = normalizedTrips.filter(t => {
+        if (customStartDate && t.trip_date < customStartDate) return false
+        if (customEndDate && t.trip_date > customEndDate) return false
+        return true
+      })
+      monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+      monthlyExpense = normalizedExpenses.filter(e => {
+        if (customStartDate && e.expense_date < customStartDate) return false
+        if (customEndDate && e.expense_date > customEndDate) return false
+        return true
+      }).reduce((sum, it) => sum + Number(it.amount), 0)
+      monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
+    } else {
+      // Month filter
+      monthTrips = normalizedTrips.filter(t => t.trip_date.startsWith(monthKey))
+      monthlyIncome = monthTrips.reduce((sum, it) => sum + Number(it.total_income), 0)
+      monthlyExpense = normalizedExpenses.filter(e => e.expense_date.startsWith(monthKey)).reduce((sum, it) => sum + Number(it.amount), 0)
+      monthTripCount = monthTrips.reduce((sum, it) => sum + Number(it.trip_count), 0)
+    }
 
     // Year stats (current vehicle)
     const yearTrips = normalizedTrips.filter(t => t.trip_date.startsWith(yearKey))
@@ -467,18 +493,40 @@ export default function Taxi() {
         weekExpense,
       },
     }
-  }, [trips, expenses, allTrips, allExpenses, selectedMonth])
+  }, [trips, expenses, allTrips, allExpenses, selectedMonth, dateFilterType, customStartDate, customEndDate])
 
-  // Filter trips and expenses by selected month
+  // Filter trips and expenses by selected date range
   const filteredTrips = useMemo(() => {
-    if (selectedMonth === 'all') return trips
-    return trips.filter(t => normalizeDate(t.trip_date).startsWith(selectedMonth))
-  }, [trips, selectedMonth])
+    if (dateFilterType === 'month') {
+      if (selectedMonth === 'all') return trips
+      return trips.filter(t => normalizeDate(t.trip_date).startsWith(selectedMonth))
+    } else {
+      // Custom date range
+      if (!customStartDate && !customEndDate) return trips
+      return trips.filter(t => {
+        const date = normalizeDate(t.trip_date)
+        if (customStartDate && date < customStartDate) return false
+        if (customEndDate && date > customEndDate) return false
+        return true
+      })
+    }
+  }, [trips, selectedMonth, dateFilterType, customStartDate, customEndDate])
 
   const filteredExpenses = useMemo(() => {
-    if (selectedMonth === 'all') return expenses
-    return expenses.filter(e => normalizeDate(e.expense_date).startsWith(selectedMonth))
-  }, [expenses, selectedMonth])
+    if (dateFilterType === 'month') {
+      if (selectedMonth === 'all') return expenses
+      return expenses.filter(e => normalizeDate(e.expense_date).startsWith(selectedMonth))
+    } else {
+      // Custom date range
+      if (!customStartDate && !customEndDate) return expenses
+      return expenses.filter(e => {
+        const date = normalizeDate(e.expense_date)
+        if (customStartDate && date < customStartDate) return false
+        if (customEndDate && date > customEndDate) return false
+        return true
+      })
+    }
+  }, [expenses, selectedMonth, dateFilterType, customStartDate, customEndDate])
 
   const addVehicle = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -692,14 +740,41 @@ export default function Taxi() {
         </div>
       )}
 
-      {/* Month Filter */}
-      {availableMonths.length > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <label className="text-sm text-gray-600">Filter by Month</label>
+      {/* Date Range Filter */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <label className="text-sm font-medium text-gray-700">Filter by</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDateFilterType('month')}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                dateFilterType === 'month'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateFilterType('custom')}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                dateFilterType === 'custom'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Custom Date
+            </button>
+          </div>
+        </div>
+
+        {dateFilterType === 'month' ? (
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2"
           >
             <option value="all">All Time</option>
             {availableMonths.map(month => (
@@ -708,8 +783,29 @@ export default function Taxi() {
               </option>
             ))}
           </select>
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Enhanced Dashboard */}
       <div className="grid grid-cols-2 gap-3">
@@ -741,14 +837,18 @@ export default function Taxi() {
           </div>
         </div>
 
-        {/* Month Stats Card */}
+        {/* Month/Custom Stats Card */}
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white shadow-lg">
           <div className="flex items-center gap-2 mb-3">
             <div className="bg-white/20 p-2 rounded-lg">
               <TrendingUp size={18} />
             </div>
             <span className="text-sm font-medium text-blue-50">
-              {selectedMonth === 'all' ? 'This Month' : new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              {dateFilterType === 'custom' 
+                ? (customStartDate || customEndDate 
+                    ? `${customStartDate || '...'} to ${customEndDate || '...'}`
+                    : 'Custom Range')
+                : (selectedMonth === 'all' ? 'This Month' : new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }))}
             </span>
           </div>
           <div className="space-y-2">
