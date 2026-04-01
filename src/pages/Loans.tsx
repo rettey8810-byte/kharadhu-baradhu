@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
@@ -438,6 +438,11 @@ export default function Loans() {
   const [myPendingSubmissions, setMyPendingSubmissions] = useState<LoanPayment[]>([])
   // Store payment history for shared loans (from owners' collections)
   const [sharedPayments, setSharedPayments] = useState<Record<string, LoanPayment[]>>({})
+  // Date range filter
+  const [dateFilterType, setDateFilterType] = useState<'all' | 'month' | 'custom'>('all')
+  const [selectedMonth, setSelectedMonth] = useState<string>('')
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
 
   useEffect(() => {
     if (user && currentProfile) {
@@ -1208,8 +1213,30 @@ export default function Loans() {
     }))
     .filter(p => p.net !== 0) // Only show if there's a balance
     .sort((a, b) => Math.abs(b.net) - Math.abs(a.net)) // Sort by largest balance first
-  const borrowedLoans = loans.filter(l => l.loan_type === 'borrowed' && l.status === 'active')
-  const lendedLoans = loans.filter(l => l.loan_type === 'lended' && l.status === 'active')
+  // Filter loans by date range
+  const filteredLoans = useMemo(() => {
+    if (dateFilterType === 'all') return loans
+    
+    return loans.filter(loan => {
+      const loanDate = loan.loan_date
+      
+      if (dateFilterType === 'month' && selectedMonth) {
+        return loanDate.startsWith(selectedMonth)
+      }
+      
+      if (dateFilterType === 'custom') {
+        if (customStartDate && loanDate < customStartDate) return false
+        if (customEndDate && loanDate > customEndDate) return false
+        return true
+      }
+      
+      return true
+    })
+  }, [loans, dateFilterType, selectedMonth, customStartDate, customEndDate])
+
+  // Update derived lists based on filtered loans
+  const filteredBorrowedLoans = filteredLoans.filter(l => l.loan_type === 'borrowed' && l.status === 'active')
+  const filteredLendedLoans = filteredLoans.filter(l => l.loan_type === 'lended' && l.status === 'active')
 
   const totalBorrowed = borrowedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
   const totalBorrowedPaid = borrowedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
@@ -1273,6 +1300,80 @@ export default function Loans() {
         >
           Shared Loans ({sharedLoans.length})
         </button>
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm font-medium text-gray-700">Filter by Date</span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setDateFilterType('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                dateFilterType === 'all'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateFilterType('month')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                dateFilterType === 'month'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Month
+            </button>
+            <button
+              type="button"
+              onClick={() => setDateFilterType('custom')}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                dateFilterType === 'custom'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Custom
+            </button>
+          </div>
+        </div>
+
+        {dateFilterType === 'month' && (
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+          />
+        )}
+
+        {dateFilterType === 'custom' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pending Invites */}
@@ -1526,10 +1627,10 @@ export default function Loans() {
       ) : (
         <div className="space-y-3">
           {/* Active Borrowed Loans */}
-          {activeTab === 'my' && borrowedLoans.length > 0 && (
+          {activeTab === 'my' && filteredBorrowedLoans.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Borrowed (You Owe)</h3>
-              {borrowedLoans.map(loan => (
+              {filteredBorrowedLoans.map(loan => (
                 <LoanCard
                   key={loan.id}
                   loan={loan}
@@ -1547,10 +1648,10 @@ export default function Loans() {
           )}
 
           {/* Active Lended Loans */}
-          {activeTab === 'my' && lendedLoans.length > 0 && (
+          {activeTab === 'my' && filteredLendedLoans.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Lended (Owed to You)</h3>
-              {lendedLoans.map(loan => (
+              {filteredLendedLoans.map(loan => (
                 <LoanCard
                   key={loan.id}
                   loan={loan}
@@ -1599,10 +1700,10 @@ export default function Loans() {
           )}
 
           {/* Paid/Closed Loans */}
-          {loans.filter(l => l.status === 'paid').length > 0 && (
+          {filteredLoans.filter(l => l.status === 'paid').length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-2">Paid Off</h3>
-              {loans.filter(l => l.status === 'paid').map(loan => (
+              {filteredLoans.filter(l => l.status === 'paid').map(loan => (
                 <LoanCard
                   key={loan.id}
                   loan={loan}
