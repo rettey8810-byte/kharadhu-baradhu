@@ -1238,13 +1238,13 @@ export default function Loans() {
   const filteredBorrowedLoans = filteredLoans.filter(l => l.loan_type === 'borrowed' && l.status === 'active')
   const filteredLendedLoans = filteredLoans.filter(l => l.loan_type === 'lended' && l.status === 'active')
 
-  const totalBorrowed = borrowedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
-  const totalBorrowedPaid = borrowedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
-  const totalBorrowedRemaining = borrowedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
+  const totalBorrowed = filteredBorrowedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
+  const totalBorrowedPaid = filteredBorrowedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
+  const totalBorrowedRemaining = filteredBorrowedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
 
-  const totalLended = lendedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
-  const totalLendedReceived = lendedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
-  const totalLendedOutstanding = lendedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
+  const totalLended = filteredLendedLoans.reduce((sum, l) => sum + l.principal_amount, 0)
+  const totalLendedReceived = filteredLendedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
+  const totalLendedOutstanding = filteredLendedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
 
   const todayStr = new Date().toISOString().slice(0, 10)
   const dueSoonThresholdStr = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7)
