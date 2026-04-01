@@ -20,10 +20,14 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  // Date range filter
+  const [dateFilterType, setDateFilterType] = useState<'month' | 'custom'>('month')
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
 
   const isTaxiOnly = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -37,7 +41,7 @@ export default function Transactions() {
 
   useEffect(() => {
     loadData()
-  }, [profiles, selectedMonth])
+  }, [profiles, selectedMonth, dateFilterType, customStartDate, customEndDate])
 
   const loadData = async () => {
     if (profiles.length === 0) return
@@ -46,12 +50,21 @@ export default function Transactions() {
     setLoading(true)
 
     const profileIds = profiles.map(p => p.id)
-    const [year, month] = selectedMonth.split('-').map(Number)
-    const start = new Date(year, month - 1, 1)
-    const end = new Date(year, month, 0)
-
-    const startDate = formatDateLocal(start)
-    const endDate = formatDateLocal(end)
+    
+    // Calculate date range based on filter type
+    let startDate: string
+    let endDate: string
+    
+    if (dateFilterType === 'custom' && (customStartDate || customEndDate)) {
+      startDate = customStartDate || '1970-01-01'
+      endDate = customEndDate || '2099-12-31'
+    } else {
+      const [year, month] = selectedMonth.split('-').map(Number)
+      const start = new Date(year, month - 1, 1)
+      const end = new Date(year, month, 0)
+      startDate = formatDateLocal(start)
+      endDate = formatDateLocal(end)
+    }
 
     const txCol = collection(firebaseDb, 'users', user.uid, 'transactions')
     const catCol = collection(firebaseDb, 'users', user.uid, 'categories')
@@ -173,6 +186,32 @@ export default function Transactions() {
 
       {/* Search and Filter */}
       <div className="bg-white rounded-xl p-3 mb-4 space-y-3">
+        {/* Date Filter Type Toggle */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setDateFilterType('month')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              dateFilterType === 'month'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            By Month
+          </button>
+          <button
+            type="button"
+            onClick={() => setDateFilterType('custom')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              dateFilterType === 'custom'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Custom Date
+          </button>
+        </div>
+
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -186,12 +225,31 @@ export default function Transactions() {
           </div>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="month"
-              className="pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-            />
+            {dateFilterType === 'month' ? (
+              <input
+                type="month"
+                className="pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm"
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+              />
+            ) : (
+              <div className="flex gap-1">
+                <input
+                  type="date"
+                  className="pl-10 pr-2 py-2 border border-gray-200 rounded-lg text-sm w-32"
+                  value={customStartDate}
+                  onChange={e => setCustomStartDate(e.target.value)}
+                  placeholder="Start"
+                />
+                <input
+                  type="date"
+                  className="px-2 py-2 border border-gray-200 rounded-lg text-sm w-32"
+                  value={customEndDate}
+                  onChange={e => setCustomEndDate(e.target.value)}
+                  placeholder="End"
+                />
+              </div>
+            )}
           </div>
         </div>
         
