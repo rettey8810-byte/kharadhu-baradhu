@@ -8,7 +8,7 @@ import { Wand2 } from 'lucide-react'
 
 // Default categories for new profiles
 const DEFAULT_CATEGORIES = [
-  { name: 'Grocery', color: '#22C55E', icon: 'shopping-cart' },
+  { name: 'Groceries', color: '#22C55E', icon: 'shopping-cart' },
   { name: 'Food & Dining', color: '#EF4444', icon: 'utensils' },
   { name: 'Transport', color: '#3B82F6', icon: 'car' },
   { name: 'Utilities', color: '#F59E0B', icon: 'bolt' },
