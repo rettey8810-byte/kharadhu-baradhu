@@ -281,31 +281,34 @@ export default function Taxi() {
   const loadAllHistoricalData = async () => {
     if (!user) return
     try {
-      // Load all trips for this user (across all vehicles)
+      // Load all trips for this user (across all vehicles) - simplified query to avoid index requirements
       const allTripsQuery = query(
         collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
-        where('user_id', '==', user.uid),
-        orderBy('trip_date', 'desc')
+        where('user_id', '==', user.uid)
       )
       const allExpensesQuery = query(
         collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
-        where('user_id', '==', user.uid),
-        orderBy('expense_date', 'desc')
+        where('user_id', '==', user.uid)
       )
       
       const [tripsSnap, expensesSnap] = await Promise.all([getDocs(allTripsQuery), getDocs(allExpensesQuery)])
       
-      const tripsData = tripsSnap.docs.map(d => ({ 
-        id: d.id, 
-        ...d.data(),
-        trip_date: normalizeDate(d.data().trip_date)
-      }) as TaxiTrip)
+      // Sort in memory instead of using orderBy to avoid Firestore index requirements
+      const tripsData = tripsSnap.docs
+        .map(d => ({ 
+          id: d.id, 
+          ...d.data(),
+          trip_date: normalizeDate(d.data().trip_date)
+        }) as TaxiTrip)
+        .sort((a, b) => b.trip_date.localeCompare(a.trip_date))
       
-      const expensesData = expensesSnap.docs.map(d => ({ 
-        id: d.id, 
-        ...d.data(),
-        expense_date: normalizeDate(d.data().expense_date)
-      }) as TaxiVehicleExpense)
+      const expensesData = expensesSnap.docs
+        .map(d => ({ 
+          id: d.id, 
+          ...d.data(),
+          expense_date: normalizeDate(d.data().expense_date)
+        }) as TaxiVehicleExpense)
+        .sort((a, b) => b.expense_date.localeCompare(a.expense_date))
       
       setAllTrips(tripsData)
       setAllExpenses(expensesData)
@@ -326,8 +329,9 @@ export default function Taxi() {
       // Sort months descending (newest first)
       const sortedMonths = Array.from(months).sort().reverse()
       setAvailableMonths(sortedMonths)
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load all historical data:', e)
+      setError('Failed to load all-time statistics. Please refresh the page.')
     }
   }
 
