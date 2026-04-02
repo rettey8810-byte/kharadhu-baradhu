@@ -8,6 +8,7 @@ import { PWAInstallButton } from '../hooks/usePWAInstall'
 import { useLanguage } from '../hooks/useLanguage'
 import SmartInsights from '../components/SmartInsights'
 import CashFlowForecast from '../components/CashFlowForecast'
+import FunnyFamilyWarnings from '../components/FunnyFamilyWarnings'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
 import { getDaysRemainingInMonth, getYearMonth, formatDateLocal } from '../utils/date'
 import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
@@ -385,6 +386,17 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Funny Family Warnings - Spotlight Section */}
+      <FunnyFamilyWarnings
+        totalExpense={stats.totalExpense}
+        totalIncome={stats.totalIncome}
+        dailySafeSpend={stats.dailySafeSpend}
+        daysRemaining={stats.daysRemaining}
+        budget={stats.budget}
+        remainingBalance={stats.remainingBalance}
+        profileSpendings={profileSpendings}
+      />
 
       {stats.budget > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
