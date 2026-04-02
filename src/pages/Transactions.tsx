@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
-import { ArrowUpCircle, ArrowDownCircle, Search, Calendar } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Search, Calendar, Pencil, Trash2, X } from 'lucide-react'
 import { formatDateLocal } from '../utils/date'
 import { useLocation } from 'react-router-dom'
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore'
+import { collection, getDocs, limit, orderBy, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 function formatMVR(value: number) {
@@ -28,6 +28,17 @@ export default function Transactions() {
   })
   const [customStartDate, setCustomStartDate] = useState<string>('')
   const [customEndDate, setCustomEndDate] = useState<string>('')
+  
+  // Edit modal state
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null)
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    transaction_date: '',
+    description: '',
+    category_id: '',
+    income_source_id: ''
+  })
+  const [editLoading, setEditLoading] = useState(false)
 
   const isTaxiOnly = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -168,6 +179,73 @@ export default function Transactions() {
       return tx.income_source?.name || 'Income'
     }
     return tx.category?.name || 'Expense'
+  }
+
+  const openEditModal = (tx: Transaction) => {
+    setEditingTx(tx)
+    setEditForm({
+      amount: String(tx.amount),
+      transaction_date: tx.transaction_date,
+      description: tx.description || '',
+      category_id: tx.category_id || '',
+      income_source_id: tx.income_source_id || ''
+    })
+  }
+
+  const closeEditModal = () => {
+    setEditingTx(null)
+    setEditForm({
+      amount: '',
+      transaction_date: '',
+      description: '',
+      category_id: '',
+      income_source_id: ''
+    })
+  }
+
+  const handleUpdateTransaction = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTx) return
+    
+    const user = firebaseAuth.currentUser
+    if (!user) return
+
+    setEditLoading(true)
+    try {
+      const txRef = doc(firebaseDb, 'users', user.uid, 'transactions', editingTx.id)
+      await updateDoc(txRef, {
+        amount: Number(editForm.amount),
+        transaction_date: editForm.transaction_date,
+        description: editForm.description || null,
+        category_id: editForm.category_id || null,
+        income_source_id: editForm.income_source_id || null,
+        updated_at: new Date().toISOString()
+      })
+      
+      closeEditModal()
+      loadData()
+    } catch (err) {
+      console.error('Failed to update transaction:', err)
+      alert('Failed to update transaction')
+    } finally {
+      setEditLoading(false)
+    }
+  }
+
+  const handleDeleteTransaction = async (tx: Transaction) => {
+    if (!confirm('Are you sure you want to delete this transaction?')) return
+    
+    const user = firebaseAuth.currentUser
+    if (!user) return
+
+    try {
+      const txRef = doc(firebaseDb, 'users', user.uid, 'transactions', tx.id)
+      await deleteDoc(txRef)
+      loadData()
+    } catch (err) {
+      console.error('Failed to delete transaction:', err)
+      alert('Failed to delete transaction')
+    }
   }
 
   if (loading) {
@@ -335,10 +413,26 @@ export default function Transactions() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex items-center gap-2">
                     <p className={`font-semibold ${isExpense ? 'text-red-600' : 'text-emerald-600'}`}>
                       {isExpense ? '-' : '+'}{formatMVR(tx.amount)}
                     </p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => openEditModal(tx)}
+                        className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                        title="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTransaction(tx)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -346,6 +440,98 @@ export default function Transactions() {
           })
         )}
       </div>
+      {/* Edit Modal */}
+      {editingTx && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4 max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Edit Transaction</h2>
+              <button onClick={closeEditModal} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTransaction} className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600">Amount (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={e => setEditForm({...editForm, amount: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Date</label>
+                <input
+                  type="date"
+                  value={editForm.transaction_date}
+                  onChange={e => setEditForm({...editForm, transaction_date: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Description</label>
+                <input
+                  type="text"
+                  value={editForm.description}
+                  onChange={e => setEditForm({...editForm, description: e.target.value})}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="Optional"
+                />
+              </div>
+
+              {editingTx.type === 'expense' && (
+                <div>
+                  <label className="text-sm text-gray-600">Category ID</label>
+                  <input
+                    type="text"
+                    value={editForm.category_id}
+                    onChange={e => setEditForm({...editForm, category_id: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+              )}
+
+              {editingTx.type === 'income' && (
+                <div>
+                  <label className="text-sm text-gray-600">Income Source ID</label>
+                  <input
+                    type="text"
+                    value={editForm.income_source_id}
+                    onChange={e => setEditForm({...editForm, income_source_id: e.target.value})}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                    placeholder="Optional"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="flex-1 py-2 border border-gray-200 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className="flex-1 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
