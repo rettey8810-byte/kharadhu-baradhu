@@ -21,7 +21,7 @@ export default function Transactions() {
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   // Date range filter
-  const [dateFilterType, setDateFilterType] = useState<'all' | 'month' | 'custom'>('month')
+  const [dateFilterType, setDateFilterType] = useState<'all' | 'month' | 'custom'>('all')
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
