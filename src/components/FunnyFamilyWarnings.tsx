@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { AlertTriangle, Heart, Sparkles, Megaphone } from 'lucide-react'
+import { marriageHumorMessages, wifeSavingsMessages } from '../data/marriageHumor'
 
 interface FunnyFamilyWarningsProps {
   totalExpense: number
@@ -160,16 +161,6 @@ const warningMessages: WarningMessage[] = [
     condition: (stats) => stats.spendingRatio > 0.9
   },
   {
-    id: 'general-rich',
-    type: 'general',
-    icon: <Sparkles className="w-5 h-5" />,
-    title: 'Good News',
-    message: 'You\'re saving so well! Your future self is doing a happy dance right now!',
-    color: 'text-emerald-600',
-    bgColor: 'bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200',
-    condition: (stats) => stats.totalIncome > stats.totalExpense * 1.5
-  },
-  {
     id: 'general-lottery',
     type: 'general',
     icon: <Heart className="w-5 h-5" />,
@@ -212,16 +203,52 @@ export default function FunnyFamilyWarnings({
     // Find all warnings that match current conditions
     const matchingWarnings = warningMessages.filter(w => w.condition(stats))
     
-    // If no warnings match, show a random general one
+    // Check for savings - add dynamic message that changes every 100 MVR
+    const savings = totalIncome - totalExpense
+    const savingsHundreds = Math.floor(savings / 100)
+    
     let selectedWarning: WarningMessage | null = null
     
-    if (matchingWarnings.length > 0) {
+    // If saving money, show dynamic savings message
+    if (savings > 0 && savingsHundreds >= 1) {
+      // Use imported savings messages and format with actual amount
+      const formattedSavingsMessages = wifeSavingsMessages.map(msg => 
+        msg.replace('{amount}', (savingsHundreds * 100).toString())
+      )
+      
+      // Pick message based on hundreds saved - rotates through the 20 messages
+      const messageIndex = (savingsHundreds - 1) % formattedSavingsMessages.length
+      
+      selectedWarning = {
+        id: `dynamic-savings-${savingsHundreds}`,
+        type: 'general',
+        icon: <Sparkles className="w-5 h-5" />,
+        title: 'Savings Milestone!',
+        message: formattedSavingsMessages[messageIndex],
+        color: 'text-emerald-600',
+        bgColor: 'bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200',
+        condition: () => true
+      }
+    } else if (matchingWarnings.length > 0) {
       // Pick based on day of month to ensure it changes daily
       const dayOfMonth = new Date().getDate()
       selectedWarning = matchingWarnings[dayOfMonth % matchingWarnings.length]
     } else if (ratio > 0.3) {
-      // Default warning if spending is significant
-      selectedWarning = warningMessages.find(w => w.id === 'general-ghost') || null
+      // Default: Use marriage humor messages from the large collection (500+)
+      const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24))
+      const humorIndex = dayOfYear % marriageHumorMessages.length
+      const randomHumor = marriageHumorMessages[humorIndex]
+      
+      selectedWarning = {
+        id: `humor-${dayOfYear}`,
+        type: 'general',
+        icon: <Heart className="w-5 h-5" />,
+        title: 'Marriage Wisdom',
+        message: randomHumor,
+        color: 'text-blue-600',
+        bgColor: 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200',
+        condition: () => true
+      }
     }
 
     return {
