@@ -190,7 +190,7 @@ export default function FunnyFamilyWarnings({
   remainingBalance,
   profileSpendings
 }: FunnyFamilyWarningsProps) {
-  const { activeWarning, spendingRatio, isOverBudget, transactionCount, topSpender } = useMemo(() => {
+  const { activeWarning, spendingRatio, isOverBudget, topSpender } = useMemo(() => {
     const ratio = budget > 0 ? totalExpense / budget : 0
     const overBudget = remainingBalance < 0
     const txCount = profileSpendings.reduce((sum, p) => sum + p.transactionCount, 0)
@@ -228,7 +228,6 @@ export default function FunnyFamilyWarnings({
       activeWarning: selectedWarning,
       spendingRatio: ratio,
       isOverBudget: overBudget,
-      transactionCount: txCount,
       topSpender: top
     }
   }, [totalExpense, totalIncome, dailySafeSpend, daysRemaining, budget, remainingBalance, profileSpendings])
