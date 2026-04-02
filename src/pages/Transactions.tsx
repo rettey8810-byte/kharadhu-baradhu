@@ -21,7 +21,7 @@ export default function Transactions() {
   const [filter, setFilter] = useState<'all' | 'expense' | 'income'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   // Date range filter
-  const [dateFilterType, setDateFilterType] = useState<'month' | 'custom'>('month')
+  const [dateFilterType, setDateFilterType] = useState<'all' | 'month' | 'custom'>('month')
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -55,7 +55,10 @@ export default function Transactions() {
     let startDate: string
     let endDate: string
     
-    if (dateFilterType === 'custom' && (customStartDate || customEndDate)) {
+    if (dateFilterType === 'all') {
+      startDate = '1970-01-01'
+      endDate = '2099-12-31'
+    } else if (dateFilterType === 'custom' && (customStartDate || customEndDate)) {
       startDate = customStartDate || '1970-01-01'
       endDate = customEndDate || '2099-12-31'
     } else {
@@ -190,6 +193,17 @@ export default function Transactions() {
         <div className="flex gap-2">
           <button
             type="button"
+            onClick={() => setDateFilterType('all')}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              dateFilterType === 'all'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
             onClick={() => setDateFilterType('month')}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
               dateFilterType === 'month'
@@ -232,7 +246,7 @@ export default function Transactions() {
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(e.target.value)}
               />
-            ) : (
+            ) : dateFilterType === 'custom' ? (
               <div className="flex gap-1">
                 <input
                   type="date"
@@ -249,6 +263,8 @@ export default function Transactions() {
                   placeholder="End"
                 />
               </div>
+            ) : (
+              <span className="pl-10 pr-3 py-2 text-sm text-gray-500">Showing all transactions</span>
             )}
           </div>
         </div>

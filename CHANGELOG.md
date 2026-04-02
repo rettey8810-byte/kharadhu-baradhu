@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-04-02
+
+### Added
+- **Custom Date Range Filtering** - Filter income and expenses by custom date ranges across multiple pages:
+  - **Taxi Page**: Filter trips and expenses by month or custom start/end dates
+  - **Loans Page**: Filter loans by All, Month, or Custom date range
+  - **Transactions Page**: Toggle between "By Month" and "Custom Date" filters
+- **Flexible Date Selection**:
+  - Month picker for quick month-based filtering
+  - Start date and end date inputs for precise custom ranges
+  - Statistics automatically update based on selected date range
+  - "All" option to view all data without date restrictions
+
+---
+
 ## [2.1.0] - 2026-03-27
 
 ### Added

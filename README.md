@@ -35,6 +35,7 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Visual Analytics** - Charts and reports for spending insights
 - **Search & Filter** - Find transactions by keyword, date, or amount
 - **Monthly Comparison** - Compare current vs previous month spending
+- **Custom Date Range Filtering** - Filter income/expenses by month or custom date ranges on Taxi, Loans, and Transactions pages
 - **Yearly View** - Browse transactions by year and month
 - **All Transactions** - View, edit, and delete all expenses and income in one place
 - **Grocery Bills** - View saved grocery receipts and item history
@@ -288,6 +289,7 @@ You will also see an **Install banner** at the top of the Dashboard when your de
 - [x] **Contact Developer** - Direct support via WhatsApp, Viber, Email (NEW!)
 
 ### Upcoming
+- [x] **Custom Date Range Filtering** - Filter by month or custom dates on Taxi, Loans, and Transactions pages (NEW!)
 - [ ] Multi-currency support
 - [ ] Offline mode enhancement
 - [ ] Push notifications

@@ -21,7 +21,8 @@ Complete guide to using the Family Expense Tracker.
 13. [Search & Filter](#search--filter)
 14. [Taxi](#taxi)
 15. [MetaTrader 5 (MT5)](#metatrader-5-mt5)
-16. [Tips & Best Practices](#tips--best-practices)
+16. [Custom Date Range Filtering](#custom-date-range-filtering)
+17. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -295,6 +296,16 @@ Taxi page shows:
 - **Monthly Profit** = monthly income - monthly expenses
 - **Overall Profit** = all-time income - all-time expenses
 
+### Date Range Filtering
+
+Filter your taxi data by month or custom date range:
+1. In **Taxi**, look for the **"Filter by Date"** section below the tabs
+2. Choose filter type:
+   - **All** - Show all trips and expenses (no date filter)
+   - **Month** - Select a specific month from the dropdown
+   - **Custom** - Enter start and end dates
+3. Statistics update automatically based on your selection
+
 ### View Taxi Transactions
 
 Tap **View in All Transactions** to open All Transactions filtered to Taxi income/expenses.
@@ -411,8 +422,20 @@ Tap a loan card to open **Loan Details**, where you can see:
 
 If you set a **Due Date** on a loan, the app will show alerts:
 
-- **On the Loans page:** “Overdue Loans” and “Due Soon (Next 7 Days)” sections appear at the top.
+- **On the Loans page:** "Overdue Loans" and "Due Soon (Next 7 Days)" sections appear at the top.
 - **On the Dashboard:** a Loans summary card shows quick counts for overdue and due-soon loans.
+
+### Date Range Filtering
+
+Filter loans by date range to view specific periods:
+1. In **Loans**, find the **"Filter by Date"** section below the tabs
+2. Choose filter type:
+   - **All** - Show all loans regardless of date
+   - **Month** - Select a specific month to filter loans by that month
+   - **Custom** - Enter start and end dates for a custom range
+3. Loan statistics (total borrowed, lended, remaining) update automatically
+
+**Note:** The date filter applies to the loan creation date (loan_date field).
 
 ---
 
@@ -614,10 +637,22 @@ Go to **All Transactions** from the side menu.
 
 - **View All** - See every transaction (expenses + income) in one list
 - **Search** - Type to search by description, category, or income source
-- **Filter** - Show: All | Expenses only | Income only
+- **Filter by Type** - Show: All | Expenses only | Income only
+- **Filter by Date** - Toggle between "By Month" and "Custom Date" range
 - **Summary Cards** - Total expenses and income at the top
 - **Edit** - Click pencil icon to change amount, date, description, category
 - **Delete** - Click trash icon to remove a transaction
+
+### Date Range Filtering
+
+View transactions for a specific period:
+1. In **All Transactions**, look for the date filter toggle above the search bar
+2. Choose filter type:
+   - **By Month** - Select a month from the dropdown
+   - **Custom Date** - Enter start and end dates for precise filtering
+3. Transactions reload automatically based on your selection
+
+**Tip:** Use custom date ranges to view quarterly reports, specific project periods, or tax year data.
 
 ### Editing Transactions
 
@@ -654,6 +689,59 @@ See matching transactions with:
 - Category or Income Source
 - Description preview
 - Click any transaction to view full details
+
+---
+
+## Custom Date Range Filtering
+
+Filter income and expenses by custom date ranges across multiple pages. This feature gives you flexibility to view data for any time period you need.
+
+### Where It's Available
+
+Date range filtering is available on:
+- **Taxi Page** - Filter trips and vehicle expenses
+- **Loans Page** - Filter borrowed and lended loans
+- **All Transactions** - Filter all expenses and income
+
+### Filter Options
+
+Each page supports these filter types:
+
+**Month Filter**
+- Quick month selection via dropdown
+- Format: YYYY-MM (e.g., 2026-04)
+- Shows all data for that month
+
+**Custom Date Range**
+- Start Date - Beginning of the period (inclusive)
+- End Date - End of the period (inclusive)
+- Leave either field empty for open-ended ranges
+
+**All (Loans page only)**
+- Shows all data without date restrictions
+- Useful when you want to see everything
+
+### How Statistics Update
+
+When you apply a date filter:
+- **Summary cards** recalculate based on filtered data
+- **Charts and graphs** update to show only the selected period
+- **Totals and averages** reflect the current filter
+
+### Use Cases
+
+- **Quarterly Reports** - Set custom range for Jan 1 - Mar 31
+- **Tax Season** - Filter your fiscal year (e.g., Jul 2025 - Jun 2026)
+- **Project Tracking** - View expenses during a specific project period
+- **Vacation Tracking** - See spending during a specific trip
+- **Loan Period Analysis** - Review loans taken during a specific time
+
+### Tips
+
+1. **Start broad, then narrow** - Begin with "All" or a full month, then use custom dates for specific periods
+2. **Check statistics** - Always review the summary cards after changing filters
+3. **Export filtered data** - Use Export Reports after filtering to download specific date ranges
+4. **Combine with search** - Use search + date filter together for precise results
 
 ---
 
