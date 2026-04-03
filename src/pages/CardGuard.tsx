@@ -28,6 +28,7 @@ import {
   ScanLine,
   Link as LinkIcon,
   Check,
+  Share2,
 } from 'lucide-react'
 
 // Types
@@ -106,7 +107,37 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
   return data.secure_url
 }
 
-// Format date
+  // Share card via WhatsApp
+  const shareViaWhatsApp = (card: CardDocument) => {
+    const text = encodeURIComponent(
+      `*Card Details*\n\n` +
+      `Title: ${card.title}\n` +
+      `Issuer: ${card.issuer}\n` +
+      `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
+      `Expiry: ${formatDate(card.expiry_date)}\n` +
+      (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '') +
+      (card.front_image_url ? `\nFront Image: ${card.front_image_url}\n` : '') +
+      (card.back_image_url ? `Back Image: ${card.back_image_url}\n` : '') +
+      (card.pdf_url ? `PDF: ${card.pdf_url}\n` : '')
+    )
+    window.open(`https://wa.me/?text=${text}`, '_blank')
+  }
+
+  // Share card via Viber
+  const shareViaViber = (card: CardDocument) => {
+    const text = encodeURIComponent(
+      `Card Details:\n\n` +
+      `Title: ${card.title}\n` +
+      `Issuer: ${card.issuer}\n` +
+      `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
+      `Expiry: ${formatDate(card.expiry_date)}\n` +
+      (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '') +
+      (card.front_image_url ? `\nFront Image: ${card.front_image_url}\n` : '') +
+      (card.back_image_url ? `Back Image: ${card.back_image_url}\n` : '') +
+      (card.pdf_url ? `PDF: ${card.pdf_url}\n` : '')
+    )
+    window.open(`viber://forward?text=${text}`, '_blank')
+  }
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -1677,7 +1708,23 @@ END:VCALENDAR`
                   </button>
                 )}
                 <div className="flex-1" />
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => shareViaWhatsApp(selectedCard)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                    title="Share via WhatsApp"
+                  >
+                    <Share2 size={18} />
+                    WhatsApp
+                  </button>
+                  <button
+                    onClick={() => shareViaViber(selectedCard)}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+                    title="Share via Viber"
+                  >
+                    <Share2 size={18} />
+                    Viber
+                  </button>
                   <button
                     onClick={() => exportToCalendar(selectedCard)}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
