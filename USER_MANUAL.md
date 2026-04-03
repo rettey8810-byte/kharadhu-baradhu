@@ -20,9 +20,10 @@ Complete guide to using the Family Expense Tracker.
 12. [Loans](#loans)
 13. [Search & Filter](#search--filter)
 14. [Taxi](#taxi)
-15. [MetaTrader 5 (MT5)](#metatrader-5-mt5)
-16. [Custom Date Range Filtering](#custom-date-range-filtering)
-17. [Tips & Best Practices](#tips--best-practices)
+15. [CardGuard](#cardguard)
+16. [MetaTrader 5 (MT5)](#metatrader-5-mt5)
+17. [Custom Date Range Filtering](#custom-date-range-filtering)
+18. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -273,6 +274,15 @@ Track taxi income and vehicle-related expenses, and automatically calculate prof
 3. Select **Car** or **Bike**
 4. Enter a **Name** (and optional plate number)
 
+### Set or Edit Monthly Target
+
+You can set a monthly target (income goal) for both **new and existing vehicles**:
+
+1. In **Taxi**, select your vehicle
+2. Tap **Edit**
+3. Enter **Monthly Target (MVR)**
+4. Tap **Update**
+
 ### Record Trip Income
 
 1. In **Taxi**, select your vehicle
@@ -309,6 +319,71 @@ Filter your taxi data by month or custom date range:
 ### View Taxi Transactions
 
 Tap **View in All Transactions** to open All Transactions filtered to Taxi income/expenses.
+
+---
+
+## CardGuard
+
+CardGuard helps you manage important cards/documents and their expiry dates.
+
+### What You Can Store
+
+- ID Card
+- Passport
+- Driver License
+- Insurance
+- Membership cards
+- Credit/Debit cards
+- Other documents
+
+### Add a Card
+
+1. Open **CardGuard** from the navigation
+2. Tap **Add Card**
+3. Fill in:
+   - Title (e.g., “Passport”)
+   - Issuer (e.g., “Immigration”)
+   - Card Type
+   - Expiry Date
+   - Optional card number and notes
+   - Optional Profile (uses your existing app profiles)
+4. Upload optional documents:
+   - Front image
+   - Back image
+   - PDF
+5. Tap **Add**
+
+### Reminders
+
+Each card supports reminders (days before expiry):
+
+- 30 days
+- 14 days
+- 7 days
+- 1 day
+
+You can toggle reminders on/off per card.
+
+### Renewal Providers
+
+In the **Providers** tab you can:
+
+- Add renewal provider name
+- Save a portal URL
+- Save renewal instructions
+
+Provider cards are clickable (if a portal URL is set) and will open the portal in a new tab.
+
+### Calendar
+
+From a card’s view:
+
+- Export an `.ics` calendar file
+- Add the expiry event to Google Calendar
+
+### Documents Storage
+
+CardGuard uploads files to Cloudinary. You can click the document buttons in the card view to open/download your uploaded files.
 
 ## MetaTrader 5 (MT5)
 
@@ -597,7 +672,7 @@ For the best experience, allow notifications when prompted:
 2. Click **"Allow"** when the browser asks for notification permission
 3. You'll get popup notifications for due bills while the app is open
 
-**Note:** On the free Supabase plan, notifications work while the PWA is open. For notifications when the app is closed, you would need a paid plan with scheduled triggers.
+**Note:** Notifications depend on your browser and device settings. In-app reminders are generated when you open the app. Push notifications when the app is closed require additional setup.
 
 ### View Reminders
 

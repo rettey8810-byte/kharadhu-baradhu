@@ -70,10 +70,20 @@ A modern expense tracking application built for Maldivian families. Track income
 
 ### Taxi (NEW!)
 - **Vehicle Setup** - Add your car/bike and track taxi activity per vehicle
+- **Monthly Target (Goal)** - Set or edit a monthly target for each vehicle (works for existing vehicles too)
 - **Trip Income** - Record trip count and rate (auto-calculates total income)
 - **Vehicle Expenses** - Petrol, insurance, road worthiness, service, maintenance, washing, engine oil, etc.
 - **Profit Tracking** - Monthly and overall profit shown on Taxi page
 - **Connected to Main System** - Taxi items also create normal transactions, so budgets/charts/reports include them
+
+### CardGuard (NEW!)
+- **Card & Document Manager** - Track important cards/documents (ID, Passport, License, Insurance, Membership, etc.)
+- **Expiry Reminders** - Set reminders (30/14/7/1 days) per card
+- **Renewal Providers** - Save renewal portals/links + instructions, open portal directly
+- **Renewal Workflow** - Create custom renewal steps and mark them done
+- **Calendar Integration** - Export `.ics` and add to Google Calendar
+- **Cloudinary Uploads** - Upload front/back images and optional PDF to Cloudinary
+- **Uses Existing App Profiles** - Cards can be linked to your existing app profiles
 
 ### MetaTrader 5 (MT5) (NEW!)
 - **Trade Tracking** - Record forex trades with symbol, buy/sell, lot size, entry/exit prices
@@ -122,8 +132,8 @@ Profile Sharing can send email invitations using a Supabase Edge Function + Rese
 |-------|------------|
 | **Frontend** | React 18, TypeScript, Tailwind CSS |
 | **State Management** | React Hooks, Context API |
-| **Backend** | Supabase (Auth, Database, Storage) |
-| **Database** | PostgreSQL |
+| **Backend** | Firebase (Auth, Firestore, Storage) |
+| **Database** | Firestore |
 | **OCR** | Tesseract.js (Free, client-side) |
 | **Charts** | Recharts |
 | **Icons** | Lucide React |
@@ -137,7 +147,7 @@ Profile Sharing can send email invitations using a Supabase Edge Function + Rese
 ### Prerequisites
 - Node.js 18+
 - npm or yarn
-- Supabase account (free tier works)
+- Firebase project (Auth + Firestore)
 
 ### Installation
 
@@ -149,14 +159,7 @@ cd kharadhu-baradhu
 # 2. Install dependencies
 npm install
 
-# 3. Create environment file
-cp .env.example .env.local
-
-# 4. Add your Supabase credentials to .env.local
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
-
-# 5. Start development server
+# 3. Start development server
 npm run dev
 ```
 
@@ -166,53 +169,24 @@ Open http://localhost:5173
 
 ## Database Setup
 
-Run these SQL files in Supabase SQL Editor:
+This project uses Firebase Firestore.
 
-1. **Main Schema** - `supabase-expense-schema.sql`
-2. **Additional Tables** - `supabase-expense-schema-additions.sql`
-3. **Enhanced Recurring Bills** - `supabase-recurring-bills-enhancement.sql` (NEW!)
-4. **Recurring Income** - `supabase-recurring-income.sql` (NEW!)
-5. **Loans** - `supabase-loans.sql` (NEW!)
+### Firestore Rules
 
-6. **Taxi** - `supabase-taxi.sql` (NEW!)
-7. **MetaTrader 5** - `supabase-mt5.sql` (NEW!)
+This repo contains Firestore rules in `firebase/firestore.rules`.
 
-Optional / advanced (only if you use these features):
+Important: Vercel deploy does **not** deploy Firestore rules. You must deploy them with Firebase CLI:
 
-7. **Profile Sharing** - `supabase-profile-sharing.sql`
-8. **Multi-user Access** - `supabase-multi-user-access.sql`
-9. **Storage Setup** - `supabase-storage-setup.sql`
-
-### Grocery Bills Migration
-
-If you created the `grocery_bills` table earlier, ensure it has `profile_id` for filtering:
-
-```sql
-ALTER TABLE public.grocery_bills
-  ADD COLUMN IF NOT EXISTS profile_id uuid REFERENCES public.expense_profiles(id) ON DELETE CASCADE;
-
-CREATE INDEX IF NOT EXISTS idx_grocery_bills_profile_id
-  ON public.grocery_bills(profile_id);
+```bash
+firebase deploy --only firestore:rules
 ```
 
-### Required SQL Migrations
+### CardGuard - Cloudinary Setup
 
-**For Existing Users - Update Recurring Bills:**
-```sql
--- Add new columns for enhanced recurring bills
-ALTER TABLE public.recurring_expenses 
-  ADD COLUMN IF NOT EXISTS is_variable_amount boolean DEFAULT false,
-  ADD COLUMN IF NOT EXISTS due_day_of_month integer,
-  ADD COLUMN IF NOT EXISTS grace_period_days integer DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS bill_type text,
-  ADD COLUMN IF NOT EXISTS provider text,
-  ADD COLUMN IF NOT EXISTS account_number text,
-  ADD COLUMN IF NOT EXISTS meter_number text;
+CardGuard uploads documents to Cloudinary. Set these environment variables in Vercel and locally:
 
--- Make amount nullable for variable bills
-ALTER TABLE public.recurring_expenses
-  ALTER COLUMN amount DROP NOT NULL;
-```
+- `VITE_CLOUDINARY_CLOUD_NAME`
+- `VITE_CLOUDINARY_UPLOAD_PRESET`
 
 ---
 
@@ -246,16 +220,15 @@ You will also see an **Install banner** at the top of the Dashboard when your de
 1. Push code to GitHub
 2. Import project in [Vercel](https://vercel.com)
 3. Set environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - (Firebase config is already embedded in `src/lib/firebase.ts`)
+   - `VITE_CLOUDINARY_CLOUD_NAME` (CardGuard)
+   - `VITE_CLOUDINARY_UPLOAD_PRESET` (CardGuard)
 4. Deploy
 
-### Supabase Configuration
+### Firebase Configuration
 
-1. **Authentication** -> Enable Email + Google OAuth
-2. **URL Configuration** -> Add your Vercel domain to redirect URLs
-3. **Database** -> Run the SQL schema files
-4. **Storage** -> Create "receipts" bucket for bill photos
+1. **Authentication** -> Enable Email/Password + Google OAuth
+2. **Firestore** -> Deploy rules from this repo (`firebase/firestore.rules`)
 
 ---
 
