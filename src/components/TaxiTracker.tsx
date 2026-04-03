@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs } from 'firebase/firestore'
@@ -37,101 +37,93 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
   const [trips, setTrips] = useState<TaxiTrip[]>([])
   const [expenses, setExpenses] = useState<TaxiExpense[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  useEffect(() => {
+  // Load data function - defined outside useEffect so it can be called from multiple places
+  const loadData = useCallback(async () => {
     if (!user) return
-    
-    let isMounted = true
-    
-    const loadData = async () => {
-      if (!isMounted) return
-      setLoading(true)
-      try {
-        // Load vehicles
-        const vehiclesQuery = query(
-          collection(firebaseDb, 'users', user.uid, 'taxiVehicles'),
+    setLoading(true)
+    try {
+      // Load vehicles
+      const vehiclesQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiVehicles'),
+        where('user_id', '==', user.uid)
+      )
+      const vehiclesSnap = await getDocs(vehiclesQuery)
+      const vehiclesData = vehiclesSnap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as TaxiVehicle[]
+      
+      // Only show vehicles with monthly target set (handle undefined/null)
+      const vehiclesWithTarget = vehiclesData.filter(v => {
+        const target = v.monthly_target
+        return target !== undefined && target !== null && target > 0
+      })
+      
+      if (vehiclesWithTarget.length > 0) {
+        const currentMonth = new Date().toISOString().slice(0, 7)
+        
+        // Load trips for this month
+        const tripsQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
           where('user_id', '==', user.uid)
         )
-        const vehiclesSnap = await getDocs(vehiclesQuery)
-        const vehiclesData = vehiclesSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as TaxiVehicle[]
+        const tripsSnap = await getDocs(tripsQuery)
+        const tripsData = tripsSnap.docs
+          .map(doc => doc.data() as TaxiTrip)
+          .filter(t => t.trip_date.startsWith(currentMonth))
         
-        // Only show vehicles with monthly target set (handle undefined/null)
-        const vehiclesWithTarget = vehiclesData.filter(v => {
-          const target = v.monthly_target
-          return target !== undefined && target !== null && target > 0
-        })
+        // Load expenses for this month
+        const expensesQuery = query(
+          collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
+          where('user_id', '==', user.uid)
+        )
+        const expensesSnap = await getDocs(expensesQuery)
+        const expensesData = expensesSnap.docs
+          .map(doc => doc.data() as TaxiExpense)
+          .filter(e => e.expense_date.startsWith(currentMonth))
         
-        if (!isMounted) return
-        
-        if (vehiclesWithTarget.length > 0) {
-          const currentMonth = new Date().toISOString().slice(0, 7)
-          
-          // Load trips for this month
-          const tripsQuery = query(
-            collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
-            where('user_id', '==', user.uid)
-          )
-          const tripsSnap = await getDocs(tripsQuery)
-          const tripsData = tripsSnap.docs
-            .map(doc => doc.data() as TaxiTrip)
-            .filter(t => t.trip_date.startsWith(currentMonth))
-          
-          // Load expenses for this month
-          const expensesQuery = query(
-            collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
-            where('user_id', '==', user.uid)
-          )
-          const expensesSnap = await getDocs(expensesQuery)
-          const expensesData = expensesSnap.docs
-            .map(doc => doc.data() as TaxiExpense)
-            .filter(e => e.expense_date.startsWith(currentMonth))
-          
-          if (!isMounted) return
-          
-          setVehicles(vehiclesWithTarget)
-          setTrips(tripsData)
-          setExpenses(expensesData)
-        } else {
-          setVehicles([])
-          setTrips([])
-          setExpenses([])
-        }
-      } catch (error) {
-        console.error('Failed to load taxi data:', error)
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
+        setVehicles(vehiclesWithTarget)
+        setTrips(tripsData)
+        setExpenses(expensesData)
+      } else {
+        setVehicles([])
+        setTrips([])
+        setExpenses([])
       }
+    } catch (error) {
+      console.error('Failed to load taxi data:', error)
+    } finally {
+      setLoading(false)
     }
-    
+  }, [user])
+
+  // Initial load and when refreshKey changes
+  useEffect(() => {
     loadData()
-    
-    // Refresh when tab becomes visible (user returns from Taxi page)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadData()
-      }
+  }, [loadData, refreshKey])
+
+  // Refresh when window gains focus (user returns from Taxi page)
+  useEffect(() => {
+    const handleFocus = () => {
+      setRefreshKey(k => k + 1)
     }
     
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    // Also refresh every 30 seconds while visible
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
+  // Refresh every 30 seconds
+  useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        loadData()
+        setRefreshKey(k => k + 1)
       }
     }, 30000)
     
-    return () => {
-      isMounted = false
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      clearInterval(interval)
-    }
-  }, [user])
+    return () => clearInterval(interval)
+  }, [])
 
   const stats = useMemo(() => {
     const now = new Date()
@@ -188,7 +180,20 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
   }
 
   if (stats.length === 0) {
-    return null // Don't show if no vehicles with targets
+    // Show a message instead of completely disappearing
+    return (
+      <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 ${className}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="bg-emerald-100 p-2 rounded-lg">
+            <Car size={18} className="text-emerald-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900">Taxi Target Tracker</h3>
+        </div>
+        <p className="text-sm text-gray-500">
+          No vehicles with monthly targets. Go to <strong>Taxi</strong> page and edit a vehicle to set a target.
+        </p>
+      </div>
+    )
   }
 
   return (
