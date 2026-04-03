@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useProfile } from '../hooks/useProfile'
 import { firebaseDb } from '../lib/firebase'
 import {
   addDoc,
@@ -25,8 +26,6 @@ import {
   FileText,
   Download,
   ScanLine,
-  User,
-  Users,
   Link as LinkIcon,
   Check,
 } from 'lucide-react'
@@ -68,15 +67,6 @@ interface RenewalProvider {
   name: string
   portal_url?: string
   instructions?: string
-  created_at: string
-}
-
-interface CardProfile {
-  id: string
-  user_id: string
-  name: string
-  color: string
-  icon: string
   created_at: string
 }
 
@@ -145,11 +135,11 @@ function getExpiryStatus(days: number): { color: string; text: string } {
 
 export default function CardGuard() {
   const { user } = useAuth()
+  const { profiles: appProfiles } = useProfile()
 
   // State
   const [cards, setCards] = useState<CardDocument[]>([])
   const [providers, setProviders] = useState<RenewalProvider[]>([])
-  const [profiles, setProfiles] = useState<CardProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProfile, setSelectedProfile] = useState<string>('all')
@@ -158,7 +148,7 @@ export default function CardGuard() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [selectedCard, setSelectedCard] = useState<CardDocument | null>(null)
-  const [activeTab, setActiveTab] = useState<'cards' | 'providers' | 'profiles'>('cards')
+  const [activeTab, setActiveTab] = useState<'cards' | 'providers'>('cards')
 
   // Form state
   const [formData, setFormData] = useState<Partial<CardDocument>>({
@@ -184,13 +174,6 @@ export default function CardGuard() {
     name: '',
     portal_url: '',
     instructions: '',
-  })
-
-  // Profile form
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    color: '#10b981',
-    icon: 'User',
   })
 
   // Load data
@@ -227,19 +210,6 @@ export default function CardGuard() {
         ...d.data() as Omit<RenewalProvider, 'id'>,
       }))
       setProviders(providersData)
-
-      // Load profiles
-      const profilesQuery = query(
-        collection(firebaseDb, 'users', user!.uid, 'cardProfiles'),
-        where('user_id', '==', user!.uid),
-        orderBy('name', 'asc')
-      )
-      const profilesSnap = await getDocs(profilesQuery)
-      const profilesData = profilesSnap.docs.map(d => ({
-        id: d.id,
-        ...d.data() as Omit<CardProfile, 'id'>,
-      }))
-      setProfiles(profilesData)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -394,36 +364,13 @@ export default function CardGuard() {
     }
   }
 
-  // Add profile
-  const handleAddProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-
-    try {
-      await addDoc(collection(firebaseDb, 'users', user.uid, 'cardProfiles'), {
-        user_id: user.uid,
-        ...profileForm,
-        created_at: new Date().toISOString(),
-      })
-      setProfileForm({ name: '', color: '#10b981', icon: 'User' })
-      loadData()
-    } catch (error) {
-      console.error('Error adding profile:', error)
-    }
-  }
-
-  // Delete profile
-  const handleDeleteProfile = async (profileId: string) => {
-    if (!user) return
-    if (!confirm('Are you sure you want to delete this profile?')) return
-
-    try {
-      await deleteDoc(doc(firebaseDb, 'users', user.uid, 'cardProfiles', profileId))
-      loadData()
-    } catch (error) {
-      console.error('Error deleting profile:', error)
-    }
-  }
+  const cardProfiles = useMemo(() => {
+    return appProfiles.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: '#6366f1',
+    }))
+  }, [appProfiles])
 
   // Toggle renewal step
   const toggleRenewalStep = async (card: CardDocument, stepId: string) => {
@@ -616,7 +563,6 @@ END:VCALENDAR`
         {[
           { id: 'cards', label: 'Cards', icon: CreditCard },
           { id: 'providers', label: 'Providers', icon: ExternalLink },
-          { id: 'profiles', label: 'Profiles', icon: Users },
         ].map(tab => (
           <button
             key={tab.id}
@@ -654,7 +600,7 @@ END:VCALENDAR`
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
             >
               <option value="all">All Profiles</option>
-              {profiles.map(profile => (
+              {cardProfiles.map(profile => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
                 </option>
@@ -695,7 +641,7 @@ END:VCALENDAR`
               {filteredCards.map(card => {
                 const daysLeft = getDaysUntilExpiry(card.expiry_date)
                 const status = getExpiryStatus(daysLeft)
-                const profile = profiles.find(p => p.id === card.profile_id)
+                const profile = cardProfiles.find(p => p.id === card.profile_id)
 
                 return (
                   <div
@@ -825,7 +771,12 @@ END:VCALENDAR`
             {providers.map(provider => (
               <div
                 key={provider.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between"
+                className={`bg-white rounded-xl border border-gray-200 p-4 flex items-start justify-between ${
+                  provider.portal_url ? 'cursor-pointer hover:bg-gray-50' : ''
+                }`}
+                onClick={() => {
+                  if (provider.portal_url) window.open(provider.portal_url, '_blank')
+                }}
               >
                 <div>
                   <h4 className="font-medium text-gray-900">{provider.name}</h4>
@@ -835,6 +786,7 @@ END:VCALENDAR`
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-indigo-600 hover:underline flex items-center gap-1 mt-1"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <LinkIcon size={14} />
                       Open Portal
@@ -846,65 +798,6 @@ END:VCALENDAR`
                 </div>
                 <button
                   onClick={() => handleDeleteProvider(provider.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Profiles Tab */}
-      {activeTab === 'profiles' && (
-        <div className="max-w-2xl">
-          <form onSubmit={handleAddProfile} className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Add Profile</h3>
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Profile name (e.g., John, Family, Work)"
-                value={profileForm.name}
-                onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                required
-              />
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-gray-600">Color:</label>
-                <input
-                  type="color"
-                  value={profileForm.color}
-                  onChange={e => setProfileForm({ ...profileForm, color: e.target.value })}
-                  className="w-10 h-10 rounded cursor-pointer"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700"
-              >
-                Add Profile
-              </button>
-            </div>
-          </form>
-
-          <div className="space-y-3">
-            {profiles.map(profile => (
-              <div
-                key={profile.id}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: profile.color + '20' }}
-                  >
-                    <User className="w-5 h-5" style={{ color: profile.color }} />
-                  </div>
-                  <span className="font-medium text-gray-900">{profile.name}</span>
-                </div>
-                <button
-                  onClick={() => handleDeleteProfile(profile.id)}
                   className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                 >
                   <Trash2 size={16} />
@@ -1022,7 +915,7 @@ END:VCALENDAR`
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">None</option>
-                    {profiles.map(profile => (
+                    {cardProfiles.map(profile => (
                       <option key={profile.id} value={profile.id}>
                         {profile.name}
                       </option>
@@ -1348,7 +1241,7 @@ END:VCALENDAR`
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">None</option>
-                    {profiles.map(profile => (
+                    {cardProfiles.map(profile => (
                       <option key={profile.id} value={profile.id}>
                         {profile.name}
                       </option>
@@ -1655,7 +1548,7 @@ END:VCALENDAR`
                   <div>
                     <p className="text-sm text-gray-500">Profile</p>
                     <p className="font-medium text-gray-900">
-                      {profiles.find(p => p.id === selectedCard.profile_id)?.name}
+                      {cardProfiles.find(p => p.id === selectedCard.profile_id)?.name}
                     </p>
                   </div>
                 )}

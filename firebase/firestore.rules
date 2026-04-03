@@ -171,6 +171,24 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
+
+      // User's CardGuard cards
+      match /cards/{cardId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's CardGuard renewal providers
+      match /renewalProviders/{providerId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // Backward compatibility: CardGuard-specific profiles (deprecated)
+      match /cardProfiles/{cardProfileId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
     }
     
     // Profile shares - accessible by both owner and shared user

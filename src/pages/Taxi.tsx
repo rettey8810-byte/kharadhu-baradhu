@@ -95,8 +95,15 @@ export default function Taxi() {
   const [taxiIncomeSourceId, setTaxiIncomeSourceId] = useState<string | null>(null)
 
   const [showAddVehicle, setShowAddVehicle] = useState(false)
+  const [showEditVehicle, setShowEditVehicle] = useState(false)
   const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string; monthly_target: string }>({
     vehicle_type: 'car',
+    name: '',
+    plate_number: '',
+    monthly_target: '',
+  })
+  const [editVehicleForm, setEditVehicleForm] = useState<{ id: string; name: string; plate_number: string; monthly_target: string }>({
+    id: '',
     name: '',
     plate_number: '',
     monthly_target: '',
@@ -128,6 +135,33 @@ export default function Taxi() {
   })
 
   const [error, setError] = useState<string | null>(null)
+
+  // Update vehicle function
+  const updateVehicle = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    try {
+      if (!user) throw new Error('Not authenticated')
+
+      const name = editVehicleForm.name.trim()
+      const plate = editVehicleForm.plate_number.trim()
+      if (!name) return
+
+      const { doc, updateDoc } = await import('firebase/firestore')
+      await updateDoc(doc(firebaseDb, 'users', user.uid, 'taxiVehicles', editVehicleForm.id), {
+        name,
+        plate_number: plate ? plate : null,
+        monthly_target: editVehicleForm.monthly_target ? Number(editVehicleForm.monthly_target) : null,
+        updated_at: new Date().toISOString()
+      })
+
+      setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+      setShowEditVehicle(false)
+      await load()
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to update vehicle')
+    }
+  }
 
   useEffect(() => {
     if (!currentProfile || !user) return
@@ -706,7 +740,25 @@ export default function Taxi() {
             ))}
           </select>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                const vehicle = vehicles.find(v => v.id === selectedVehicleId)
+                if (vehicle) {
+                  setEditVehicleForm({
+                    id: vehicle.id,
+                    name: vehicle.name,
+                    plate_number: vehicle.plate_number || '',
+                    monthly_target: vehicle.monthly_target?.toString() || ''
+                  })
+                  setShowEditVehicle(true)
+                }
+              }}
+              className="bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 text-sm"
+            >
+              Edit
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -1172,6 +1224,88 @@ export default function Taxi() {
                   className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
                 >
                   Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditVehicle && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900">Edit Vehicle</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditVehicle(false)
+                  setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={updateVehicle} className="space-y-4">
+              {error && (
+                <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm text-gray-600">Vehicle Name</label>
+                <input
+                  type="text"
+                  value={editVehicleForm.name}
+                  onChange={(e) => setEditVehicleForm({ ...editVehicleForm, name: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Plate Number (optional)</label>
+                <input
+                  type="text"
+                  value={editVehicleForm.plate_number}
+                  onChange={(e) => setEditVehicleForm({ ...editVehicleForm, plate_number: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Monthly Target (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editVehicleForm.monthly_target}
+                  onChange={(e) => setEditVehicleForm({ ...editVehicleForm, monthly_target: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="e.g., 15000"
+                  min={0}
+                />
+                <p className="text-xs text-gray-500 mt-1">Set your monthly income goal after expenses</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditVehicle(false)
+                    setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+                  }}
+                  className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
+                >
+                  Update
                 </button>
               </div>
             </form>
