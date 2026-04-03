@@ -294,7 +294,8 @@ export default function CardGuard() {
         updated_at: new Date().toISOString(),
       }
 
-      await addDoc(collection(firebaseDb, 'users', user.uid, 'cards'), newCard)
+      const docRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'cards'), newCard)
+      const newCardId = docRef.id
 
       setShowAddModal(false)
       resetForm()
@@ -303,8 +304,21 @@ export default function CardGuard() {
       setSelectedProfile('all')
       setSelectedType('all')
       await loadData()
-      // Show success message
-      alert('Card saved successfully!')
+      // Auto-open view modal for the new card
+      const savedCard: CardDocument = {
+        id: newCardId,
+        user_id: user.uid,
+        ...formData,
+        front_image_url: frontUrl || undefined,
+        back_image_url: backUrl || undefined,
+        pdf_url: pdfUrl || undefined,
+        is_active: true,
+        renewal_steps: formData.renewal_steps || [],
+        created_at: newCard.created_at,
+        updated_at: newCard.updated_at,
+      } as CardDocument
+      setSelectedCard(savedCard)
+      setShowViewModal(true)
     } catch (error) {
       console.error('Error adding card:', error)
       alert('Failed to add card. Please try again.')
