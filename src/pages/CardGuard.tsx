@@ -695,100 +695,120 @@ END:VCALENDAR`
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredCards.map(card => {
                 const daysLeft = getDaysUntilExpiry(card.expiry_date)
-                const status = getExpiryStatus(daysLeft)
                 const profile = cardProfiles.find(p => p.id === card.profile_id)
 
                 return (
                   <div
                     key={card.id}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-lg transition-all cursor-pointer group"
                     onClick={() => openViewModal(card)}
                   >
+                    {/* Header */}
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            profile?.color ? '' : 'bg-gray-100'
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                            profile?.color ? '' : 'bg-gradient-to-br from-indigo-500 to-purple-600'
                           }`}
                           style={profile?.color ? { backgroundColor: profile.color + '20' } : {}}
                         >
                           <CreditCard
-                            className="w-5 h-5"
-                            style={profile?.color ? { color: profile.color } : { color: '#6b7280' }}
+                            className="w-6 h-6"
+                            style={profile?.color ? { color: profile.color } : { color: '#ffffff' }}
                           />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{card.title}</h3>
-                          <p className="text-xs text-gray-500">{card.issuer}</p>
+                          <h3 className="font-semibold text-gray-900 text-lg">{card.title}</h3>
+                          <p className="text-sm text-gray-500">{card.issuer}</p>
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={e => {
                             e.stopPropagation()
                             openEditModal(card)
                           }}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                         >
-                          <Edit2 size={16} />
+                          <Edit2 size={18} />
                         </button>
                         <button
                           onClick={e => {
                             e.stopPropagation()
                             handleDeleteCard(card.id)
                           }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Type</span>
-                        <span className="text-sm font-medium text-gray-700">
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-gray-50 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 mb-0.5">Type</p>
+                        <p className="text-sm font-medium text-gray-900">
                           {cardTypes.find(t => t.value === card.card_type)?.label}
-                        </span>
+                        </p>
                       </div>
                       {card.card_number && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-500">Number</span>
-                          <span className="text-sm font-medium text-gray-700">
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <p className="text-xs text-gray-500 mb-0.5">Number</p>
+                          <p className="text-sm font-medium text-gray-900">
                             ****{card.card_number.slice(-4)}
-                          </span>
+                          </p>
                         </div>
                       )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Expires</span>
-                        <span className="text-sm font-medium">{formatDate(card.expiry_date)}</span>
+                      <div className="bg-gray-50 rounded-lg p-2">
+                        <p className="text-xs text-gray-500 mb-0.5">Expires</p>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(card.expiry_date)}</p>
+                      </div>
+                      <div className={`rounded-lg p-2 ${
+                        daysLeft <= 7 ? 'bg-red-50' : 
+                        daysLeft <= 30 ? 'bg-amber-50' : 'bg-emerald-50'
+                      }`}>
+                        <p className={`text-xs mb-0.5 ${
+                          daysLeft <= 7 ? 'text-red-600' : 
+                          daysLeft <= 30 ? 'text-amber-600' : 'text-emerald-600'
+                        }`}>Days Left</p>
+                        <p className={`text-sm font-bold ${
+                          daysLeft <= 7 ? 'text-red-700' : 
+                          daysLeft <= 30 ? 'text-amber-700' : 'text-emerald-700'
+                        }`}>{daysLeft} days</p>
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
-                        {status.text}
-                      </span>
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                       <div className="flex items-center gap-2">
                         {(card.front_image_url || card.back_image_url) && (
-                          <span title="Has images">
-                            <ImageIcon size={14} className="text-gray-400" />
+                          <span 
+                            title="Has images"
+                            className="flex items-center gap-1 px-2 py-1 bg-indigo-50 rounded-full text-xs text-indigo-600"
+                          >
+                            <ImageIcon size={12} />
+                            Images
                           </span>
                         )}
                         {card.pdf_url && (
-                          <span title="Has PDF">
-                            <FileText size={14} className="text-gray-400" />
-                          </span>
-                        )}
-                        {profile && (
-                          <span
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{ backgroundColor: profile.color + '20', color: profile.color }}
+                          <span 
+                            title="Has PDF"
+                            className="flex items-center gap-1 px-2 py-1 bg-purple-50 rounded-full text-xs text-purple-600"
                           >
-                            {profile.name}
+                            <FileText size={12} />
+                            PDF
                           </span>
                         )}
                       </div>
+                      {profile && (
+                        <span
+                          className="text-xs px-2 py-1 rounded-full font-medium"
+                          style={{ backgroundColor: profile.color + '20', color: profile.color }}
+                        >
+                          {profile.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )
