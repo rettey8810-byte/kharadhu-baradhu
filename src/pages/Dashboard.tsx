@@ -10,6 +10,7 @@ import SmartInsights from '../components/SmartInsights'
 import CashFlowForecast from '../components/CashFlowForecast'
 import FunnyFamilyWarnings from '../components/FunnyFamilyWarnings'
 import TaxiTracker from '../components/TaxiTracker'
+import TaxiTargetCard from '../components/TaxiTargetCard'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
 import { getDaysRemainingInMonth, getYearMonth, formatDateLocal } from '../utils/date'
 import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
@@ -400,6 +401,7 @@ export default function Dashboard() {
       />
 
       <TaxiTracker />
+      <TaxiTargetCard />
 
       {stats.budget > 0 && (
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
