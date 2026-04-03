@@ -69,8 +69,15 @@ export default function TaxiTargetCard({ className = '' }: TaxiTargetCardProps) 
         )
         const tripsSnap = await getDocs(tripsQuery)
         const tripsData = tripsSnap.docs
-          .map(doc => doc.data() as TaxiTrip)
-          .filter(t => t.trip_date.startsWith(currentMonth))
+          .map(doc => {
+            const data = doc.data() as TaxiTrip
+            const tripDateRaw = data.trip_date as any
+            const tripDate = typeof tripDateRaw === 'string' 
+              ? tripDateRaw 
+              : tripDateRaw?.toDate?.().toISOString().slice(0, 10) || ''
+            return { ...data, trip_date: tripDate }
+          })
+          .filter(t => t.trip_date?.startsWith(currentMonth))
         
         // Load expenses for this month
         const expensesQuery = query(
@@ -79,8 +86,15 @@ export default function TaxiTargetCard({ className = '' }: TaxiTargetCardProps) 
         )
         const expensesSnap = await getDocs(expensesQuery)
         const expensesData = expensesSnap.docs
-          .map(doc => doc.data() as TaxiExpense)
-          .filter(e => e.expense_date.startsWith(currentMonth))
+          .map(doc => {
+            const data = doc.data() as TaxiExpense
+            const expenseDateRaw = data.expense_date as any
+            const expenseDate = typeof expenseDateRaw === 'string' 
+              ? expenseDateRaw 
+              : expenseDateRaw?.toDate?.().toISOString().slice(0, 10) || ''
+            return { ...data, expense_date: expenseDate }
+          })
+          .filter(e => e.expense_date?.startsWith(currentMonth))
         
         setVehicles(vehiclesWithTarget)
         setTrips(tripsData)
