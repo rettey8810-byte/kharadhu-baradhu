@@ -298,7 +298,13 @@ export default function CardGuard() {
 
       setShowAddModal(false)
       resetForm()
-      loadData()
+      // Reset filters to show the new card
+      setSearchQuery('')
+      setSelectedProfile('all')
+      setSelectedType('all')
+      await loadData()
+      // Show success message
+      alert('Card saved successfully!')
     } catch (error) {
       console.error('Error adding card:', error)
       alert('Failed to add card. Please try again.')
@@ -472,7 +478,25 @@ END:VCALENDAR`
     window.open(url, '_blank')
   }
 
-  // Reset form
+  // Download file from URL
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const downloadUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      console.error('Error downloading file:', error)
+      // Fallback: open in new tab
+      window.open(url, '_blank')
+    }
+  }
   const resetForm = () => {
     setFormData({
       title: '',
@@ -745,14 +769,26 @@ END:VCALENDAR`
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
                         {status.text}
                       </span>
-                      {profile && (
-                        <span
-                          className="text-xs px-2 py-1 rounded-full"
-                          style={{ backgroundColor: profile.color + '20', color: profile.color }}
-                        >
-                          {profile.name}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {(card.front_image_url || card.back_image_url) && (
+                          <span title="Has images">
+                            <ImageIcon size={14} className="text-gray-400" />
+                          </span>
+                        )}
+                        {card.pdf_url && (
+                          <span title="Has PDF">
+                            <FileText size={14} className="text-gray-400" />
+                          </span>
+                        )}
+                        {profile && (
+                          <span
+                            className="text-xs px-2 py-1 rounded-full"
+                            style={{ backgroundColor: profile.color + '20', color: profile.color }}
+                          >
+                            {profile.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -1597,39 +1633,89 @@ END:VCALENDAR`
               {(selectedCard.front_image_url || selectedCard.back_image_url || selectedCard.pdf_url) && (
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Documents</h3>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {selectedCard.front_image_url && (
-                      <a
-                        href={selectedCard.front_image_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100"
-                      >
-                        <ImageIcon className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                        <span className="text-sm text-indigo-600">Front Image</span>
-                      </a>
+                      <div className="relative group">
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={selectedCard.front_image_url}
+                            alt="Front"
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => window.open(selectedCard.front_image_url, '_blank')}
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                          <button
+                            onClick={() => window.open(selectedCard.front_image_url, '_blank')}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="View"
+                          >
+                            <ExternalLink size={16} className="text-gray-700" />
+                          </button>
+                          <button
+                            onClick={() => downloadFile(selectedCard.front_image_url!, `${selectedCard.title}_front.jpg`)}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="Download"
+                          >
+                            <Download size={16} className="text-gray-700" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">Front Image</p>
+                      </div>
                     )}
                     {selectedCard.back_image_url && (
-                      <a
-                        href={selectedCard.back_image_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100"
-                      >
-                        <ImageIcon className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                        <span className="text-sm text-indigo-600">Back Image</span>
-                      </a>
+                      <div className="relative group">
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                          <img
+                            src={selectedCard.back_image_url}
+                            alt="Back"
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                            onClick={() => window.open(selectedCard.back_image_url, '_blank')}
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                          <button
+                            onClick={() => window.open(selectedCard.back_image_url, '_blank')}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="View"
+                          >
+                            <ExternalLink size={16} className="text-gray-700" />
+                          </button>
+                          <button
+                            onClick={() => downloadFile(selectedCard.back_image_url!, `${selectedCard.title}_back.jpg`)}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="Download"
+                          >
+                            <Download size={16} className="text-gray-700" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">Back Image</p>
+                      </div>
                     )}
                     {selectedCard.pdf_url && (
-                      <a
-                        href={selectedCard.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 bg-indigo-50 rounded-lg text-center hover:bg-indigo-100"
-                      >
-                        <FileText className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                        <span className="text-sm text-indigo-600">PDF</span>
-                      </a>
+                      <div className="relative group">
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden bg-indigo-50 border border-gray-200 flex flex-col items-center justify-center p-4">
+                          <FileText className="w-12 h-12 text-indigo-600 mb-2" />
+                          <span className="text-sm text-indigo-600 font-medium">PDF Document</span>
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                          <button
+                            onClick={() => window.open(selectedCard.pdf_url, '_blank')}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="View"
+                          >
+                            <ExternalLink size={16} className="text-gray-700" />
+                          </button>
+                          <button
+                            onClick={() => downloadFile(selectedCard.pdf_url!, `${selectedCard.title}.pdf`)}
+                            className="p-2 bg-white rounded-full hover:bg-gray-100"
+                            title="Download"
+                          >
+                            <Download size={16} className="text-gray-700" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-center">PDF</p>
+                      </div>
                     )}
                   </div>
                 </div>
