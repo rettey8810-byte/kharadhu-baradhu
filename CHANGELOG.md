@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-04-03
+
+### Added
+- **TaxiTracker Dashboard Widget** - New widget on Dashboard showing taxi monthly target progress
+  - Displays vehicles with monthly targets set
+  - Shows progress percentage with color-coded progress bar
+  - Calculates daily target, net income achieved, remaining to achieve
+  - Displays required daily average to meet target
+  - Auto-refreshes every 30 seconds and on window focus
+  - Manual refresh button when no vehicles with targets found
+- **TaxiTargetCard Component** - Detailed monthly target card on Dashboard
+  - Shows vehicle name and current day of month
+  - Progress bar with visual indicators
+  - Stats grid: Monthly Target, Net Achieved, Remaining, Required/Day
+  - Color-coded warnings when required daily exceeds target
+
+### Fixed
+- **TaxiTracker Date Handling** - Fixed `TypeError: trip_date.startsWith is not a function`
+  - Added support for Firebase Timestamp objects (converts to ISO strings)
+  - Handles both string dates and Timestamp dates from Firestore
+  - Applied fix to both TaxiTracker and TaxiTargetCard components
+- **TaxiTracker Auth Delay** - Fixed data not loading when user authentication is delayed
+  - Added retry mechanism with 500ms delay if user not immediately available
+  - Better error handling with separate try-catch for trips and expenses
+  - Debug logging for troubleshooting data loading issues
+
+### CardGuard Updates
+- **Cloudinary Integration** - Image uploads now working with proper environment variables
+  - Requires `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` in Vercel
+  - Supports front/back card images and optional PDF uploads
+- **Sharing Features** - Added WhatsApp and Viber share buttons for cards
+  - Share card details via WhatsApp (mobile/desktop)
+  - Share card details via Viber
+  - Pre-formatted share text with card name, number, and expiry
+
+---
+
 ## [2.2.0] - 2026-04-02
 
 ### Added

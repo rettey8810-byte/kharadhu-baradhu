@@ -320,6 +320,31 @@ Filter your taxi data by month or custom date range:
 
 Tap **View in All Transactions** to open All Transactions filtered to Taxi income/expenses.
 
+### Dashboard Widget (TaxiTracker)
+
+The **Dashboard** shows a **TaxiTracker widget** for vehicles with monthly targets:
+
+**What it displays:**
+- Vehicle name and monthly target
+- Progress percentage with color-coded bar
+- Daily target (monthly target ÷ days in month)
+- Net achieved (income minus expenses)
+- Remaining to achieve
+- Required daily average to meet target
+
+**Auto-refresh:**
+- Updates every 30 seconds
+- Refreshes when you return to the Dashboard tab
+- Manual refresh button available if no vehicles show
+
+**Color coding:**
+- **Green** - Progress ≥ 100% (target achieved!)
+- **Blue** - Progress ≥ 75% (close to target)
+- **Amber** - Progress ≥ 50% (halfway there)
+- **Red** - Progress < 50% (needs attention)
+
+**Tip:** Set monthly targets in the Taxi page to see your progress on the Dashboard.
+
 ---
 
 ## CardGuard
@@ -385,7 +410,24 @@ From a card’s view:
 
 CardGuard uploads files to Cloudinary. You can click the document buttons in the card view to open/download your uploaded files.
 
-## MetaTrader 5 (MT5)
+### Share Cards
+
+Share card details with family members via WhatsApp or Viber:
+
+1. Open a card in CardGuard
+2. Tap **Share** button
+3. Choose:
+   - **WhatsApp** - Opens WhatsApp with pre-formatted card details
+   - **Viber** - Opens Viber with card information
+4. Select contact and send
+
+**Shared information includes:**
+- Card name and issuer
+- Card number (if saved)
+- Expiry date
+- Notes
+
+---
 
 Track your forex trading profits, losses, and expenses. Perfect for MetaTrader 5 traders who want to monitor their trading performance alongside their personal finances.
 

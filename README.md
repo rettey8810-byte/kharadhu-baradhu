@@ -71,10 +71,15 @@ A modern expense tracking application built for Maldivian families. Track income
 ### Taxi (NEW!)
 - **Vehicle Setup** - Add your car/bike and track taxi activity per vehicle
 - **Monthly Target (Goal)** - Set or edit a monthly target for each vehicle (works for existing vehicles too)
+- **Dashboard Widget** - TaxiTracker widget on Dashboard shows monthly target progress
+  - Displays vehicles with targets, progress percentage, daily target
+  - Shows net achieved, remaining to achieve, required daily average
+  - Auto-refreshes and shows color-coded progress bar
 - **Trip Income** - Record trip count and rate (auto-calculates total income)
 - **Vehicle Expenses** - Petrol, insurance, road worthiness, service, maintenance, washing, engine oil, etc.
 - **Profit Tracking** - Monthly and overall profit shown on Taxi page
 - **Connected to Main System** - Taxi items also create normal transactions, so budgets/charts/reports include them
+- **Date Filtering** - Filter trips and expenses by month or custom date ranges
 
 ### CardGuard (NEW!)
 - **Card & Document Manager** - Track important cards/documents (ID, Passport, License, Insurance, Membership, etc.)
@@ -84,6 +89,7 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Calendar Integration** - Export `.ics` and add to Google Calendar
 - **Cloudinary Uploads** - Upload front/back images and optional PDF to Cloudinary
 - **Uses Existing App Profiles** - Cards can be linked to your existing app profiles
+- **Share Cards** - Share card details via WhatsApp or Viber with pre-formatted messages
 
 ### MetaTrader 5 (MT5) (NEW!)
 - **Trade Tracking** - Record forex trades with symbol, buy/sell, lot size, entry/exit prices
