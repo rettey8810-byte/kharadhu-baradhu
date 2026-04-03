@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car, QrCode, Shield, HelpCircle } from 'lucide-react'
+import { Home, PlusCircle, PieChart, Bell, Menu, X, LogOut, Target, BarChart3, Users, Repeat, TrendingUp, Search, Calendar, Wallet, List, Moon, Sun, Download, Zap, UserPlus, Languages, Receipt, HandCoins, Car, QrCode, Shield, HelpCircle, CreditCard } from 'lucide-react'
 import { useProfile } from '../hooks/useProfile'
 import { useTheme } from '../hooks/useTheme.tsx'
 import { useLanguage } from '../hooks/useLanguage.tsx'
@@ -180,6 +180,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             <HandCoins size={22} />
             <span>{t('nav_loans')}</span>
           </Link>
+          <Link to="/cardguard" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/cardguard' ? 'text-emerald-600' : 'text-gray-500'}`}>
+            <CreditCard size={22} />
+            <span>CardGuard</span>
+          </Link>
           <Link to="/profiles" className={`flex flex-col items-center py-2 px-3 text-xs ${location.pathname === '/profiles' ? 'text-emerald-600' : 'text-gray-500'}`}>
             <Users size={22} />
             <span>{t('nav_profiles')}</span>
@@ -229,6 +233,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavItem to="/export-reports" label={t('menu_export_reports')} icon={Download} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/quick-add" label={t('menu_quick_add')} icon={Zap} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profile-sharing" label={t('menu_profile_sharing')} icon={UserPlus} onMenuClose={() => setMenuOpen(false)} />
+              <NavItem to="/cardguard" label="Card Guard" icon={CreditCard} onMenuClose={() => setMenuOpen(false)} />
               <NavItem to="/profiles" label={t('menu_profiles')} icon={Users} onMenuClose={() => setMenuOpen(false)} />
               {currentUserEmail === ADMIN_EMAIL && (
                 <NavItem to="/admin" label="Admin Dashboard" icon={Shield} onMenuClose={() => setMenuOpen(false)} />

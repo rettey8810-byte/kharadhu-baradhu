@@ -30,6 +30,7 @@ import MT5 from './pages/MT5'
 import QRCode from './pages/QRCode'
 import AdminDashboard from './pages/AdminDashboard'
 import ContactUs from './pages/ContactUs'
+import CardGuard from './pages/CardGuard'
 
 function App() {
   const { user, loading } = useAuth()
@@ -78,6 +79,7 @@ function App() {
                   <Route path="/profile-sharing" element={<ProfileSharing />} />
                   <Route path="/grocery-bills" element={<GroceryBills />} />
                   <Route path="/qr-code" element={<QRCode />} />
+                  <Route path="/cardguard" element={<CardGuard />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/contact" element={<ContactUs />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
