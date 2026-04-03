@@ -84,7 +84,15 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
           )
           const tripsSnap = await getDocs(tripsQuery)
           tripsData = tripsSnap.docs
-            .map(doc => doc.data() as TaxiTrip)
+            .map(doc => {
+              const data = doc.data() as TaxiTrip
+              // Handle both string dates and Firebase Timestamps
+              const tripDateRaw = data.trip_date as any
+              const tripDate = typeof tripDateRaw === 'string' 
+                ? tripDateRaw 
+                : tripDateRaw?.toDate?.().toISOString().slice(0, 10) || ''
+              return { ...data, trip_date: tripDate }
+            })
             .filter(t => t.trip_date?.startsWith(currentMonth))
           console.log('[TaxiTracker] Trips loaded:', tripsData.length)
         } catch (tripError) {
@@ -98,7 +106,15 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
           )
           const expensesSnap = await getDocs(expensesQuery)
           expensesData = expensesSnap.docs
-            .map(doc => doc.data() as TaxiExpense)
+            .map(doc => {
+              const data = doc.data() as TaxiExpense
+              // Handle both string dates and Firebase Timestamps
+              const expenseDateRaw = data.expense_date as any
+              const expenseDate = typeof expenseDateRaw === 'string' 
+                ? expenseDateRaw 
+                : expenseDateRaw?.toDate?.().toISOString().slice(0, 10) || ''
+              return { ...data, expense_date: expenseDate }
+            })
             .filter(e => e.expense_date?.startsWith(currentMonth))
           console.log('[TaxiTracker] Expenses loaded:', expensesData.length)
         } catch (expenseError) {
