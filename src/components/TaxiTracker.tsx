@@ -101,8 +101,17 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
 
   // Initial load and when refreshKey changes
   useEffect(() => {
-    loadData()
-  }, [loadData, refreshKey])
+    if (user) {
+      loadData()
+    }
+  }, [loadData, refreshKey, user])
+
+  // Also load once when component mounts and user is already available
+  useEffect(() => {
+    if (user) {
+      loadData()
+    }
+  }, [])
 
   // Refresh when window gains focus (user returns from Taxi page)
   useEffect(() => {
