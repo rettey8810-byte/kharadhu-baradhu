@@ -74,28 +74,41 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
         const currentMonth = new Date().toISOString().slice(0, 7)
         
         // Load trips for this month
-        const tripsQuery = query(
-          collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
-          where('user_id', '==', user.uid)
-        )
-        const tripsSnap = await getDocs(tripsQuery)
-        const tripsData = tripsSnap.docs
-          .map(doc => doc.data() as TaxiTrip)
-          .filter(t => t.trip_date.startsWith(currentMonth))
+        let tripsData: TaxiTrip[] = []
+        let expensesData: TaxiExpense[] = []
         
-        // Load expenses for this month
-        const expensesQuery = query(
-          collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
-          where('user_id', '==', user.uid)
-        )
-        const expensesSnap = await getDocs(expensesQuery)
-        const expensesData = expensesSnap.docs
-          .map(doc => doc.data() as TaxiExpense)
-          .filter(e => e.expense_date.startsWith(currentMonth))
+        try {
+          const tripsQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'taxiTrips'),
+            where('user_id', '==', user.uid)
+          )
+          const tripsSnap = await getDocs(tripsQuery)
+          tripsData = tripsSnap.docs
+            .map(doc => doc.data() as TaxiTrip)
+            .filter(t => t.trip_date?.startsWith(currentMonth))
+          console.log('[TaxiTracker] Trips loaded:', tripsData.length)
+        } catch (tripError) {
+          console.error('[TaxiTracker] Failed to load trips:', tripError)
+        }
+        
+        try {
+          const expensesQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'taxiVehicleExpenses'),
+            where('user_id', '==', user.uid)
+          )
+          const expensesSnap = await getDocs(expensesQuery)
+          expensesData = expensesSnap.docs
+            .map(doc => doc.data() as TaxiExpense)
+            .filter(e => e.expense_date?.startsWith(currentMonth))
+          console.log('[TaxiTracker] Expenses loaded:', expensesData.length)
+        } catch (expenseError) {
+          console.error('[TaxiTracker] Failed to load expenses:', expenseError)
+        }
         
         setVehicles(vehiclesWithTarget)
         setTrips(tripsData)
         setExpenses(expensesData)
+        console.log('[TaxiTracker] Data set successfully')
       } else {
         setVehicles([])
         setTrips([])
@@ -103,6 +116,10 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
       }
     } catch (error) {
       console.error('[TaxiTracker] Failed to load taxi data:', error)
+      // Still set vehicles so UI can show something
+      setVehicles([])
+      setTrips([])
+      setExpenses([])
     } finally {
       setLoading(false)
     }
