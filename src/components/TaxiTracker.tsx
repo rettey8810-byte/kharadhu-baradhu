@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs } from 'firebase/firestore'
-import { Car, Target, TrendingUp, Calendar, DollarSign } from 'lucide-react'
+import { Car, Target, TrendingUp, Calendar, DollarSign, RefreshCw } from 'lucide-react'
 
 interface TaxiTrackerProps {
   className?: string
@@ -41,7 +41,11 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
 
   // Load data function - defined outside useEffect so it can be called from multiple places
   const loadData = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      console.log('[TaxiTracker] No user, skipping load')
+      return
+    }
+    console.log('[TaxiTracker] Loading data for user:', user.uid)
     setLoading(true)
     try {
       // Load vehicles
@@ -50,6 +54,7 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
         where('user_id', '==', user.uid)
       )
       const vehiclesSnap = await getDocs(vehiclesQuery)
+      console.log('[TaxiTracker] Vehicles found:', vehiclesSnap.docs.length)
       const vehiclesData = vehiclesSnap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -58,8 +63,12 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
       // Only show vehicles with monthly target set (handle undefined/null)
       const vehiclesWithTarget = vehiclesData.filter(v => {
         const target = v.monthly_target
-        return target !== undefined && target !== null && target > 0
+        const hasTarget = target !== undefined && target !== null && target > 0
+        console.log(`[TaxiTracker] Vehicle ${v.name}: monthly_target=${target}, hasTarget=${hasTarget}`)
+        return hasTarget
       })
+      
+      console.log('[TaxiTracker] Vehicles with target:', vehiclesWithTarget.length)
       
       if (vehiclesWithTarget.length > 0) {
         const currentMonth = new Date().toISOString().slice(0, 7)
@@ -93,29 +102,24 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
         setExpenses([])
       }
     } catch (error) {
-      console.error('Failed to load taxi data:', error)
+      console.error('[TaxiTracker] Failed to load taxi data:', error)
     } finally {
       setLoading(false)
     }
   }, [user])
 
-  // Initial load and when refreshKey changes
+  // Initial load and when refreshKey or user changes
   useEffect(() => {
+    console.log('[TaxiTracker] useEffect triggered - user:', user?.uid, 'refreshKey:', refreshKey)
     if (user) {
       loadData()
     }
   }, [loadData, refreshKey, user])
 
-  // Also load once when component mounts and user is already available
-  useEffect(() => {
-    if (user) {
-      loadData()
-    }
-  }, [])
-
   // Refresh when window gains focus (user returns from Taxi page)
   useEffect(() => {
     const handleFocus = () => {
+      console.log('[TaxiTracker] Window focus - refreshing')
       setRefreshKey(k => k + 1)
     }
     
@@ -127,6 +131,7 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
+        console.log('[TaxiTracker] Interval refresh')
         setRefreshKey(k => k + 1)
       }
     }, 30000)
@@ -198,9 +203,19 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
           </div>
           <h3 className="font-semibold text-gray-900">Taxi Target Tracker</h3>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mb-3">
           No vehicles with monthly targets. Go to <strong>Taxi</strong> page and edit a vehicle to set a target.
         </p>
+        <button
+          onClick={() => {
+            console.log('[TaxiTracker] Manual refresh clicked')
+            setRefreshKey(k => k + 1)
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <RefreshCw size={14} />
+          Refresh
+        </button>
       </div>
     )
   }
