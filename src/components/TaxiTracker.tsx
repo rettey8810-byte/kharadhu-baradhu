@@ -113,8 +113,21 @@ export default function TaxiTracker({ className = '' }: TaxiTrackerProps) {
     console.log('[TaxiTracker] useEffect triggered - user:', user?.uid, 'refreshKey:', refreshKey)
     if (user) {
       loadData()
+    } else {
+      console.log('[TaxiTracker] Waiting for user auth...')
     }
   }, [loadData, refreshKey, user])
+
+  // Retry after short delay if no user initially
+  useEffect(() => {
+    if (!user) {
+      const timer = setTimeout(() => {
+        console.log('[TaxiTracker] Retry trigger after 2s')
+        setRefreshKey(k => k + 1)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [user])
 
   // Refresh when window gains focus (user returns from Taxi page)
   useEffect(() => {
