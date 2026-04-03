@@ -20,6 +20,7 @@ type TaxiVehicle = {
   name: string
   plate_number: string | null
   is_active: boolean
+  monthly_target: number | null
   created_at: string
   updated_at: string
 }
@@ -94,10 +95,11 @@ export default function Taxi() {
   const [taxiIncomeSourceId, setTaxiIncomeSourceId] = useState<string | null>(null)
 
   const [showAddVehicle, setShowAddVehicle] = useState(false)
-  const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string }>({
+  const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string; monthly_target: string }>({
     vehicle_type: 'car',
     name: '',
     plate_number: '',
+    monthly_target: '',
   })
 
   const [showAddTrip, setShowAddTrip] = useState(false)
@@ -544,10 +546,11 @@ export default function Taxi() {
         name,
         plate_number: plate ? plate : null,
         is_active: true,
+        monthly_target: vehicleForm.monthly_target ? Number(vehicleForm.monthly_target) : null,
         created_at: new Date().toISOString()
       })
 
-      setVehicleForm({ vehicle_type: 'car', name: '', plate_number: '' })
+      setVehicleForm({ vehicle_type: 'car', name: '', plate_number: '', monthly_target: '' })
       setShowAddVehicle(false)
       await load()
     } catch (e: any) {
@@ -1140,6 +1143,20 @@ export default function Taxi() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
                   placeholder="e.g., BAA-1234"
                 />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Monthly Target (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={vehicleForm.monthly_target}
+                  onChange={(e) => setVehicleForm({ ...vehicleForm, monthly_target: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="e.g., 15000"
+                  min={0}
+                />
+                <p className="text-xs text-gray-500 mt-1">Set your monthly income goal after expenses</p>
               </div>
 
               <div className="flex gap-3">
