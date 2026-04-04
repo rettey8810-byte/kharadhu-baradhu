@@ -62,6 +62,14 @@ type AuditLog = {
   target_email: string | null
 }
 
+type UserProfile = {
+  id: string
+  name: string
+  type: string
+  currency: string
+  created_at: string
+}
+
 export default function AdminDashboard() {
   const { user: currentUser } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -75,6 +83,7 @@ export default function AdminDashboard() {
   const [dailyStats] = useState<any[]>([])
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null)
   const [userTransactions, setUserTransactions] = useState<UserTransaction[]>([])
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics'>('overview')
   const [dateRange, setDateRange] = useState<7 | 30 | 90>(30)
   const [userStats, setUserStats] = useState<{
@@ -212,6 +221,16 @@ export default function AdminDashboard() {
   // Load top users by transaction activity
   const loadTopUsers = async () => {
     try {
+      // First, get all users metadata to map IDs to emails
+      const usersRef = collection(firebaseDb, 'usersMetadata')
+      const usersSnap = await getDocs(usersRef)
+      const userEmailMap: Record<string, string> = {}
+      
+      usersSnap.forEach((doc) => {
+        const data = doc.data()
+        userEmailMap[doc.id] = data.email || 'Unknown'
+      })
+      
       // Get all transactions and aggregate by user
       const transactionsQuery = query(collectionGroup(firebaseDb, 'transactions'))
       const transactionsSnap = await getDocs(transactionsQuery)
@@ -232,7 +251,7 @@ export default function AdminDashboard() {
         
         if (!userStats[userId]) {
           userStats[userId] = {
-            email: 'Unknown',
+            email: userEmailMap[userId] || userId, // Show userId if no email found
             transaction_count: 0,
             total_income: 0,
             total_expense: 0,
@@ -324,6 +343,7 @@ export default function AdminDashboard() {
     setSelectedUser(user)
     setUserStats(null)
     setUserTransactions([])
+    setUserProfiles([])
     
     try {
       // Load user's transactions
@@ -357,9 +377,21 @@ export default function AdminDashboard() {
         }
       })
       
-      // Count user's profiles
+      // Load user's profiles with full details
       const userProfilesRef = collection(firebaseDb, 'users', user.uid, 'profiles')
       const profilesSnap = await getDocs(userProfilesRef)
+      const profiles: UserProfile[] = []
+      
+      profilesSnap.forEach((doc) => {
+        const data = doc.data()
+        profiles.push({
+          id: doc.id,
+          name: data.name || 'Unnamed',
+          type: data.type || 'Unknown',
+          currency: data.currency || 'MVR',
+          created_at: data.created_at || new Date().toISOString()
+        })
+      })
       
       setUserStats({
         transactions: transactions.length,
@@ -369,6 +401,7 @@ export default function AdminDashboard() {
       })
       
       setUserTransactions(transactions)
+      setUserProfiles(profiles)
     } catch (error) {
       console.error('Error loading user details:', error)
     }
@@ -755,6 +788,7 @@ export default function AdminDashboard() {
                   setSelectedUser(null)
                   setUserStats(null)
                   setUserTransactions([])
+                  setUserProfiles([])
                 }}
                 className="p-2 hover:bg-gray-100 rounded-lg"
               >
@@ -805,7 +839,25 @@ export default function AdminDashboard() {
                 </>
               )}
 
-              {/* User Transactions */}
+              {userProfiles.length > 0 && (
+                <>
+                  <h3 className="font-semibold text-gray-900 mt-4">User Profiles ({userProfiles.length})</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {userProfiles.map((profile) => (
+                      <div key={profile.id} className="bg-indigo-50 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-bold text-indigo-900">{profile.name}</p>
+                          <span className="text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">
+                            {profile.type}
+                          </span>
+                        </div>
+                        <p className="text-xs text-indigo-600">Currency: {profile.currency}</p>
+                        <p className="text-xs text-indigo-500">Created: {formatDate(profile.created_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
               {userTransactions.length > 0 && (
                 <>
                   <h3 className="font-semibold text-gray-900 mt-4">Recent Transactions</h3>

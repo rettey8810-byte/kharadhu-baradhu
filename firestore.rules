@@ -1,0 +1,298 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        request.auth.token.email == 'retey.ay@hotmail.com';
+    }
+
+    // Helper function to check if user is in an array field
+    function uidIn(listField) {
+      return isAuthenticated() && (listField is list) && request.auth.uid in listField;
+    }
+
+    // ============================================
+    // COLLECTION GROUP QUERIES FOR ADMIN
+    // These allow admin to query across all user subcollections
+    // ============================================
+    
+    // Allow admin collectionGroup query on all transactions
+    match /{path=**}/transactions/{transactionId} {
+      allow read: if isAdmin() || 
+        (isAuthenticated() && 
+         resource != null && 
+         resource.data.user_id == request.auth.uid);
+    }
+    
+    // Allow admin collectionGroup query on all profiles
+    match /{path=**}/profiles/{profileId} {
+      allow read: if isAdmin() || 
+        (isAuthenticated() && 
+         resource != null && 
+         resource.data.user_id == request.auth.uid);
+    }
+
+    // Users metadata - accessible for listing all users
+    match /usersMetadata/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Users collection - each user owns their own document
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+      
+      // User's profiles subcollection
+      match /profiles/{profileId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId);
+      }
+      
+      // User's settings subcollection
+      match /settings/{settingId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's profile shares (created by this user)
+      match /profileShares/{shareId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's share invitations (created by this user)
+      match /profileShareInvitations/{inviteId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's transactions subcollection
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId);
+      }
+      
+      // User's budgets subcollection
+      match /budgets/{budgetId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's categories subcollection
+      match /categories/{categoryId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's income sources subcollection
+      match /incomeSources/{sourceId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's recurring expenses
+      match /recurringExpenses/{expenseId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's recurring income
+      match /recurringIncome/{incomeId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's bill payments
+      match /billPayments/{paymentId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's savings goals
+      match /savingsGoals/{goalId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's loans
+      match /loans/{loanId} {
+        allow read: if isOwner(userId) || uidIn(resource.data.shared_with_user_ids) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId) || uidIn(resource.data.shared_with_user_ids) || isAdmin();
+        allow delete: if isAdmin();
+      }
+      
+      // User's loan payments - owner can read/write, shared users can create (for pending payments)
+      match /loanPayments/{paymentId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) || 
+          (isAuthenticated() && 
+           request.resource.data.added_by_user_id == request.auth.uid &&
+           request.resource.data.status == 'pending');
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+      
+      // User's notifications - owner can read/write, others can create notifications for the owner
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) || 
+          (isAuthenticated() && 
+           request.resource.data.from_user_id == request.auth.uid);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+      
+      // User's bill reminders
+      match /billReminders/{reminderId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's taxi vehicles
+      match /taxiVehicles/{vehicleId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's taxi trips
+      match /taxiTrips/{tripId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's taxi vehicle expenses
+      match /taxiVehicleExpenses/{expenseId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's grocery history
+      match /groceryHistory/{itemId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's grocery bills
+      match /groceryBills/{billId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's grocery bill items
+      match /groceryBillItems/{itemId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's CardGuard cards
+      match /cards/{cardId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's CardGuard renewal providers
+      match /renewalProviders/{providerId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // Backward compatibility: CardGuard-specific profiles (deprecated)
+      match /cardProfiles/{cardProfileId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+    
+    // Profile shares - accessible by both owner and shared user
+    match /profileShares/{shareId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.shared_by == request.auth.uid ||
+         resource.data.shared_with == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.shared_by == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.shared_by == request.auth.uid || isAdmin());
+    }
+
+    // Profile share invitations - readable by inviter and invitee (by email)
+    match /profileShareInvitations/{inviteId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.invited_by == request.auth.uid ||
+         resource.data.email == request.auth.token.email ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.invited_by == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+        (resource.data.invited_by == request.auth.uid ||
+         resource.data.email == request.auth.token.email ||
+         isAdmin());
+    }
+
+    // Loan share invitations - readable by inviter and invitee (by email)
+    match /loanInvites/{inviteId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.from_user_id == request.auth.uid ||
+         resource.data.to_user_email == request.auth.token.email ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.from_user_id == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        (resource.data.from_user_id == request.auth.uid ||
+         resource.data.to_user_email == request.auth.token.email ||
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Loan shares - accessible by owner and shared user
+    match /loanShares/{shareId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.owner_user_id == request.auth.uid ||
+         resource.data.shared_with_user_id == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() &&
+        request.resource.data.shared_with_user_id == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        (resource.data.owner_user_id == request.auth.uid ||
+         resource.data.shared_with_user_id == request.auth.uid ||
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+    
+    // Shared profiles data (for viewing shared profiles)
+    match /sharedProfileData/{profileId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.ownerId == request.auth.uid || 
+         request.auth.uid in resource.data.sharedWith);
+      allow write: if isAuthenticated() && 
+        resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Admin analytics data (admin only)
+    match /adminAnalytics/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Global data (app settings, etc)
+    match /appSettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
