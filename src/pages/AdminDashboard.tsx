@@ -148,6 +148,29 @@ export default function AdminDashboard() {
         })
       })
       
+      // If usersMetadata is empty, build user list from transactions
+      if (usersData.length === 0) {
+        const transactionsQuery = query(collectionGroup(firebaseDb, 'transactions'))
+        const transactionsSnap = await getDocs(transactionsQuery)
+        const userIds = new Set<string>()
+        
+        transactionsSnap.forEach((doc) => {
+          const userId = doc.ref.parent.parent?.id
+          if (userId) userIds.add(userId)
+        })
+        
+        // Create user entries from found user IDs
+        userIds.forEach((userId) => {
+          usersData.push({
+            uid: userId,
+            email: userId, // Show UID as email since we don't have it
+            created_at: new Date().toISOString(),
+            last_sign_in_at: null,
+            displayName: ''
+          })
+        })
+      }
+      
       // Sort by creation date, newest first
       usersData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       setUsers(usersData)

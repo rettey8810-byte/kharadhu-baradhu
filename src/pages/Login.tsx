@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth'
-import { firebaseAuth } from '../lib/firebase'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { firebaseAuth, firebaseDb } from '../lib/firebase'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -51,7 +52,17 @@ export default function Login() {
           return
         }
       } else {
-        await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
+        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email.trim(), password)
+        const newUser = userCredential.user
+        
+        // Save user metadata to Firestore
+        await setDoc(doc(firebaseDb, 'usersMetadata', newUser.uid), {
+          email: newUser.email,
+          displayName: newUser.displayName || '',
+          created_at: serverTimestamp(),
+          last_sign_in_at: serverTimestamp()
+        })
+        
         setMessage('Account created and signed in.')
 
         // Check for pending invite token and redirect
