@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { firebaseDb } from '../lib/firebase'
+import { collection, collectionGroup, getDocs, query, orderBy, limit, Timestamp, getCountFromServer } from 'firebase/firestore'
 import { Shield, Users, Calendar, TrendingUp, X, DollarSign, CreditCard, BarChart3, PieChart, Activity, Wallet } from 'lucide-react'
 
 const ADMIN_EMAIL = 'retey.ay@hotmail.com'
@@ -18,6 +20,7 @@ type SystemTotals = {
   total_profit: number
   total_transactions: number
   total_users: number
+  total_profiles: number
   active_users_30d: number
   new_users_30d: number
 }
@@ -31,15 +34,6 @@ type TopUser = {
   total_expense: number
   net_balance: number
   last_active: string
-}
-
-type DailyStat = {
-  date: string
-  new_users: number
-  active_users: number
-  transactions_count: number
-  total_income: number
-  total_expense: number
 }
 
 type ProfileStats = {
@@ -71,14 +65,14 @@ type AuditLog = {
 export default function AdminDashboard() {
   const { user: currentUser } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
-  const [users] = useState<FirebaseUserData[]>([])
+  const [users, setUsers] = useState<FirebaseUserData[]>([])
   const [auditLogs] = useState<AuditLog[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<FirebaseUserData | null>(null)
   const [systemTotals, setSystemTotals] = useState<SystemTotals | null>(null)
   const [topUsers, setTopUsers] = useState<TopUser[]>([])
-  const [dailyStats] = useState<DailyStat[]>([])
+  const [dailyStats] = useState<any[]>([])
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null)
   const [userTransactions, setUserTransactions] = useState<UserTransaction[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics'>('overview')
@@ -107,15 +101,9 @@ export default function AdminDashboard() {
   const loadAdminData = async () => {
     try {
       setLoadError(null)
-      // Note: Firestore doesn't have equivalent admin RPC functions
-      // For a complete admin dashboard, you would need to:
-      // 1. Use Firebase Admin SDK server-side
-      // 2. Or create Cloud Functions for admin operations
-      // 3. Store user activity in Firestore for tracking
-      
-      // Simplified: Load from Firestore what we can
       await Promise.all([
         loadSystemTotals(),
+        loadAllUsers(),
         loadTopUsers(),
         loadProfileStats()
       ])
@@ -126,44 +114,264 @@ export default function AdminDashboard() {
     }
   }
 
+  // Load all users from Firestore users collection
+  const loadAllUsers = async () => {
+    try {
+      const usersRef = collection(firebaseDb, 'usersMetadata')
+      const usersSnap = await getDocs(usersRef)
+      const usersData: FirebaseUserData[] = []
+      
+      usersSnap.forEach((doc) => {
+        const data = doc.data()
+        const createdAt = data.created_at instanceof Timestamp 
+          ? data.created_at.toDate().toISOString() 
+          : data.created_at || new Date().toISOString()
+        const lastSignIn = data.last_sign_in_at instanceof Timestamp
+          ? data.last_sign_in_at.toDate().toISOString()
+          : data.last_sign_in_at || null
+          
+        usersData.push({
+          uid: doc.id,
+          email: data.email || 'Unknown',
+          created_at: createdAt,
+          last_sign_in_at: lastSignIn,
+          displayName: data.displayName || ''
+        })
+      })
+      
+      // Sort by creation date, newest first
+      usersData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      setUsers(usersData)
+    } catch (error) {
+      console.error('Error loading users:', error)
+      setUsers([])
+    }
+  }
+
+  // Load system totals using collectionGroup queries
   const loadSystemTotals = async () => {
-    // Aggregate all transactions across all users
-    // Note: This requires collection group query which needs proper indexes
-
-    // For a simple implementation, we'll set placeholder values
-    // In production, use Cloud Functions with Firebase Admin SDK
-    setSystemTotals({
-      total_income: 0,
-      total_expense: 0,
-      total_profit: 0,
-      total_transactions: 0,
-      total_users: 0,
-      active_users_30d: 0,
-      new_users_30d: 0
-    })
+    try {
+      // Get all transactions across all users
+      const transactionsQuery = query(collectionGroup(firebaseDb, 'transactions'))
+      const transactionsSnap = await getDocs(transactionsQuery)
+      
+      let totalIncome = 0
+      let totalExpense = 0
+      let totalTransactions = 0
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      
+      transactionsSnap.forEach((doc) => {
+        const data = doc.data()
+        const amount = Number(data.amount) || 0
+        const type = data.type || 'expense'
+        
+        totalTransactions++
+        if (type === 'income') {
+          totalIncome += amount
+        } else {
+          totalExpense += amount
+        }
+      })
+      
+      // Count users
+      const usersRef = collection(firebaseDb, 'usersMetadata')
+      const usersCountSnap = await getCountFromServer(usersRef)
+      const totalUsers = usersCountSnap.data().count
+      
+      // Count profiles
+      const profilesQuery = query(collectionGroup(firebaseDb, 'profiles'))
+      const profilesSnap = await getDocs(profilesQuery)
+      const totalProfiles = profilesSnap.size
+      
+      setSystemTotals({
+        total_income: totalIncome,
+        total_expense: totalExpense,
+        total_profit: totalIncome - totalExpense,
+        total_transactions: totalTransactions,
+        total_users: totalUsers,
+        total_profiles: totalProfiles,
+        active_users_30d: 0, // Would need to track login activity
+        new_users_30d: 0    // Would need to query by date range
+      })
+    } catch (error) {
+      console.error('Error loading system totals:', error)
+      setSystemTotals({
+        total_income: 0,
+        total_expense: 0,
+        total_profit: 0,
+        total_transactions: 0,
+        total_users: 0,
+        total_profiles: 0,
+        active_users_30d: 0,
+        new_users_30d: 0
+      })
+    }
   }
 
+  // Load top users by transaction activity
   const loadTopUsers = async () => {
-    // This would require server-side aggregation
-    // Using placeholder data for now
-    setTopUsers([])
+    try {
+      // Get all transactions and aggregate by user
+      const transactionsQuery = query(collectionGroup(firebaseDb, 'transactions'))
+      const transactionsSnap = await getDocs(transactionsQuery)
+      
+      const userStats: Record<string, { 
+        email: string
+        transaction_count: number
+        total_income: number
+        total_expense: number
+        last_transaction: string 
+      }> = {}
+      
+      transactionsSnap.forEach((doc) => {
+        const data = doc.data()
+        const userId = doc.ref.parent.parent?.id || 'unknown'
+        const amount = Number(data.amount) || 0
+        const type = data.type || 'expense'
+        
+        if (!userStats[userId]) {
+          userStats[userId] = {
+            email: 'Unknown',
+            transaction_count: 0,
+            total_income: 0,
+            total_expense: 0,
+            last_transaction: data.transaction_date || new Date().toISOString()
+          }
+        }
+        
+        userStats[userId].transaction_count++
+        if (type === 'income') {
+          userStats[userId].total_income += amount
+        } else {
+          userStats[userId].total_expense += amount
+        }
+      })
+      
+      // Convert to array and sort by transaction count
+      const topUsersList: TopUser[] = Object.entries(userStats)
+        .map(([userId, stats]) => ({
+          user_id: userId,
+          email: stats.email,
+          profile_name: 'Default',
+          transaction_count: stats.transaction_count,
+          total_income: stats.total_income,
+          total_expense: stats.total_expense,
+          net_balance: stats.total_income - stats.total_expense,
+          last_active: stats.last_transaction
+        }))
+        .sort((a, b) => b.transaction_count - a.transaction_count)
+        .slice(0, 10)
+      
+      setTopUsers(topUsersList)
+    } catch (error) {
+      console.error('Error loading top users:', error)
+      setTopUsers([])
+    }
   }
 
+  // Load profile statistics
   const loadProfileStats = async () => {
-    // This would require server-side aggregation
-    setProfileStats({
-      total_profiles: 0,
-      profiles_with_transactions: 0,
-      avg_transactions_per_profile: 0,
-      top_profile_type: 'N/A',
-      top_profile_count: 0
-    })
+    try {
+      const profilesQuery = query(collectionGroup(firebaseDb, 'profiles'))
+      const profilesSnap = await getDocs(profilesQuery)
+      
+      const totalProfiles = profilesSnap.size
+      const profileTypes: Record<string, number> = {}
+      let profilesWithTransactions = 0
+      
+      profilesSnap.forEach((doc) => {
+        const data = doc.data()
+        const type = data.type || 'Unknown'
+        profileTypes[type] = (profileTypes[type] || 0) + 1
+        
+        // Check if profile has transactions by looking at the parent user
+        if (data.transaction_count > 0) {
+          profilesWithTransactions++
+        }
+      })
+      
+      // Find top profile type
+      let topType = 'N/A'
+      let topCount = 0
+      Object.entries(profileTypes).forEach(([type, count]) => {
+        if (count > topCount) {
+          topType = type
+          topCount = count
+        }
+      })
+      
+      setProfileStats({
+        total_profiles: totalProfiles,
+        profiles_with_transactions: profilesWithTransactions,
+        avg_transactions_per_profile: totalProfiles > 0 ? Math.round((profilesWithTransactions / totalProfiles) * 10) / 10 : 0,
+        top_profile_type: topType,
+        top_profile_count: topCount
+      })
+    } catch (error) {
+      console.error('Error loading profile stats:', error)
+      setProfileStats({
+        total_profiles: 0,
+        profiles_with_transactions: 0,
+        avg_transactions_per_profile: 0,
+        top_profile_type: 'N/A',
+        top_profile_count: 0
+      })
+    }
   }
 
   const viewUserDetails = async (user: FirebaseUserData) => {
     setSelectedUser(user)
     setUserStats(null)
     setUserTransactions([])
+    
+    try {
+      // Load user's transactions
+      const userTransactionsRef = collection(firebaseDb, 'users', user.uid, 'transactions')
+      const transactionsQuery = query(userTransactionsRef, orderBy('transaction_date', 'desc'), limit(20))
+      const transactionsSnap = await getDocs(transactionsQuery)
+      
+      const transactions: UserTransaction[] = []
+      let income = 0
+      let expenses = 0
+      
+      transactionsSnap.forEach((doc) => {
+        const data = doc.data()
+        const amount = Number(data.amount) || 0
+        const type = data.type || 'expense'
+        
+        transactions.push({
+          id: doc.id,
+          transaction_date: data.transaction_date || new Date().toISOString(),
+          description: data.description || 'No description',
+          amount: amount,
+          type: type,
+          category_name: data.category_name || '-',
+          created_at: data.created_at || new Date().toISOString()
+        })
+        
+        if (type === 'income') {
+          income += amount
+        } else {
+          expenses += amount
+        }
+      })
+      
+      // Count user's profiles
+      const userProfilesRef = collection(firebaseDb, 'users', user.uid, 'profiles')
+      const profilesSnap = await getDocs(userProfilesRef)
+      
+      setUserStats({
+        transactions: transactions.length,
+        income: income,
+        expenses: expenses,
+        profiles: profilesSnap.size
+      })
+      
+      setUserTransactions(transactions)
+    } catch (error) {
+      console.error('Error loading user details:', error)
+    }
   }
 
   const formatDate = (dateStr: string | null) => {
