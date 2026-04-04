@@ -159,16 +159,29 @@ export default function AdminDashboard() {
           if (userId) userIds.add(userId)
         })
         
-        // Create user entries from found user IDs
-        userIds.forEach((userId) => {
+        // For each user ID, try to get their profile name
+        for (const userId of userIds) {
+          // Try to get first profile name
+          let displayName = userId
+          try {
+            const profilesRef = collection(firebaseDb, 'users', userId, 'profiles')
+            const profilesSnap = await getDocs(profilesRef)
+            if (!profilesSnap.empty) {
+              const firstProfile = profilesSnap.docs[0].data()
+              displayName = firstProfile.name || userId
+            }
+          } catch (e) {
+            // Ignore errors, use userId as fallback
+          }
+          
           usersData.push({
             uid: userId,
-            email: userId, // Show UID as email since we don't have it
+            email: displayName, // Use profile name or userId
             created_at: new Date().toISOString(),
             last_sign_in_at: null,
             displayName: ''
           })
-        })
+        }
       }
       
       // Sort by creation date, newest first
