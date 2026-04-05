@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-04-05
+
+### Added - Credit Card Integration
+- **Charge Expenses to Credit Card** - New option in Add Transaction page
+  - Shows checkbox "Charge to Credit Card" when adding expenses
+  - Dropdown to select from user's saved credit/debit cards (from CardGuard)
+  - Card display shows title, issuer, and masked card number
+  - Also available for grocery bills with receipt OCR
+- **Credit Card Loan Tracking** - Expenses charged to cards create/update loan records
+  - Creates new loan with `category: 'credit_card'` if card has no active loan
+  - Updates existing credit card loan by adding expense amount to total
+  - Tracks card_id and card_name for easy identification
+- **Credit Card Balance Display** - New section on Loans page
+  - Shows outstanding balance for each credit card
+  - Displays total credit card debt across all cards
+  - Purple gradient styling to distinguish from regular loans
+  - Real-time balance updates when expenses are charged
+
+---
+
 ## [2.3.0] - 2026-04-03
 
 ### Added

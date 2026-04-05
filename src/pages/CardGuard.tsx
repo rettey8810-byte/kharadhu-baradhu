@@ -200,6 +200,9 @@ export default function CardGuard() {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
+  // Credit card balance state (for setting existing balance)
+  const [initialBalance, setInitialBalance] = useState<string>('')
+
   // Provider form
   const [providerForm, setProviderForm] = useState({
     name: '',
@@ -297,8 +300,36 @@ export default function CardGuard() {
       const docRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'cards'), newCard)
       const newCardId = docRef.id
 
+      // If credit/debit card has initial balance, create a loan record
+      const balanceNum = Number(initialBalance)
+      if ((formData.card_type === 'credit' || formData.card_type === 'debit') && balanceNum > 0) {
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
+          profile_id: formData.profile_id || null,
+          loan_type: 'borrowed',
+          category: 'credit_card',
+          card_id: newCardId,
+          card_name: formData.title,
+          lender_name: formData.issuer,
+          principal_amount: balanceNum,
+          currency: 'MVR',
+          interest_rate: 0,
+          interest_type: 'none',
+          loan_date: new Date().toISOString().slice(0, 10),
+          due_date: null,
+          total_amount: balanceNum,
+          amount_paid: 0,
+          emi_amount: null,
+          total_installments: null,
+          installments_paid: 0,
+          status: 'active',
+          description: `Existing balance for ${formData.title}`,
+          created_at: new Date().toISOString()
+        })
+      }
+
       setShowAddModal(false)
       resetForm()
+      setInitialBalance('')
       // Reset filters to show the new card
       setSearchQuery('')
       setSelectedProfile('all')
@@ -528,6 +559,7 @@ END:VCALENDAR`
     setFrontImage(null)
     setBackImage(null)
     setPdfFile(null)
+    setInitialBalance('')
   }
 
   // Open edit modal
@@ -979,6 +1011,27 @@ END:VCALENDAR`
                   />
                 </div>
               </div>
+
+              {/* Initial Balance - only for credit/debit cards */}
+              {(formData.card_type === 'credit' || formData.card_type === 'debit') && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-indigo-900 mb-1">
+                    Current Outstanding Balance (MVR)
+                  </label>
+                  <input
+                    type="number"
+                    value={initialBalance}
+                    onChange={e => setInitialBalance(e.target.value)}
+                    className="w-full px-4 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-indigo-600 mt-1">
+                    Enter your existing credit card debt. This will create a loan record without adding an expense.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
