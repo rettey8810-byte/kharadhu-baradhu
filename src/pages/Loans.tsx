@@ -3,7 +3,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc, orderBy, getDoc, arrayUnion, onSnapshot } from 'firebase/firestore'
-import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil, Share2 } from 'lucide-react'
+import { HandCoins, Plus, Trash2, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, X, Pencil, Share2, CreditCard } from 'lucide-react'
 
 // Format currency as MVR
 const formatMVR = (amount: number) => {
@@ -282,6 +282,8 @@ interface Loan {
   profile_id: string
   loan_type: 'borrowed' | 'lended'
   category: string
+  card_id?: string
+  card_name?: string
   lender_name: string | null
   borrower_name: string | null
   principal_amount: number
@@ -1246,6 +1248,10 @@ export default function Loans() {
   const totalLendedReceived = filteredLendedLoans.reduce((sum, l) => sum + l.amount_paid, 0)
   const totalLendedOutstanding = filteredLendedLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
 
+  // Credit Card Loans calculation
+  const creditCardLoans = loans.filter(l => l.category === 'credit_card' && l.status === 'active')
+  const totalCreditCardDebt = creditCardLoans.reduce((sum, l) => sum + (l.total_amount - l.amount_paid), 0)
+
   const todayStr = new Date().toISOString().slice(0, 10)
   const dueSoonThresholdStr = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 7)
     .toISOString()
@@ -1545,6 +1551,33 @@ export default function Loans() {
           <p className="text-xs text-emerald-600 mt-1">{formatMVR(totalLendedReceived)} received</p>
         </div>
       </div>
+
+      {/* Credit Card Balance Section */}
+      {creditCardLoans.length > 0 && (
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CreditCard className="text-indigo-600" size={20} />
+            <span className="text-sm font-medium text-indigo-900">Credit Card Balance</span>
+          </div>
+          <div className="space-y-2">
+            {creditCardLoans.map(loan => (
+              <div key={loan.id} className="flex items-center justify-between bg-white/70 rounded-lg p-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{loan.card_name || loan.lender_name}</p>
+                  <p className="text-xs text-gray-500">Outstanding Balance</p>
+                </div>
+                <p className="text-lg font-bold text-indigo-700">{formatMVR(loan.total_amount - loan.amount_paid)}</p>
+              </div>
+            ))}
+            {creditCardLoans.length > 1 && (
+              <div className="flex items-center justify-between pt-2 border-t border-indigo-200">
+                <p className="text-sm font-medium text-indigo-900">Total Credit Card Debt</p>
+                <p className="text-xl font-bold text-indigo-700">{formatMVR(totalCreditCardDebt)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Net Position */}
       <div className={`rounded-xl p-4 ${totalBorrowedRemaining > totalLendedOutstanding ? 'bg-red-50 border border-red-200' : 'bg-emerald-50 border border-emerald-200'}`}>

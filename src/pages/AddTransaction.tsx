@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, orderBy, updateDoc, doc } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { ExpenseCategory, IncomeSource } from '../types'
-import { Camera, X, FileText, Hash } from 'lucide-react'
+import { Camera, X, FileText, Hash, CreditCard } from 'lucide-react'
 import VoiceInput from '../components/VoiceInput'
 import { recognize } from 'tesseract.js'
 import { useNavigate } from 'react-router-dom'
@@ -33,6 +33,11 @@ export default function AddTransaction() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+
+  // Credit card states
+  const [creditCards, setCreditCards] = useState<Array<{ id: string; title: string; issuer: string; card_number?: string }>>([])
+  const [chargeToCreditCard, setChargeToCreditCard] = useState(false)
+  const [selectedCreditCardId, setSelectedCreditCardId] = useState<string>('')
 
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrText, setOcrText] = useState<string | null>(null)
@@ -226,6 +231,21 @@ export default function AddTransaction() {
       if (cats.length > 0) setCategoryId(cats[0].id)
       if (sources.length > 0) setIncomeSourceId(sources[0].id)
       else setIncomeSourceId('')
+
+      // Load credit cards
+      const cardsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'cards'),
+        where('user_id', '==', user.uid),
+        where('card_type', 'in', ['credit', 'debit'])
+      )
+      const cardsSnap = await getDocs(cardsQuery)
+      const cards = cardsSnap.docs.map(d => ({
+        id: d.id,
+        title: d.data().title,
+        issuer: d.data().issuer,
+        card_number: d.data().card_number
+      }))
+      setCreditCards(cards)
     }
 
     load()
@@ -540,6 +560,57 @@ export default function AddTransaction() {
       const transactionRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), payload)
       const transaction = { id: transactionRef.id, ...payload }
 
+      // Handle Credit Card Charge
+      if (type === 'expense' && chargeToCreditCard && selectedCreditCardId) {
+        const selectedCard = creditCards.find(c => c.id === selectedCreditCardId)
+        if (selectedCard) {
+          // Find existing credit card loan or create new one
+          const loansQuery = query(
+            collection(firebaseDb, 'users', user.uid, 'loans'),
+            where('category', '==', 'credit_card'),
+            where('card_id', '==', selectedCreditCardId),
+            where('status', '==', 'active')
+          )
+          const loansSnap = await getDocs(loansQuery)
+          
+          if (loansSnap.empty) {
+            // Create new credit card loan
+            await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
+              profile_id: currentProfile.id,
+              loan_type: 'borrowed',
+              category: 'credit_card',
+              card_id: selectedCreditCardId,
+              card_name: selectedCard.title,
+              lender_name: selectedCard.issuer,
+              principal_amount: amt,
+              currency: 'MVR',
+              interest_rate: 0,
+              interest_type: 'none',
+              loan_date: date,
+              due_date: null,
+              total_amount: amt,
+              amount_paid: 0,
+              emi_amount: null,
+              total_installments: null,
+              installments_paid: 0,
+              status: 'active',
+              description: `Credit card charge: ${description || 'Expense'}`,
+              created_at: new Date().toISOString()
+            })
+          } else {
+            // Update existing credit card loan - add to total_amount
+            const loanDoc = loansSnap.docs[0]
+            const loanData = loanDoc.data()
+            const newTotal = (loanData.total_amount || 0) + amt
+            await updateDoc(doc(firebaseDb, 'users', user.uid, 'loans', loanDoc.id), {
+              total_amount: newTotal,
+              principal_amount: (loanData.principal_amount || 0) + amt,
+              updated_at: new Date().toISOString()
+            })
+          }
+        }
+      }
+
       // Note: Receipt upload and grocery bills simplified for migration
       // These features would need Cloudinary integration for full functionality
 
@@ -604,6 +675,8 @@ export default function AddTransaction() {
       setBillSubtotal('')
       setBillTotal('')
       setBillItems([])
+      setChargeToCreditCard(false)
+      setSelectedCreditCardId('')
 
       setSuccess('Transaction saved')
       window.setTimeout(() => setSuccess(null), 3000)
@@ -670,6 +743,43 @@ export default function AddTransaction() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+
+            {/* Credit Card Charge Option */}
+            {creditCards.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={chargeToCreditCard}
+                    onChange={(e) => {
+                      setChargeToCreditCard(e.target.checked)
+                      if (!e.target.checked) setSelectedCreditCardId('')
+                    }}
+                    className="w-4 h-4 text-emerald-600 rounded"
+                  />
+                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                    <CreditCard size={14} />
+                    Charge to Credit Card
+                  </span>
+                </label>
+
+                {chargeToCreditCard && (
+                  <select
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    value={selectedCreditCardId}
+                    onChange={(e) => setSelectedCreditCardId(e.target.value)}
+                    required={chargeToCreditCard}
+                  >
+                    <option value="">Select a credit card...</option>
+                    {creditCards.map(card => (
+                      <option key={card.id} value={card.id}>
+                        {card.title} ({card.issuer}) {card.card_number ? `****${card.card_number.slice(-4)}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div>
@@ -835,6 +945,43 @@ export default function AddTransaction() {
                 {ocrLoading ? t('form_reading') : t('form_extract_bill')}
               </button>
             </div>
+
+            {/* Credit Card Option for Groceries */}
+            {creditCards.length > 0 && (
+              <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={chargeToCreditCard}
+                    onChange={(e) => {
+                      setChargeToCreditCard(e.target.checked)
+                      if (!e.target.checked) setSelectedCreditCardId('')
+                    }}
+                    className="w-4 h-4 text-emerald-600 rounded"
+                  />
+                  <span className="text-sm text-gray-700 flex items-center gap-1">
+                    <CreditCard size={14} />
+                    Charge grocery bill to Credit Card
+                  </span>
+                </label>
+
+                {chargeToCreditCard && (
+                  <select
+                    className="w-full mt-2 border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                    value={selectedCreditCardId}
+                    onChange={(e) => setSelectedCreditCardId(e.target.value)}
+                    required={chargeToCreditCard}
+                  >
+                    <option value="">Select a credit card...</option>
+                    {creditCards.map(card => (
+                      <option key={card.id} value={card.id}>
+                        {card.title} ({card.issuer}) {card.card_number ? `****${card.card_number.slice(-4)}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
