@@ -302,6 +302,7 @@ interface Loan {
   account_number: string | null
   bank_name: string | null
   is_recurring?: boolean
+  include_in_overall?: boolean
   created_at: string
 }
 
@@ -404,6 +405,8 @@ export default function Loans() {
     calculator_type: 'simple',
     // Recurring payment
     is_recurring: false,
+    // Include in overall totals
+    include_in_overall: true,
   })
 
   const [editFormData, setEditFormData] = useState({
@@ -776,28 +779,29 @@ export default function Loans() {
         // If there's remaining amount after offset, create the new loan for remainder
         const remainingAfterOffset = principal - paymentAmount
         if (remainingAfterOffset > 0) {
-          await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
-            profile_id: currentProfile.id,
-            loan_type: formData.loan_type,
-            category: formData.category,
-            lender_name: formData.loan_type === 'borrowed' ? formData.party_name : null,
-            borrower_name: formData.loan_type === 'lended' ? formData.party_name : null,
-            principal_amount: remainingAfterOffset,
-            interest_rate: interestRate,
-            interest_type: formData.interest_type,
-            loan_date: formData.loan_date,
-            due_date: formData.due_date || null,
-            total_amount: remainingAfterOffset,
-            amount_paid: 0,
-            emi_amount: formData.emi_amount ? Number(formData.emi_amount) : null,
-            total_installments: formData.total_installments ? Number(formData.total_installments) : null,
-            installments_paid: 0,
-            status: 'active',
-            description: `Remaining after offset: ${formData.description || ''}`,
-            account_number: formData.account_number || null,
-            bank_name: formData.bank_name || null,
-            created_at: new Date().toISOString()
-          })
+      await addDoc(collection(firebaseDb, 'users', user.uid, 'loans'), {
+        profile_id: currentProfile.id,
+        loan_type: formData.loan_type,
+        category: formData.category,
+        lender_name: formData.loan_type === 'borrowed' ? formData.party_name : null,
+        borrower_name: formData.loan_type === 'lended' ? formData.party_name : null,
+        principal_amount: remainingAfterOffset,
+        interest_rate: interestRate,
+        interest_type: formData.interest_type,
+        loan_date: formData.loan_date,
+        due_date: formData.due_date || null,
+        total_amount: remainingAfterOffset,
+        amount_paid: 0,
+        emi_amount: formData.emi_amount ? Number(formData.emi_amount) : null,
+        total_installments: formData.total_installments ? Number(formData.total_installments) : null,
+        installments_paid: 0,
+        status: 'active',
+        description: `Remaining after offset: ${formData.description || ''}`,
+        account_number: formData.account_number || null,
+        bank_name: formData.bank_name || null,
+        include_in_overall: formData.include_in_overall !== false,
+        created_at: new Date().toISOString()
+      })
         }
         
         setShowAdd(false)
@@ -824,6 +828,7 @@ export default function Loans() {
           calculator_rate: '',
           calculator_type: 'simple',
           is_recurring: false,
+          include_in_overall: true,
         })
         loadLoans()
         return
@@ -853,6 +858,7 @@ export default function Loans() {
       account_number: formData.account_number || null,
       bank_name: formData.bank_name || null,
       is_recurring: formData.is_recurring || false,
+      include_in_overall: formData.include_in_overall !== false,
       created_at: new Date().toISOString()
     })
 
@@ -880,6 +886,7 @@ export default function Loans() {
       calculator_rate: '',
       calculator_type: 'simple',
       is_recurring: false,
+      include_in_overall: true,
     })
     loadLoans()
   }
@@ -2378,6 +2385,24 @@ function AddLoanModal({
               </div>
             </div>
           )}
+
+          {/* Include in Overall Totals */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.include_in_overall}
+                onChange={(e) => setFormData({ ...formData, include_in_overall: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-amber-700">Include in Overall {formData.loan_type === 'borrowed' ? 'Expense' : 'Income'}</span>
+            </label>
+            <p className="text-xs text-amber-600 mt-1">
+              {formData.loan_type === 'borrowed' 
+                ? 'Add this loan amount to your total expenses' 
+                : 'Add this loan amount to your total income'}
+            </p>
+          </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

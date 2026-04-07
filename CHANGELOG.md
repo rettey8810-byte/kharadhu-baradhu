@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Displays total credit card debt across all cards
   - Purple gradient styling to distinguish from regular loans
   - Real-time balance updates when expenses are charged
+- **Initial Credit Card Balance** - When adding a new credit/debit card in CardGuard
+  - Shows "Current Outstanding Balance" field for credit/debit card types
+  - Enter existing debt without creating expense transactions
+  - Automatically creates a loan record with the entered balance
+  - Only available when Card Type is set to "Credit" or "Debit"
 
 ---
 
