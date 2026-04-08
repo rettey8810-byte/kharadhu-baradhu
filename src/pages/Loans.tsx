@@ -452,6 +452,7 @@ export default function Loans() {
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
     category_id: '',
+    include_in_overall: true,
   })
   
   // State for shared loan payments
@@ -984,24 +985,27 @@ export default function Loans() {
 
     const amount = Number(paymentForm.amount)
 
-    // Create transaction for this payment
-    const txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
-      profile_id: currentProfile.id,
-      type: loan.loan_type === 'borrowed' ? 'expense' : 'income',
-      amount: amount,
-      description: `${loan.loan_type === 'borrowed' ? 'Loan Payment' : 'Loan Repayment'} - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
-      transaction_date: paymentForm.payment_date,
-      category_id: paymentForm.category_id || null,
-      created_at: new Date().toISOString()
-    })
+    // Only create transaction if include_in_overall is true (defaults to true)
+    let txRef = null
+    if (paymentForm.include_in_overall !== false) {
+      txRef = await addDoc(collection(firebaseDb, 'users', user.uid, 'transactions'), {
+        profile_id: currentProfile.id,
+        type: loan.loan_type === 'borrowed' ? 'expense' : 'income',
+        amount: amount,
+        description: `${loan.loan_type === 'borrowed' ? 'Loan Payment' : 'Loan Repayment'} - ${loan.loan_type === 'borrowed' ? loan.lender_name : loan.borrower_name}`,
+        transaction_date: paymentForm.payment_date,
+        category_id: paymentForm.category_id || null,
+        created_at: new Date().toISOString()
+      })
+    }
 
-    // Add loan payment record
+    // Add loan payment record (always created, even if transaction is not)
     await addDoc(collection(firebaseDb, 'users', user.uid, 'loanPayments'), {
       loan_id: showPay,
       profile_id: currentProfile.id,
       payment_date: paymentForm.payment_date,
       amount_paid: amount,
-      transaction_id: txRef.id,
+      transaction_id: txRef?.id || null,
       notes: paymentForm.notes || null,
       installment_number: loan.installments_paid + 1,
       created_at: new Date().toISOString()
@@ -1019,6 +1023,7 @@ export default function Loans() {
       payment_date: new Date().toISOString().slice(0, 10),
       notes: '',
       category_id: '',
+      include_in_overall: true,
     })
     loadLoans()
   }
@@ -2560,10 +2565,32 @@ function PaymentModal({
             </div>
           )}
 
+          {/* Include in Overall Calculation */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.include_in_overall !== false}
+                onChange={(e) => setFormData({ ...formData, include_in_overall: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-amber-700">
+                Add to Overall {loan.loan_type === 'borrowed' ? 'Expense' : 'Income'}
+              </span>
+            </label>
+            <p className="text-xs text-amber-600 mt-1">
+              {formData.include_in_overall !== false
+                ? `This payment will affect your total ${loan.loan_type === 'borrowed' ? 'expenses' : 'income'}`
+                : `This payment will NOT affect your total ${loan.loan_type === 'borrowed' ? 'expenses' : 'income'}`}
+            </p>
+          </div>
+
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-sm text-yellow-700 flex items-center gap-2">
               <AlertCircle size={16} />
-              This will create a {loan.loan_type === 'borrowed' ? 'expense' : 'income'} transaction linked to your budget.
+              {formData.include_in_overall !== false
+                ? `This will create a ${loan.loan_type === 'borrowed' ? 'expense' : 'income'} transaction linked to your budget.`
+                : 'This payment will be recorded but will not affect your budget totals.'}
             </p>
           </div>
 
