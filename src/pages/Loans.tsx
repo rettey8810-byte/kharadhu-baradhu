@@ -256,6 +256,24 @@ function EditLoanModal({
             </div>
           )}
 
+          {/* Include in Overall Totals */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.include_in_overall !== false}
+                onChange={(e) => setFormData({ ...formData, include_in_overall: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <span className="text-sm font-medium text-amber-700">Include in Overall {formData.loan_type === 'borrowed' ? 'Expense' : 'Income'}</span>
+            </label>
+            <p className="text-xs text-amber-600 mt-1">
+              {formData.loan_type === 'borrowed'
+                ? 'Add this loan amount to your total expenses'
+                : 'Add this loan amount to your total income'}
+            </p>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <button
               type="button"
@@ -425,7 +443,8 @@ export default function Loans() {
     total_installments: '',
     description: '',
     account_number: '',
-    bank_name: ''
+    bank_name: '',
+    include_in_overall: true
   })
 
   const [paymentForm, setPaymentForm] = useState({
@@ -908,7 +927,8 @@ export default function Loans() {
       total_installments: loan.total_installments != null ? String(loan.total_installments) : '',
       description: loan.description || '',
       account_number: loan.account_number || '',
-      bank_name: loan.bank_name || ''
+      bank_name: loan.bank_name || '',
+      include_in_overall: loan.include_in_overall !== false
     })
     setEditOwnerUserId(ownerUserId || user?.uid || null)
     setShowEdit(loan.id)
@@ -946,6 +966,7 @@ export default function Loans() {
       description: editFormData.description || null,
       account_number: editFormData.account_number || null,
       bank_name: editFormData.bank_name || null,
+      include_in_overall: editFormData.include_in_overall !== false,
     })
 
     setShowEdit(null)
@@ -2443,6 +2464,7 @@ function PaymentModal({
   onClose: () => void
 }) {
   const remaining = loan.total_amount - loan.amount_paid
+  const [showNotes, setShowNotes] = useState(false)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -2487,16 +2509,37 @@ function PaymentModal({
             />
           </div>
 
-          <div>
-            <label className="text-sm text-gray-600">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="e.g., First installment, Partial payment"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
-              rows={2}
+          {/* Optional Notes Toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showNotes"
+              checked={showNotes}
+              onChange={(e) => {
+                setShowNotes(e.target.checked)
+                if (!e.target.checked) {
+                  setFormData({ ...formData, notes: '' })
+                }
+              }}
+              className="rounded border-gray-300"
             />
+            <label htmlFor="showNotes" className="text-sm text-gray-600 cursor-pointer">
+              Add remarks/notes to this payment
+            </label>
           </div>
+
+          {showNotes && (
+            <div>
+              <label className="text-sm text-gray-600">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="e.g., First installment, Partial payment"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                rows={2}
+              />
+            </div>
+          )}
 
           {loan.loan_type === 'borrowed' && (
             <div>
