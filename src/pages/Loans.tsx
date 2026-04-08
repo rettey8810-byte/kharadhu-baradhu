@@ -1085,6 +1085,7 @@ export default function Loans() {
         payment_date: new Date().toISOString().slice(0, 10),
         notes: '',
         category_id: '',
+        include_in_overall: true,
       })
       alert('Payment submitted! The loan owner needs to approve it.')
       loadSharedLoans()
