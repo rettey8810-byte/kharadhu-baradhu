@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-04-08
+
+### Added - Loan Management Enhancements
+- **Include in Overall Calculation for Loans** - New field for controlling budget impact
+  - Added `include_in_overall` checkbox when adding new loans
+  - Edit existing loans to toggle whether they affect overall expense/income totals
+  - Choose per-loan whether it appears in budget calculations
+  - Loans excluded still track payments but don't impact dashboard statistics
+- **Payment Budget Control** - Optional budget impact for loan payments
+  - When making a loan payment, checkbox to "Add to Overall Expense/Income"
+  - Uncheck to record payment without affecting budget totals
+  - Useful for internal transfers or non-budget loan repayments
+- **Optional Payment Remarks** - Flexible payment notes
+  - Checkbox to optionally add remarks/notes to any payment
+  - Notes field hidden by default, shown only when needed
+  - Keeps payment form clean and simple
+
+### Documentation
+- **GIT_WORKFLOW.md** - New guide for pushing code to GitHub
+  - Quick one-command push for PowerShell
+  - Step-by-step instructions with troubleshooting
+  - Vercel deployment workflow explained
+
+---
+
 ## [2.4.0] - 2026-04-05
 
 ### Added - Credit Card Integration

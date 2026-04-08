@@ -55,6 +55,8 @@ A modern expense tracking application built for Maldivian families. Track income
 - **Loan Summary** - Total, paid, remaining, and net position at a glance
 - **Record Payments** - Add installment payments (creates linked budget transaction)
 - **Budget Category for Payments** - Choose an expense category for borrowed-loan payments so budgets and charts stay accurate
+- **Include in Overall Calculation** - Control whether loans and payments affect your total expenses/income
+- **Optional Payment Remarks** - Add notes to payments only when needed
 - **Loan Details** - View payment history and loan breakdown
 - **Edit Loans** - Update loan details after creating (party name, amounts, dates, etc.)
 - **Due Soon / Overdue Alerts** - See overdue and upcoming loan due dates (Loans page + Dashboard indicator)

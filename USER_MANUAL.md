@@ -506,21 +506,31 @@ Track money you **borrowed** (you owe) and money you **lended** (others owe you)
 3. Choose:
    - **You Borrowed** (borrowed loan)
    - **You Lended** (lended loan)
-4. Fill in:
+4. Fill in loan details:
+   - **Loan Type** (Borrowed / Lended)
    - **Category** (Bank / Individual / Credit Card / Family / Friend / Other)
    - **Lender/Bank Name** or **Borrower Name**
    - **Principal Amount**
    - Optional: interest, EMI amount, installments, due date, description
-5. Tap **Add Loan**
+5. **Include in Overall** (optional) - Check this to include the loan amount in your total expenses/income
+   - Borrowed loans add to total expenses
+   - Lended loans add to total income
+   - Uncheck to track the loan without affecting your budget totals
+6. Tap **Add Loan**
 
 ### Record a Payment
 
 1. On the loan card, tap **Pay**
 2. Enter payment amount and payment date
 3. (Borrowed loans) Select a **Category** so the payment is tracked correctly in budgets and charts
-4. Tap **Record Payment**
+4. **Add to Overall Expense/Income** (optional) - Check this to include the payment in your budget totals
+   - Checked (default): Payment affects your overall expense/income totals
+   - Unchecked: Payment is recorded but doesn't affect budget calculations
+   - Useful for internal transfers or when you don't want loan payments to impact your budget
+5. **Add remarks** (optional) - Check this to add notes about the payment (e.g., "First installment", "Partial payment")
+6. Tap **Record Payment**
 
-**Note:** Recording a loan payment creates a linked **transaction** so your budget and reports stay accurate.
+**Note:** Recording a loan payment creates a linked **transaction** (if "Add to Overall" is checked) so your budget and reports stay accurate.
 
 ### View Details
 
@@ -532,7 +542,11 @@ Tap a loan card to open **Loan Details**, where you can see:
 ### Edit a Loan
 
 1. On the loan card, tap the **pencil icon**
-2. Update the fields you want (party, amounts, dates, description, etc.)
+2. Update the fields you want:
+   - Party, amounts, dates, description, etc.
+   - **Include in Overall** - Toggle whether this loan affects your budget totals
+     - Check to include loan amount in expenses/income
+     - Uncheck to track without affecting budget
 3. Tap **Save Changes**
 
 ### Due Soon / Overdue Alerts
