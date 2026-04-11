@@ -29,6 +29,7 @@ interface ProfileSpending {
   profile: ExpenseProfile
   totalSpent: number
   transactionCount: number
+  transactions: any[]
 }
 
 interface PendingBill {
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const [deletedTxIds, setDeletedTxIds] = useState<Set<string>>(new Set())
   const [budgets, setBudgets] = useState<MonthlyBudget[]>([])
   const [profileSpendings, setProfileSpendings] = useState<ProfileSpending[]>([])
+  const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null)
   const [pendingBills, setPendingBills] = useState<PendingBill[]>([])
   const [loansSummary, setLoansSummary] = useState<{
     borrowedRemaining: number
@@ -331,6 +333,7 @@ export default function Dashboard() {
             profile,
             totalSpent: profileTransactions.reduce((sum: number, t: any) => sum + Number(t.amount), 0),
             transactionCount: profileTransactions.length,
+            transactions: profileTransactions.sort((a: any, b: any) => new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()),
           }
         }).sort((a, b) => b.totalSpent - a.totalSpent)
 
@@ -629,22 +632,64 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="divide-y divide-gray-100">
-            {profileSpendings.map((ps) => (
-              <div key={ps.profile.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${
-                    ps.profile.id === currentProfile?.id ? 'bg-emerald-500' : 'bg-gray-300'
-                  }`} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{ps.profile.name}</p>
-                    <p className="text-xs text-gray-500">{ps.transactionCount} {t('dashboard_transactions')}</p>
-                  </div>
+            {profileSpendings.map((ps) => {
+              const isExpanded = expandedProfileId === ps.profile.id
+              const hasTransactions = ps.transactions.length > 0
+              return (
+                <div key={ps.profile.id} className="">
+                  <button
+                    onClick={() => setExpandedProfileId(isExpanded ? null : ps.profile.id)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        ps.profile.id === currentProfile?.id ? 'bg-emerald-500' : 'bg-gray-300'
+                      }`} />
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-gray-900">{ps.profile.name}</p>
+                        <p className="text-xs text-gray-500">{ps.transactionCount} {t('dashboard_transactions')}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">
+                        {formatMVR(ps.totalSpent)}
+                      </span>
+                      {hasTransactions && (
+                        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      )}
+                    </div>
+                  </button>
+                  
+                  {/* Expanded transaction list */}
+                  {isExpanded && hasTransactions && (
+                    <div className="bg-gray-50 border-t border-gray-100">
+                      <div className="p-3 space-y-2">
+                        {ps.transactions.map((tx: any) => (
+                          <div key={tx.id} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                                <TrendingDown size={14} className="text-gray-600" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-900">
+                                  {tx.description || t('common_expense')}
+                                </p>
+                                <p className="text-[10px] text-gray-500">
+                                  {tx.transaction_date} • {(tx.category as any)?.name || t('common_expense')}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-xs font-semibold text-gray-900">
+                              {formatMVR(tx.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {formatMVR(ps.totalSpent)}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
