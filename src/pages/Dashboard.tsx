@@ -12,7 +12,7 @@ import FunnyFamilyWarnings from '../components/FunnyFamilyWarnings'
 import TaxiTargetCard from '../components/TaxiTargetCard'
 import type { DashboardStats, MonthlyBudget, Transaction, ExpenseProfile } from '../types'
 import { getDaysRemainingInMonth, getYearMonth, formatDateLocal } from '../utils/date'
-import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users } from 'lucide-react'
+import { TrendingDown, TrendingUp, Wallet, AlertCircle, Users, Calendar, ChevronDown } from 'lucide-react'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -73,6 +73,13 @@ export default function Dashboard() {
     overdueCount: number
   } | null>(null)
 
+  // Date filter state
+  type DateFilterType = 'today' | 'current_month' | 'custom'
+  const [dateFilter, setDateFilter] = useState<DateFilterType>('current_month')
+  const [customStartDate, setCustomStartDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [customEndDate, setCustomEndDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [showDatePicker, setShowDatePicker] = useState(false)
+
   const { year, month } = useMemo(() => getYearMonth(new Date()), [])
 
   // Load deleted transaction IDs from localStorage
@@ -100,10 +107,25 @@ export default function Dashboard() {
       console.log('Dashboard loading for profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
 
       const profileIds = profiles.map(p => p.id).filter((id): id is string => !!id)
-      const start = new Date(year, month - 1, 1)
-      const end = new Date(year, month, 0)
-      const monthStart = formatDateLocal(start)
-      const monthEnd = formatDateLocal(end)
+      
+      // Calculate date range based on filter
+      let start: Date, end: Date
+      const today = new Date()
+      
+      if (dateFilter === 'today') {
+        start = today
+        end = today
+      } else if (dateFilter === 'custom') {
+        start = new Date(customStartDate)
+        end = new Date(customEndDate)
+      } else {
+        // current_month (default)
+        start = new Date(year, month - 1, 1)
+        end = new Date(year, month, 0)
+      }
+      
+      const rangeStart = formatDateLocal(start)
+      const rangeEnd = formatDateLocal(end)
 
       try {
         console.log('Loading transactions for user:', user.uid)
@@ -138,7 +160,7 @@ export default function Dashboard() {
             ...raw,
             transaction_date: normalizeDate(raw.transaction_date)
           }))
-          .filter((raw) => raw.transaction_date >= monthStart && raw.transaction_date <= monthEnd)
+          .filter((raw) => raw.transaction_date >= rangeStart && raw.transaction_date <= rangeEnd)
 
         const txData: Transaction[] = txDocs.map(raw => {
           return {
@@ -181,8 +203,8 @@ export default function Dashboard() {
             collection(firebaseDb, 'users', user.uid, 'billPayments'),
             where('profile_id', '==', pid),
             where('is_paid', '==', false),
-            where('due_date', '>=', monthStart),
-            where('due_date', '<=', monthEnd)
+            where('due_date', '>=', rangeStart),
+            where('due_date', '<=', rangeEnd)
           )
           return getDocs(bpQuery)
         })
@@ -221,8 +243,8 @@ export default function Dashboard() {
 
         const upcomingFixed = allRecurring.filter((re: any) =>
           !re.is_variable_amount &&
-          re.next_due_date >= monthStart &&
-          re.next_due_date <= monthEnd
+          re.next_due_date >= rangeStart &&
+          re.next_due_date <= rangeEnd
         )
 
         const pending: PendingBill[] = []
@@ -326,7 +348,7 @@ export default function Dashboard() {
     }
 
     load()
-  }, [profiles, year, month, user])
+  }, [profiles, year, month, user, dateFilter, customStartDate, customEndDate])
 
   const stats: DashboardStats = useMemo(() => {
     // Filter out deleted transactions from calculations
@@ -511,12 +533,99 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Date Filter */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Date Range</span>
+          </div>
+          <button
+            onClick={() => setShowDatePicker(!showDatePicker)}
+            className="text-sm text-emerald-600 flex items-center gap-1"
+          >
+            {dateFilter === 'today' && 'Today'}
+            {dateFilter === 'current_month' && 'Current Month'}
+            {dateFilter === 'custom' && `${customStartDate} to ${customEndDate}`}
+            <ChevronDown size={16} className={`transition-transform ${showDatePicker ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+        
+        {showDatePicker && (
+          <div className="border-t border-gray-100 pt-3 space-y-3">
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDateFilter('today'); setShowDatePicker(false); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  dateFilter === 'today' 
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => { setDateFilter('current_month'); setShowDatePicker(false); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  dateFilter === 'current_month' 
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                Current Month
+              </button>
+              <button
+                onClick={() => { setDateFilter('custom'); }}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  dateFilter === 'custom' 
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                    : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                Custom
+              </button>
+            </div>
+            
+            {dateFilter === 'custom' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Profile Expenses Summary */}
       {profileSpendings.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-5 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Users size={18} className="text-emerald-600" />
-              <h3 className="font-semibold text-gray-900">{t('dashboard_spending_by_profile')}</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-emerald-600" />
+                <h3 className="font-semibold text-gray-900">{t('dashboard_spending_by_profile')}</h3>
+              </div>
+              <span className="text-xs text-gray-500">
+                {dateFilter === 'today' && 'Today'}
+                {dateFilter === 'current_month' && 'This Month'}
+                {dateFilter === 'custom' && 'Custom Period'}
+              </span>
             </div>
           </div>
           <div className="divide-y divide-gray-100">
