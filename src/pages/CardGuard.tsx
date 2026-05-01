@@ -145,43 +145,6 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
     }
   }
 
-  // Share card via WhatsApp with image
-  const shareViaWhatsApp = async (card: CardDocument) => {
-    const imageUrl = card.front_image_url || card.back_image_url
-    if (imageUrl) {
-      await shareImage(imageUrl, card.title, false)
-    } else {
-      // Fallback to text if no image
-      const text = encodeURIComponent(
-        `*Card Details*\n\n` +
-        `Title: ${card.title}\n` +
-        `Issuer: ${card.issuer}\n` +
-        `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
-        `Expiry: ${formatDate(card.expiry_date)}\n` +
-        (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '')
-      )
-      window.open(`https://wa.me/?text=${text}`, '_blank')
-    }
-  }
-
-  // Share card via Viber with image
-  const shareViaViber = async (card: CardDocument) => {
-    const imageUrl = card.front_image_url || card.back_image_url
-    if (imageUrl) {
-      await shareImage(imageUrl, card.title, false)
-    } else {
-      // Fallback to text if no image
-      const text = encodeURIComponent(
-        `Card Details:\n\n` +
-        `Title: ${card.title}\n` +
-        `Issuer: ${card.issuer}\n` +
-        `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
-        `Expiry: ${formatDate(card.expiry_date)}\n` +
-        (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '')
-      )
-      window.open(`viber://forward?text=${text}`, '_blank')
-    }
-  }
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
