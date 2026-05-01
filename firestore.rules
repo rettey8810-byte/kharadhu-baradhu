@@ -180,7 +180,13 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
-      
+
+      // User's taxi monthly targets
+      match /taxiMonthlyTargets/{targetId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
       // User's grocery history
       match /groceryHistory/{itemId} {
         allow read: if isOwner(userId);
