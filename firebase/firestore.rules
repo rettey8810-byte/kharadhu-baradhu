@@ -22,6 +22,21 @@ service cloud.firestore {
       return isAuthenticated() && (listField is list) && request.auth.uid in listField;
     }
 
+    // ============================================
+    // COLLECTION GROUP QUERIES FOR ADMIN
+    // These allow admin to query across all user subcollections
+    // ============================================
+
+    // Allow admin collectionGroup query on all transactions
+    match /{path=**}/transactions/{transactionId} {
+      allow read: if isAdmin();
+    }
+
+    // Allow admin collectionGroup query on all profiles
+    match /{path=**}/profiles/{profileId} {
+      allow read: if isAdmin();
+    }
+
     // Users collection - each user owns their own document
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
@@ -31,7 +46,7 @@ service cloud.firestore {
       
       // User's profiles subcollection
       match /profiles/{profileId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwner(userId) || isAdmin();
         allow write: if isOwner(userId);
       }
       
@@ -200,7 +215,13 @@ service cloud.firestore {
         allow write: if isOwner(userId);
       }
     }
-    
+
+    // Users metadata - accessible for listing all users (admin and authenticated users)
+    match /usersMetadata/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
     // Profile shares - accessible by both owner and shared user
     match /profileShares/{shareId} {
       allow read: if isAuthenticated() &&
