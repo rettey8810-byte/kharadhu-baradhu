@@ -83,17 +83,6 @@ const VAN_ROUTE_PRICES: Record<string, number> = {
   'Hulhule\' (Airport) to Male\'': 110,
 }
 
-// Extra charges
-const EXTRA_CHARGES = {
-  lateNight: {
-    sedan: 10,
-    van: 15,
-  },
-  waiting: {
-    per3Minutes: 5,
-  }
-}
-
 // Helper function to get route prices based on vehicle type
 function getRoutePrices(vehicleType: VehicleType, carSubtype: CarSubType | null): Record<string, number> {
   if (vehicleType === 'bike') {
