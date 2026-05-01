@@ -107,36 +107,80 @@ async function uploadToCloudinary(file: File, folder: string): Promise<string> {
   return data.secure_url
 }
 
-  // Share card via WhatsApp
-  const shareViaWhatsApp = (card: CardDocument) => {
-    const text = encodeURIComponent(
-      `*Card Details*\n\n` +
-      `Title: ${card.title}\n` +
-      `Issuer: ${card.issuer}\n` +
-      `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
-      `Expiry: ${formatDate(card.expiry_date)}\n` +
-      (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '') +
-      (card.front_image_url ? `\nFront Image: ${card.front_image_url}\n` : '') +
-      (card.back_image_url ? `Back Image: ${card.back_image_url}\n` : '') +
-      (card.pdf_url ? `PDF: ${card.pdf_url}\n` : '')
-    )
-    window.open(`https://wa.me/?text=${text}`, '_blank')
+  // Helper function to fetch image as File
+  const fetchImageAsFile = async (imageUrl: string, filename: string): Promise<File | null> => {
+    try {
+      const response = await fetch(imageUrl)
+      const blob = await response.blob()
+      return new File([blob], filename, { type: blob.type })
+    } catch (error) {
+      console.error('Failed to fetch image:', error)
+      return null
+    }
   }
 
-  // Share card via Viber
-  const shareViaViber = (card: CardDocument) => {
-    const text = encodeURIComponent(
-      `Card Details:\n\n` +
-      `Title: ${card.title}\n` +
-      `Issuer: ${card.issuer}\n` +
-      `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
-      `Expiry: ${formatDate(card.expiry_date)}\n` +
-      (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '') +
-      (card.front_image_url ? `\nFront Image: ${card.front_image_url}\n` : '') +
-      (card.back_image_url ? `Back Image: ${card.back_image_url}\n` : '') +
-      (card.pdf_url ? `PDF: ${card.pdf_url}\n` : '')
-    )
-    window.open(`viber://forward?text=${text}`, '_blank')
+  // Share image using Web Share API
+  const shareImage = async (imageUrl: string, title: string, isBack: boolean = false) => {
+    const filename = `${title.replace(/\s+/g, '_')}_${isBack ? 'back' : 'front'}.jpg`
+    const file = await fetchImageAsFile(imageUrl, filename)
+
+    if (!file) {
+      alert('Failed to load image for sharing')
+      return
+    }
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `${title} - ${isBack ? 'Back' : 'Front'} Image`,
+        })
+      } catch (error) {
+        // User cancelled or share failed
+        console.log('Share cancelled or failed:', error)
+      }
+    } else {
+      // Fallback: open image in new tab for manual saving/sharing
+      window.open(imageUrl, '_blank')
+    }
+  }
+
+  // Share card via WhatsApp with image
+  const shareViaWhatsApp = async (card: CardDocument) => {
+    const imageUrl = card.front_image_url || card.back_image_url
+    if (imageUrl) {
+      await shareImage(imageUrl, card.title, false)
+    } else {
+      // Fallback to text if no image
+      const text = encodeURIComponent(
+        `*Card Details*\n\n` +
+        `Title: ${card.title}\n` +
+        `Issuer: ${card.issuer}\n` +
+        `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
+        `Expiry: ${formatDate(card.expiry_date)}\n` +
+        (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '')
+      )
+      window.open(`https://wa.me/?text=${text}`, '_blank')
+    }
+  }
+
+  // Share card via Viber with image
+  const shareViaViber = async (card: CardDocument) => {
+    const imageUrl = card.front_image_url || card.back_image_url
+    if (imageUrl) {
+      await shareImage(imageUrl, card.title, false)
+    } else {
+      // Fallback to text if no image
+      const text = encodeURIComponent(
+        `Card Details:\n\n` +
+        `Title: ${card.title}\n` +
+        `Issuer: ${card.issuer}\n` +
+        `Type: ${cardTypes.find(t => t.value === card.card_type)?.label || card.card_type}\n` +
+        `Expiry: ${formatDate(card.expiry_date)}\n` +
+        (card.card_number ? `Number: ****${card.card_number.slice(-4)}\n` : '')
+      )
+      window.open(`viber://forward?text=${text}`, '_blank')
+    }
   }
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -1882,22 +1926,26 @@ END:VCALENDAR`
                 )}
                 <div className="flex-1" />
                 <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => shareViaWhatsApp(selectedCard)}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                    title="Share via WhatsApp"
-                  >
-                    <Share2 size={18} />
-                    WhatsApp
-                  </button>
-                  <button
-                    onClick={() => shareViaViber(selectedCard)}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-                    title="Share via Viber"
-                  >
-                    <Share2 size={18} />
-                    Viber
-                  </button>
+                  {selectedCard.front_image_url && (
+                    <button
+                      onClick={() => shareImage(selectedCard.front_image_url!, selectedCard.title, false)}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                      title="Share Front Image"
+                    >
+                      <Share2 size={18} />
+                      Share Front
+                    </button>
+                  )}
+                  {selectedCard.back_image_url && (
+                    <button
+                      onClick={() => shareImage(selectedCard.back_image_url!, selectedCard.title, true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      title="Share Back Image"
+                    >
+                      <Share2 size={18} />
+                      Share Back
+                    </button>
+                  )}
                   <button
                     onClick={() => exportToCalendar(selectedCard)}
                     className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
