@@ -12,11 +12,13 @@ function formatMVR(value: number) {
 }
 
 type VehicleType = 'car' | 'bike'
+type CarSubType = 'sedan' | 'van'
 
 type TaxiVehicle = {
   id: string
   user_id: string
   vehicle_type: VehicleType
+  car_subtype: CarSubType | null
   name: string
   plate_number: string | null
   is_active: boolean
@@ -42,8 +44,8 @@ type TaxiTrip = {
 
 const TAXI_APPS = ['Avas Ride', 'Fahi Ride', 'Gaadiya App', 'Other'] as const
 
-// Route prices configuration - YOU CAN EDIT THESE PRICES
-const ROUTE_PRICES: Record<string, number> = {
+// Route prices for Bikes (existing prices)
+const BIKE_ROUTE_PRICES: Record<string, number> = {
   'Inside Male\'': 15,
   'Inside HM Phase 1': 15,
   'Inside HM Phase 2': 15,
@@ -59,6 +61,48 @@ const ROUTE_PRICES: Record<string, number> = {
   'HM Phase 2 to HM Phase 1': 20,
 }
 
+// Route prices for Standard Taxi (Sedan)
+const SEDAN_ROUTE_PRICES: Record<string, number> = {
+  'Within the City': 30,
+  'Male\' to Hulhumale\' Phase 1': 85,
+  'Male\' to Hulhumale\' Phase 2': 100,
+  'Male\' to Hulhule\' (Airport)': 70,
+  'Hulhumale\' Phase 1 to Male\'': 85,
+  'Hulhumale\' Phase 2 to Male\'': 100,
+  'Hulhule\' (Airport) to Male\'': 70,
+}
+
+// Route prices for Van / 6-Seater
+const VAN_ROUTE_PRICES: Record<string, number> = {
+  'Within the City': 45,
+  'Male\' to Hulhumale\' Phase 1': 130,
+  'Male\' to Hulhumale\' Phase 2': 155,
+  'Male\' to Hulhule\' (Airport)': 110,
+  'Hulhumale\' Phase 1 to Male\'': 130,
+  'Hulhumale\' Phase 2 to Male\'': 155,
+  'Hulhule\' (Airport) to Male\'': 110,
+}
+
+// Extra charges
+const EXTRA_CHARGES = {
+  lateNight: {
+    sedan: 10,
+    van: 15,
+  },
+  waiting: {
+    per3Minutes: 5,
+  }
+}
+
+// Helper function to get route prices based on vehicle type
+function getRoutePrices(vehicleType: VehicleType, carSubtype: CarSubType | null): Record<string, number> {
+  if (vehicleType === 'bike') {
+    return BIKE_ROUTE_PRICES
+  }
+  // For cars, return based on sub-type
+  return carSubtype === 'van' ? VAN_ROUTE_PRICES : SEDAN_ROUTE_PRICES
+}
+
 type TaxiVehicleExpense = {
   id: string
   user_id: string
@@ -69,6 +113,18 @@ type TaxiVehicleExpense = {
   transaction_id: string | null
   notes: string | null
   created_at: string
+}
+
+type MonthlyTarget = {
+  id: string
+  user_id: string
+  vehicle_id: string
+  year: number
+  month: number
+  income_target: number
+  cost_target: number
+  created_at: string
+  updated_at: string
 }
 
 export default function Taxi() {
@@ -84,6 +140,14 @@ export default function Taxi() {
   // Store all trips/expenses across all vehicles for true all-time stats
   const [allTrips, setAllTrips] = useState<TaxiTrip[]>([])
   const [allExpenses, setAllExpenses] = useState<TaxiVehicleExpense[]>([])
+  // Monthly targets - reset at beginning of each month with new income and cost targets
+  const [monthlyTargets, setMonthlyTargets] = useState<MonthlyTarget[]>([])
+  const [showSetTarget, setShowSetTarget] = useState(false)
+  const [targetForm, setTargetForm] = useState<{ income_target: string; cost_target: string; targetMonth: string }>({
+    income_target: '',
+    cost_target: '',
+    targetMonth: new Date().toISOString().slice(0, 7)
+  })
   // Month filter state
   const [selectedMonth, setSelectedMonth] = useState<string>('all') // 'all' or 'YYYY-MM'
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
@@ -96,14 +160,16 @@ export default function Taxi() {
 
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [showEditVehicle, setShowEditVehicle] = useState(false)
-  const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; name: string; plate_number: string; monthly_target: string }>({
+  const [vehicleForm, setVehicleForm] = useState<{ vehicle_type: VehicleType; car_subtype: CarSubType | ''; name: string; plate_number: string; monthly_target: string }>({
     vehicle_type: 'car',
+    car_subtype: 'sedan',
     name: '',
     plate_number: '',
     monthly_target: '',
   })
-  const [editVehicleForm, setEditVehicleForm] = useState<{ id: string; name: string; plate_number: string; monthly_target: string }>({
+  const [editVehicleForm, setEditVehicleForm] = useState<{ id: string; car_subtype: CarSubType | ''; name: string; plate_number: string; monthly_target: string }>({
     id: '',
+    car_subtype: '',
     name: '',
     plate_number: '',
     monthly_target: '',
@@ -123,8 +189,15 @@ export default function Taxi() {
     rate: '',
     notes: '',
     app_name: 'Avas Ride',
-    route: 'Inside Male\'',
+    route: '',
   })
+
+  // Get route prices for currently selected vehicle
+  const currentRoutePrices = useMemo(() => {
+    const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId)
+    if (!selectedVehicle) return BIKE_ROUTE_PRICES
+    return getRoutePrices(selectedVehicle.vehicle_type, selectedVehicle.car_subtype)
+  }, [vehicles, selectedVehicleId])
 
   const [showAddExpense, setShowAddExpense] = useState(false)
   const [expenseForm, setExpenseForm] = useState<{ expense_date: string; expense_type: string; amount: string; notes: string }>({
@@ -148,14 +221,19 @@ export default function Taxi() {
       if (!name) return
 
       const { doc, updateDoc } = await import('firebase/firestore')
-      await updateDoc(doc(firebaseDb, 'users', user.uid, 'taxiVehicles', editVehicleForm.id), {
+      const updateData: any = {
         name,
         plate_number: plate ? plate : null,
         monthly_target: editVehicleForm.monthly_target ? Number(editVehicleForm.monthly_target) : null,
         updated_at: new Date().toISOString()
-      })
+      }
+      // Only update car_subtype if it was set (car vehicles)
+      if (editVehicleForm.car_subtype) {
+        updateData.car_subtype = editVehicleForm.car_subtype
+      }
+      await updateDoc(doc(firebaseDb, 'users', user.uid, 'taxiVehicles', editVehicleForm.id), updateData)
 
-      setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+      setEditVehicleForm({ id: '', car_subtype: '', name: '', plate_number: '', monthly_target: '' })
       setShowEditVehicle(false)
       await load()
     } catch (e: any) {
@@ -299,21 +377,88 @@ export default function Taxi() {
         where('vehicle_id', '==', vehicleId),
         orderBy('expense_date', 'desc')
       )
-      
+
       const [tSnap, eSnap] = await Promise.all([getDocs(tQuery), getDocs(eQuery)])
 
-      setTrips(tSnap.docs.map(d => ({ 
-        id: d.id, 
+      setTrips(tSnap.docs.map(d => ({
+        id: d.id,
         ...d.data(),
         trip_date: normalizeDate(d.data().trip_date)
       }) as TaxiTrip))
-      setExpenses(eSnap.docs.map(d => ({ 
-        id: d.id, 
+      setExpenses(eSnap.docs.map(d => ({
+        id: d.id,
         ...d.data(),
         expense_date: normalizeDate(d.data().expense_date)
       }) as TaxiVehicleExpense))
+
+      // Load monthly targets for this vehicle
+      await loadMonthlyTargets(vehicleId)
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load vehicle activity')
+    }
+  }
+
+  const loadMonthlyTargets = async (vehicleId?: string) => {
+    if (!user) return
+    try {
+      const targetsQuery = query(
+        collection(firebaseDb, 'users', user.uid, 'taxiMonthlyTargets'),
+        where('user_id', '==', user.uid),
+        ...(vehicleId ? [where('vehicle_id', '==', vehicleId)] : [])
+      )
+      const targetsSnap = await getDocs(targetsQuery)
+      const targetsData = targetsSnap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      })) as MonthlyTarget[]
+      setMonthlyTargets(targetsData)
+    } catch (e) {
+      console.error('Failed to load monthly targets:', e)
+    }
+  }
+
+  const saveMonthlyTarget = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    try {
+      if (!user || !selectedVehicleId) throw new Error('Not authenticated or no vehicle selected')
+
+      const [year, month] = targetForm.targetMonth.split('-').map(Number)
+      const incomeTarget = Number(targetForm.income_target) || 0
+      const costTarget = Number(targetForm.cost_target) || 0
+
+      // Check if target already exists for this month
+      const existingTarget = monthlyTargets.find(
+        t => t.vehicle_id === selectedVehicleId && t.year === year && t.month === month
+      )
+
+      if (existingTarget) {
+        // Update existing
+        const { doc, updateDoc } = await import('firebase/firestore')
+        await updateDoc(doc(firebaseDb, 'users', user.uid, 'taxiMonthlyTargets', existingTarget.id), {
+          income_target: incomeTarget,
+          cost_target: costTarget,
+          updated_at: new Date().toISOString()
+        })
+      } else {
+        // Create new
+        await addDoc(collection(firebaseDb, 'users', user.uid, 'taxiMonthlyTargets'), {
+          user_id: user.uid,
+          vehicle_id: selectedVehicleId,
+          year,
+          month,
+          income_target: incomeTarget,
+          cost_target: costTarget,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      }
+
+      setTargetForm({ income_target: '', cost_target: '', targetMonth: new Date().toISOString().slice(0, 7) })
+      setShowSetTarget(false)
+      await loadMonthlyTargets(selectedVehicleId)
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to save monthly target')
     }
   }
 
@@ -548,18 +693,45 @@ export default function Taxi() {
     }
   }, [trips, selectedMonth, dateFilterType, customStartDate, customEndDate])
 
-  // Calculate target stats for selected vehicle
+  // Calculate target stats for selected vehicle using monthly targets that reset each month
   const targetStats = useMemo(() => {
     const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId)
-    if (!selectedVehicle?.monthly_target || selectedVehicle.monthly_target <= 0) {
-      return null
-    }
+    if (!selectedVehicle) return null
 
-    const monthlyTarget = selectedVehicle.monthly_target
     const now = new Date()
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const year = now.getFullYear()
+    const month = now.getMonth() + 1
+    const daysInMonth = new Date(year, month, 0).getDate()
     const currentDay = now.getDate()
     const remainingDays = daysInMonth - currentDay
+
+    // Get the monthly target for current month - this resets at the beginning of each month
+    const currentMonthTarget = monthlyTargets.find(
+      t => t.vehicle_id === selectedVehicleId && t.year === year && t.month === month
+    )
+
+    // If no target set for this month, return null (user needs to set targets)
+    if (!currentMonthTarget) {
+      return {
+        vehicleName: selectedVehicle.name,
+        monthlyTarget: 0,
+        costTarget: 0,
+        dailyTarget: 0,
+        income: 0,
+        expensesTotal: 0,
+        netIncome: 0,
+        remainingToAchieve: 0,
+        requiredDaily: 0,
+        progressPercent: 0,
+        daysInMonth,
+        currentDay,
+        remainingDays,
+        hasTarget: false
+      }
+    }
+
+    const monthlyTarget = currentMonthTarget.income_target
+    const costTarget = currentMonthTarget.cost_target
     const dailyTarget = monthlyTarget / daysInMonth
 
     // Calculate this month's stats for selected vehicle
@@ -584,9 +756,13 @@ export default function Taxi() {
     const requiredDaily = remainingDays > 0 ? remainingToAchieve / remainingDays : 0
     const progressPercent = monthlyTarget > 0 ? Math.min(100, (netIncome / monthlyTarget) * 100) : 0
 
+    // Cost progress
+    const costProgressPercent = costTarget > 0 ? Math.min(100, (expensesTotal / costTarget) * 100) : 0
+
     return {
       vehicleName: selectedVehicle.name,
       monthlyTarget,
+      costTarget,
       dailyTarget,
       income,
       expensesTotal,
@@ -594,11 +770,13 @@ export default function Taxi() {
       remainingToAchieve,
       requiredDaily,
       progressPercent,
+      costProgressPercent: costProgressPercent ?? 0,
       daysInMonth,
       currentDay,
-      remainingDays
+      remainingDays,
+      hasTarget: true
     }
-  }, [vehicles, selectedVehicleId, trips, expenses])
+  }, [vehicles, selectedVehicleId, trips, expenses, monthlyTargets])
 
   const filteredExpenses = useMemo(() => {
     if (dateFilterType === 'month') {
@@ -629,6 +807,7 @@ export default function Taxi() {
       await addDoc(collection(firebaseDb, 'users', user.uid, 'taxiVehicles'), {
         user_id: user.uid,
         vehicle_type: vehicleForm.vehicle_type,
+        car_subtype: vehicleForm.vehicle_type === 'car' && vehicleForm.car_subtype ? vehicleForm.car_subtype : null,
         name,
         plate_number: plate ? plate : null,
         is_active: true,
@@ -636,7 +815,7 @@ export default function Taxi() {
         created_at: new Date().toISOString()
       })
 
-      setVehicleForm({ vehicle_type: 'car', name: '', plate_number: '', monthly_target: '' })
+      setVehicleForm({ vehicle_type: 'car', car_subtype: 'sedan', name: '', plate_number: '', monthly_target: '' })
       setShowAddVehicle(false)
       await load()
     } catch (e: any) {
@@ -800,6 +979,7 @@ export default function Taxi() {
                 if (vehicle) {
                   setEditVehicleForm({
                     id: vehicle.id,
+                    car_subtype: vehicle.car_subtype || '',
                     name: vehicle.name,
                     plate_number: vehicle.plate_number || '',
                     monthly_target: vehicle.monthly_target?.toString() || ''
@@ -850,96 +1030,171 @@ export default function Taxi() {
       {/* Monthly Target Progress */}
       {targetStats && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-emerald-100 p-2 rounded-lg">
-              <Target size={18} className="text-emerald-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Monthly Target: {targetStats.vehicleName}</h3>
-              <p className="text-xs text-gray-500">Day {targetStats.currentDay} of {targetStats.daysInMonth}</p>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-3">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-600">Progress</span>
-              <span className="font-medium text-gray-900">{targetStats.progressPercent.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  targetStats.progressPercent >= 100 ? 'bg-emerald-500' : 
-                  targetStats.progressPercent >= 75 ? 'bg-blue-500' : 
-                  targetStats.progressPercent >= 50 ? 'bg-amber-500' : 'bg-red-500'
-                }`}
-                style={{ width: `${Math.max(5, targetStats.progressPercent)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-emerald-50 rounded-lg p-2">
-              <div className="flex items-center gap-1 text-xs text-emerald-600 mb-1">
-                <Target size={12} />
-                <span>Monthly Target</span>
+          {!targetStats.hasTarget ? (
+            // No target set for current month - show button to set target
+            <div className="text-center py-4">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="bg-amber-100 p-2 rounded-lg">
+                  <Target size={18} className="text-amber-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900">Monthly Target: {targetStats.vehicleName}</h3>
+                  <p className="text-xs text-gray-500">No target set for this month</p>
+                </div>
               </div>
-              <p className="font-semibold text-emerald-900">{formatMVR(targetStats.monthlyTarget)}</p>
-              <p className="text-xs text-emerald-600">Daily: {formatMVR(targetStats.dailyTarget)}/day</p>
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-2">
-              <div className="flex items-center gap-1 text-xs text-blue-600 mb-1">
-                <TrendingUp size={12} />
-                <span>Achieved (Net)</span>
-              </div>
-              <p className="font-semibold text-blue-900">{formatMVR(targetStats.netIncome)}</p>
-              <p className="text-xs text-blue-600">
-                Income: {formatMVR(targetStats.income)}
+              <p className="text-sm text-gray-600 mb-3">
+                Set your income and cost targets for this month to track progress.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetForm({
+                    income_target: '',
+                    cost_target: '',
+                    targetMonth: new Date().toISOString().slice(0, 7)
+                  })
+                  setShowSetTarget(true)
+                }}
+                className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+              >
+                Set Monthly Target
+              </button>
             </div>
-          </div>
-
-          {/* Remaining & Required */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-amber-50 rounded-lg p-2">
-              <div className="flex items-center gap-1 text-xs text-amber-600 mb-1">
-                <Calendar size={12} />
-                <span>Remaining</span>
+          ) : (
+            // Target exists - show progress
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-100 p-2 rounded-lg">
+                    <Target size={18} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Monthly Target: {targetStats.vehicleName}</h3>
+                    <p className="text-xs text-gray-500">Day {targetStats.currentDay} of {targetStats.daysInMonth}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetForm({
+                      income_target: String(targetStats.monthlyTarget),
+                      cost_target: String(targetStats.costTarget),
+                      targetMonth: new Date().toISOString().slice(0, 7)
+                    })
+                    setShowSetTarget(true)
+                  }}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Edit
+                </button>
               </div>
-              <p className="font-semibold text-amber-900">{formatMVR(targetStats.remainingToAchieve)}</p>
-              <p className="text-xs text-amber-600">{targetStats.remainingDays} days left</p>
-            </div>
 
-            <div className={`rounded-lg p-2 ${
-              targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'bg-red-50' : 'bg-purple-50'
-            }`}>
-              <div className={`flex items-center gap-1 text-xs mb-1 ${
-                targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-600' : 'text-purple-600'
-              }`}>
-                <DollarSign size={12} />
-                <span>Required/Day</span>
+              {/* Progress Bar */}
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-600">Progress</span>
+                  <span className="font-medium text-gray-900">{targetStats.progressPercent.toFixed(1)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      targetStats.progressPercent >= 100 ? 'bg-emerald-500' :
+                      targetStats.progressPercent >= 75 ? 'bg-blue-500' :
+                      targetStats.progressPercent >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${Math.max(5, targetStats.progressPercent)}%` }}
+                  />
+                </div>
               </div>
-              <p className={`font-semibold ${
-                targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-900' : 'text-purple-900'
-              }`}>
-                {formatMVR(targetStats.requiredDaily)}
-              </p>
-              <p className={`text-xs ${
-                targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-600' : 'text-purple-600'
-              }`}>
-                {targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? '⚠️ Above target!' : 
-                 targetStats.requiredDaily > targetStats.dailyTarget ? '↑ Slightly above' : '✓ On track'}
-              </p>
-            </div>
-          </div>
 
-          {/* Expenses Note */}
-          {targetStats.expensesTotal > 0 && (
-            <p className="text-xs text-red-600 mt-2">
-              Expenses deducted: {formatMVR(targetStats.expensesTotal)}
-            </p>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-emerald-50 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-xs text-emerald-600 mb-1">
+                    <Target size={12} />
+                    <span>Income Target</span>
+                  </div>
+                  <p className="font-semibold text-emerald-900">{formatMVR(targetStats.monthlyTarget)}</p>
+                  <p className="text-xs text-emerald-600">Daily: {formatMVR(targetStats.dailyTarget)}/day</p>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-xs text-blue-600 mb-1">
+                    <TrendingUp size={12} />
+                    <span>Achieved (Net)</span>
+                  </div>
+                  <p className="font-semibold text-blue-900">{formatMVR(targetStats.netIncome)}</p>
+                  <p className="text-xs text-blue-600">
+                    Income: {formatMVR(targetStats.income)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Cost Target Progress */}
+              {targetStats.costTarget > 0 && (
+                <div className="mb-3 p-2 bg-orange-50 rounded-lg">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-orange-600">Cost Target</span>
+                    <span className="font-medium text-orange-900">
+                      {formatMVR(targetStats.expensesTotal)} / {formatMVR(targetStats.costTarget)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-orange-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        (targetStats.costProgressPercent || 0) > 100 ? 'bg-red-500' :
+                        (targetStats.costProgressPercent || 0) >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(100, targetStats.costProgressPercent || 0)}%` }}
+                    />
+                  </div>
+                  {(targetStats.costProgressPercent || 0) > 100 && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Over cost budget!</p>
+                  )}
+                </div>
+              )}
+
+              {/* Remaining & Required */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-amber-50 rounded-lg p-2">
+                  <div className="flex items-center gap-1 text-xs text-amber-600 mb-1">
+                    <Calendar size={12} />
+                    <span>Remaining</span>
+                  </div>
+                  <p className="font-semibold text-amber-900">{formatMVR(targetStats.remainingToAchieve)}</p>
+                  <p className="text-xs text-amber-600">{targetStats.remainingDays} days left</p>
+                </div>
+
+                <div className={`rounded-lg p-2 ${
+                  targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'bg-red-50' : 'bg-purple-50'
+                }`}>
+                  <div className={`flex items-center gap-1 text-xs mb-1 ${
+                    targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-600' : 'text-purple-600'
+                  }`}>
+                    <DollarSign size={12} />
+                    <span>Required/Day</span>
+                  </div>
+                  <p className={`font-semibold ${
+                    targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-900' : 'text-purple-900'
+                  }`}>
+                    {formatMVR(targetStats.requiredDaily)}
+                  </p>
+                  <p className={`text-xs ${
+                    targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? 'text-red-600' : 'text-purple-600'
+                  }`}>
+                    {targetStats.requiredDaily > targetStats.dailyTarget * 1.5 ? '⚠️ Above target!' :
+                     targetStats.requiredDaily > targetStats.dailyTarget ? '↑ Slightly above' : '✓ On track'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Expenses Note */}
+              {targetStats.expensesTotal > 0 && (
+                <p className="text-xs text-red-600 mt-2">
+                  Expenses deducted: {formatMVR(targetStats.expensesTotal)}
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1318,13 +1573,39 @@ export default function Taxi() {
                 <label className="text-sm text-gray-600">Vehicle type</label>
                 <select
                   value={vehicleForm.vehicle_type}
-                  onChange={(e) => setVehicleForm({ ...vehicleForm, vehicle_type: e.target.value as VehicleType })}
+                  onChange={(e) => {
+                    const newType = e.target.value as VehicleType
+                    setVehicleForm({
+                      ...vehicleForm,
+                      vehicle_type: newType,
+                      car_subtype: newType === 'car' ? 'sedan' : ''
+                    })
+                  }}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
                 >
                   <option value="car">Car</option>
                   <option value="bike">Bike</option>
                 </select>
               </div>
+
+              {vehicleForm.vehicle_type === 'car' && (
+                <div>
+                  <label className="text-sm text-gray-600">Car Type</label>
+                  <select
+                    value={vehicleForm.car_subtype}
+                    onChange={(e) => setVehicleForm({ ...vehicleForm, car_subtype: e.target.value as CarSubType })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  >
+                    <option value="sedan">Standard Taxi (Sedan)</option>
+                    <option value="van">Van / 6-Seater</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {vehicleForm.car_subtype === 'sedan'
+                      ? 'Standard sedan rates: Within City MVR 30, Airport MVR 70'
+                      : 'Van rates: Within City MVR 45, Airport MVR 110'}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="text-sm text-gray-600">Name / Plate</label>
@@ -1389,7 +1670,7 @@ export default function Taxi() {
                 type="button"
                 onClick={() => {
                   setShowEditVehicle(false)
-                  setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+                  setEditVehicleForm({ id: '', car_subtype: '', name: '', plate_number: '', monthly_target: '' })
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -1401,6 +1682,25 @@ export default function Taxi() {
               {error && (
                 <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
                   {error}
+                </div>
+              )}
+
+              {editVehicleForm.car_subtype && (
+                <div>
+                  <label className="text-sm text-gray-600">Car Type</label>
+                  <select
+                    value={editVehicleForm.car_subtype}
+                    onChange={(e) => setEditVehicleForm({ ...editVehicleForm, car_subtype: e.target.value as CarSubType })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  >
+                    <option value="sedan">Standard Taxi (Sedan)</option>
+                    <option value="van">Van / 6-Seater</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {editVehicleForm.car_subtype === 'sedan'
+                      ? 'Standard sedan rates: Within City MVR 30, Airport MVR 70'
+                      : 'Van rates: Within City MVR 45, Airport MVR 110'}
+                  </p>
                 </div>
               )}
 
@@ -1444,7 +1744,7 @@ export default function Taxi() {
                   type="button"
                   onClick={() => {
                     setShowEditVehicle(false)
-                    setEditVehicleForm({ id: '', name: '', plate_number: '', monthly_target: '' })
+                    setEditVehicleForm({ id: '', car_subtype: '', name: '', plate_number: '', monthly_target: '' })
                   }}
                   className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
                 >
@@ -1502,17 +1802,18 @@ export default function Taxi() {
                   value={tripForm.route}
                   onChange={(e) => {
                     const route = e.target.value
-                    const price = ROUTE_PRICES[route] || 0
-                    setTripForm({ 
-                      ...tripForm, 
+                    const price = currentRoutePrices[route] || 0
+                    setTripForm({
+                      ...tripForm,
                       route,
                       rate: price > 0 ? String(price) : tripForm.rate
                     })
                   }}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
                 >
-                  {Object.keys(ROUTE_PRICES).map(route => (
-                    <option key={route} value={route}>{route} {ROUTE_PRICES[route] > 0 ? `(MVR ${ROUTE_PRICES[route]})` : ''}</option>
+                  <option value="">Select a route...</option>
+                  {Object.keys(currentRoutePrices).map(route => (
+                    <option key={route} value={route}>{route} {currentRoutePrices[route] > 0 ? `(MVR ${currentRoutePrices[route]})` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -1656,6 +1957,95 @@ export default function Taxi() {
                   className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700"
                 >
                   Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Set Monthly Target Modal */}
+      {showSetTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900">Set Monthly Target</h2>
+              <button
+                type="button"
+                onClick={() => setShowSetTarget(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={saveMonthlyTarget} className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-600">Target Month</label>
+                <input
+                  type="month"
+                  value={targetForm.targetMonth}
+                  onChange={(e) => setTargetForm({ ...targetForm, targetMonth: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Income Target (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={targetForm.income_target}
+                  onChange={(e) => setTargetForm({ ...targetForm, income_target: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="e.g., 15000"
+                  min={0}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Your monthly income goal (after deducting expenses)</p>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600">Cost Budget (MVR)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={targetForm.cost_target}
+                  onChange={(e) => setTargetForm({ ...targetForm, cost_target: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 mt-1"
+                  placeholder="e.g., 3000"
+                  min={0}
+                />
+                <p className="text-xs text-gray-500 mt-1">Maximum expected expenses for the month (optional)</p>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-3 text-sm">
+                <p className="text-blue-700">
+                  <strong>How it works:</strong> Targets reset at the beginning of each month.
+                  Set new income and cost targets for every month to track your progress.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSetTarget(false)}
+                  className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700"
+                >
+                  Save Target
                 </button>
               </div>
             </form>
