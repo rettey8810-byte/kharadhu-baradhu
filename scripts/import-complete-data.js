@@ -1,4 +1,4 @@
-// Complete Data Import Script - Supabase CSV to Firebase
+// Complete Data Import Script - legacy CSV export to Firebase
 // Run this in browser console at https://kharadhu-baradhu.vercel.app
 
 (async function importAllData() {
@@ -31,9 +31,9 @@
   console.log('Current Firebase profiles:');
   profiles.forEach(p => console.log(`  - ${p.name} (${p.type}): ${p.id}`));
   
-  // Profile mapping from Supabase to Firebase
+  // Profile mapping from legacy export to Firebase
   const profileMapping = {};
-  const supabaseProfiles = [
+  const legacyProfiles = [
     { id: '65ede15e-f450-4a42-b1d9-1496c3359b24', name: 'Home Expense', type: 'family' },
     { id: '4c276124-ba30-4bfb-aed2-4db99e9563bd', name: 'Personal', type: 'personal' },
     { id: 'db645f92-01b3-4f6f-a157-8ecaab9669a2', name: 'Aizan Expense', type: 'family' },
@@ -45,7 +45,7 @@
   ];
   
   // Try to match by name/type
-  supabaseProfiles.forEach(sp => {
+  legacyProfiles.forEach(sp => {
     const match = profiles.find(fp => 
       fp.name?.toLowerCase().includes(sp.name.toLowerCase().split(' ')[0]) ||
       (sp.type === 'family' && fp.type === 'family') ||

@@ -32,7 +32,7 @@
   const aizanProfile = findProfile('aizan')
   const personalProfile = findProfile('personal')
 
-  // Profile ID mapping from Supabase to Firebase
+  // Profile ID mapping from legacy export to Firebase
   const profileMap = {
     '65ede15e-f450-4a42-b1d9-1496c3359b24': homeProfile.id,      // Home Expense
     '110675a7-0859-4951-9a93-a418f767c8d4': fannaProfile.id,       // Fanna Expense

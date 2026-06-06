@@ -531,7 +531,7 @@ export default function AdminDashboard() {
           <p className="text-sm font-semibold text-red-800">Admin load error</p>
           <p className="text-xs text-red-700 mt-1 break-words">{loadError}</p>
           <p className="text-xs text-red-700 mt-2">
-            This usually means the Supabase SQL functions were not created, have a wrong signature, or the admin email check blocked access.
+            This usually means the admin SQL functions were not created, have a wrong signature, or the admin email check blocked access.
           </p>
         </div>
       )}

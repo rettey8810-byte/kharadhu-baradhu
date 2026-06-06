@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 
-const loansData = require('../supabase-export-data/loans.json')
+const loansData = require('../migration-export-data/loans.json')
 
 async function migrateLoans() {
   console.log('=== Loan Migration Tool ===\n')
@@ -41,12 +41,12 @@ async function migrateLoans() {
     const loansSnap = await getDocs(collection(db, 'users', userId, 'loans'))
     console.log(`\nExisting loans in Firebase: ${loansSnap.docs.length}`)
     
-    // Map old Supabase profile IDs to new Firebase profile IDs
+    // Map old legacy profile IDs to new Firebase profile IDs
     // Strategy: Use the first profile as default, or try to match by type/name
     const defaultProfile = profiles[0]
     console.log(`\nDefault target profile: ${defaultProfile.id} (${defaultProfile.name})`)
     
-    // Import loans from Supabase export
+    // Import loans from the legacy export
     let imported = 0
     let skipped = 0
     

@@ -42,7 +42,7 @@ type TaxiTrip = {
   created_at: string
 }
 
-const TAXI_APPS = ['Avas Ride', 'Fahi Ride', 'Gaadiya App', 'Other'] as const
+const TAXI_APPS = ['Avas Ride', 'Fahi Ride', 'Nala Ride', 'Gaadiya App', 'Other'] as const
 
 // Route prices for Bikes (existing prices)
 const BIKE_ROUTE_PRICES: Record<string, number> = {

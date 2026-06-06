@@ -29,8 +29,8 @@ async function migrateGroceryItems() {
   console.log(`User ID: ${userId}\n`);
 
   // Read CSV files
-  const itemsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
-  const billsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bills_rows.csv');
+  const itemsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
+  const billsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bills_rows.csv');
 
   console.log('Reading CSV files...');
   const itemsCsv = fs.readFileSync(itemsCsvPath, 'utf-8');
@@ -42,7 +42,7 @@ async function migrateGroceryItems() {
   console.log(`Found ${itemsData.length} items in CSV`);
   console.log(`Found ${billsData.length} bills in CSV\n`);
 
-  // Build map of old Supabase bill ID -> {shop_name, bill_date}
+  // Build map of old exported bill ID -> {shop_name, bill_date}
   const oldBillMap = new Map();
   billsData.forEach(bill => {
     oldBillMap.set(bill.id, {

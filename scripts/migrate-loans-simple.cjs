@@ -15,13 +15,13 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-const loansData = require('../supabase-export-data/loans.json')
+const loansData = require('../migration-export-data/loans.json')
 
 const ADMIN_EMAIL = 'retey.ay@hotmail.com'
 
 async function migrateLoans() {
   console.log('=== Loan Migration Tool ===\n')
-  console.log(`Found ${loansData.length} loans in Supabase export:`)
+  console.log(`Found ${loansData.length} loans in migration export:`)
   loansData.forEach(l => {
     const name = l.lender_name || l.borrower_name || 'Unknown'
     console.log(`  - ${name}: MVR ${l.principal_amount} (${l.loan_type})`)

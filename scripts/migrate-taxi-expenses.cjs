@@ -24,7 +24,7 @@ async function migrateTaxiExpenses() {
   console.log(`\n=== Migrating Taxi Expenses ===\n`);
 
   // Read JSON data
-  const jsonPath = path.join(__dirname, '..', 'supabase-export-data', 'taxi_vehicle_expenses.json');
+  const jsonPath = path.join(__dirname, '..', 'migration-export-data', 'taxi_vehicle_expenses.json');
   const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
 
   console.log(`Expenses in JSON: ${jsonData.length}\n`);

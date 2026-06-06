@@ -1,0 +1,7 @@
+id,profile_id,recurring_expense_id,title,amount,due_date,is_read,is_dismissed,created_at,days_until_due,is_paid,paid_date,actual_amount
+10eb7c37-733a-4344-bd4a-3e348ecf32dd,4c276124-ba30-4bfb-aed2-4db99e9563bd,43cb7652-2215-4746-bf75-2af561d328dd,Ooredoo Phone,212.00,2026-03-20,false,false,2026-03-17 03:52:08.432791+00,3,false,,
+5dce68ec-73fd-498a-963a-351254151dc8,110675a7-0859-4951-9a93-a418f767c8d4,a891e3b6-a739-41de-a7f2-b1e28001a668,Dhiraagu Phone,212.00,2026-03-20,false,false,2026-03-17 03:52:08.432791+00,3,false,,
+6b86ee9d-3ad9-432b-b3a0-6323a997db2d,65ede15e-f450-4a42-b1d9-1496c3359b24,bfcfc000-3eea-40e6-a3f7-ca7f4dc9296c,Internet Service,432.00,2026-03-20,false,false,2026-03-17 03:52:08.432791+00,3,false,,
+ce662203-aa41-49ad-b34a-b54d3d6e7b90,db645f92-01b3-4f6f-a157-8ecaab9669a2,50158af5-1c8f-4939-bb35-344f68de5cbf,Tuition Fee,570.00,2026-03-10,true,false,2026-03-07 04:01:38.34903+00,3,false,,
+d814d3fd-7aec-4377-aa3f-84d8bb2e7572,db645f92-01b3-4f6f-a157-8ecaab9669a2,50158af5-1c8f-4939-bb35-344f68de5cbf,Tuition Fee,570.00,2026-03-10,true,false,2026-03-07 04:01:38.341043+00,3,false,,
+e0af67a5-4d5d-4aa9-851d-48c71c8b02b7,db645f92-01b3-4f6f-a157-8ecaab9669a2,50158af5-1c8f-4939-bb35-344f68de5cbf,Tuition Fee,570.00,2026-03-10,false,true,2026-03-07 04:01:38.339412+00,3,false,,
