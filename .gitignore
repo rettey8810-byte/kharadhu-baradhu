@@ -3,6 +3,5 @@ node_modules
 /dist
 .env
 .env.local
-supabase-export-data/exported_csv/
 .env.*.local
 scripts/firebase-service-account.json
