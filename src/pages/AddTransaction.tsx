@@ -173,7 +173,7 @@ export default function AddTransaction() {
   }, [billItems])
 
   useEffect(() => {
-    if (!isGroceries) return
+    if (!isGroceries && !showItems) return
 
     const sum = billItems.reduce((acc, it) => {
       const lt = it.line_total.trim() ? Number(it.line_total) : null
@@ -205,7 +205,7 @@ export default function AddTransaction() {
     const totalStr = total > 0 ? total.toFixed(2) : ''
     setBillTotal(totalStr)
     if (total > 0) setAmount(totalStr)
-  }, [isGroceries, billItems, billGstPercent, billGst])
+  }, [isGroceries, showItems, billItems, billGstPercent, billGst])
 
   useEffect(() => {
     const load = async () => {
