@@ -1,4 +1,4 @@
-// Rename existing profiles to match Supabase names
+// Rename existing profiles to match legacy export names
 // Run in browser console at https://kharadhu-baradhu.vercel.app while logged in
 
 (async function renameProfiles() {

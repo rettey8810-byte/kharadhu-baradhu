@@ -145,10 +145,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-03-24
 
 ### Changed - Firebase Migration (Major Backend Change)
-- **Migrated from Supabase to Firebase** - Complete backend infrastructure change
+-- **Migrated from legacy Postgres/CSV exports to Firebase** - Complete backend infrastructure change
   - Authentication: Firebase Auth (email/password, Google OAuth)
-  - Database: Firestore (replacing Supabase PostgreSQL)
-  - Storage: Firebase Storage (replacing Supabase Storage)
+  - Database: Firestore (replacing legacy Postgres schema)
+  - Storage: Firebase Storage (replacing legacy storage)
   - Real-time sync via Firestore listeners
 - **Data Structure Changes** - All data now stored under `users/{uid}/` subcollections:
   - `profiles`, `transactions`, `categories`, `incomeSources`
@@ -175,8 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **TypeScript Errors** - Fixed lint errors in migrated components (AddTransaction, AdminDashboard, AcceptInvite)
 
 ### Technical
-- **Migration Script** - `scripts/import-to-firebase.cjs` imports all Supabase data to Firestore
-- **Export Script** - `scripts/export-supabase-data.ts` exports Supabase data to JSON
+- **Migration Script** - `scripts/import-to-firebase.cjs` imports historical Postgres/CSV data to Firestore
+- **Export Script** - removed (legacy export scripts deleted)
 - **Service Account** - Firebase Admin SDK for bulk data import
 - **Environment Variables** - Updated for Firebase configuration
 
@@ -185,7 +185,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `firebase-admin` - Server-side Firebase operations
 
 ### Dependencies Removed
-- `@supabase/supabase-js` - No longer used (to be fully removed in cleanup)
 
 ---
 
@@ -398,7 +397,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made `amount` column nullable for variable bills
 - Added `bill_payments` table with transaction linking
 - Updated `RecurringExpense` TypeScript interface
-- New SQL file: `supabase-recurring-bills-enhancement.sql`
+- New SQL file: recurring bills enhancement (schema changes)
 
 ---
 
@@ -460,7 +459,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bell Icon** - Quick access from header
 
 #### Data & Security
-- **Supabase Auth** - Secure email/password and Google OAuth
+-- **Firebase Auth** - Secure email/password and Google OAuth
 - **Row Level Security (RLS)** - Users can only access their own data
 - **Profile Isolation** - Complete data separation between profiles
 - **Real-time Sync** - Changes sync across devices instantly
@@ -472,7 +471,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **React 18** with TypeScript
 - **Vite** for fast builds
 - **Tailwind CSS** for styling
-- **Supabase** for backend (Auth, Database, Storage)
+-- **Firebase** for backend (Auth, Database, Storage)
 - **Recharts** for data visualization
 - **Tesseract.js** for OCR (free, client-side)
 - **Lucide React** for icons

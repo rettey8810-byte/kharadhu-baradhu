@@ -1,5 +1,5 @@
 /**
- * Import Supabase data to Firebase Firestore
+ * Import exported data to Firebase Firestore
  * 
  * This script imports all exported JSON data into Firebase Firestore.
  * Run this after setting up Firebase and Firestore security rules.
@@ -22,7 +22,7 @@ const path = require('path');
 const SERVICE_ACCOUNT_PATH = './firebase-service-account.json';
 
 // Path to exported data directory
-const EXPORT_DIR = '../supabase-export-data';
+const EXPORT_DIR = '../migration-export-data';
 
 // ============================================
 
@@ -34,7 +34,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Helper to convert Supabase timestamps to Firestore timestamps
+// Helper to convert exported timestamps to Firestore timestamps
 function convertTimestamp(dateString) {
   if (!dateString) return null;
   return admin.firestore.Timestamp.fromDate(new Date(dateString));
@@ -103,7 +103,7 @@ async function importAuthUsers() {
           createdAt: convertTimestamp(user.created_at),
           lastLoginAt: convertTimestamp(user.last_sign_in_at),
           emailVerified: user.raw_user_meta_data?.email_verified || false,
-          migratedFromSupabase: true,
+          migratedFromExport: true,
           migratedAt: admin.firestore.FieldValue.serverTimestamp()
         });
         
@@ -346,7 +346,7 @@ async function importProfileShares() {
 // Main migration function
 async function migrate() {
   console.log('='.repeat(70));
-  console.log('  FIREBASE IMPORT FROM SUPABASE');
+  console.log('  FIREBASE IMPORT FROM LEGACY EXPORT');
   console.log('='.repeat(70));
   
   // Load auth users to get list of users to migrate
@@ -427,7 +427,7 @@ if (!fs.existsSync(SERVICE_ACCOUNT_PATH)) {
 if (!fs.existsSync(EXPORT_DIR)) {
   console.error('❌ Export data directory not found!');
   console.log(`Expected at: ${EXPORT_DIR}`);
-  console.log('Run the export script first: node export-supabase-data.cjs');
+  console.log('Place the exported JSON/CSV files into the migration-export-data folder and re-run this script.');
   process.exit(1);
 }
 

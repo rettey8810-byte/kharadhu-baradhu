@@ -900,10 +900,10 @@ When you apply a date filter:
 
 ### Data Safety
 
-- Data is stored securely in Supabase
-- Your data is private (RLS policies protect it)
-- Photos stored in your private Supabase storage
-- Only you can access your data
+- Data is stored securely in Firebase (Firestore + Storage)
+- Your data is private (Firestore security rules enforce access)
+- Photos are stored in Cloudinary or Firebase Storage depending on config
+- Only you can access your personal data unless you share a profile
 
 ---
 

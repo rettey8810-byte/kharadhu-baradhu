@@ -49,6 +49,7 @@ export default function AddTransaction() {
   const [billSubtotal, setBillSubtotal] = useState('')
   const [billTotal, setBillTotal] = useState('')
   const [billItems, setBillItems] = useState<Array<{ item_name: string; qty: string; unit_price: string; line_total: string }>>([])
+  const [showItems, setShowItems] = useState(false)
   const [activeAutocompleteIndex, setActiveAutocompleteIndex] = useState<number | null>(null)
   const [autocompleteQuery, setAutocompleteQuery] = useState('')
   const [groceryItemHistory, setGroceryItemHistory] = useState<string[]>([])
@@ -59,9 +60,9 @@ export default function AddTransaction() {
   const selectedCategory = categories.find(c => c.id === categoryId)
   const isGroceries = type === 'expense' && (selectedCategory?.name ?? '').trim().toLowerCase() === 'groceries'
 
-  // Load grocery item history when in groceries mode
+  // Load grocery item history when in groceries mode or when items UI is enabled
   useEffect(() => {
-    if (!isGroceries || !user) {
+    if (!user || (!isGroceries && !showItems)) {
       setGroceryItemHistory([])
       return
     }
@@ -83,11 +84,11 @@ export default function AddTransaction() {
     }
     
     loadGroceryHistory()
-  }, [isGroceries, user])
+  }, [isGroceries, showItems, user])
 
   // Load shop names and item price history
   useEffect(() => {
-    if (!isGroceries || !user) {
+    if (!user || (!isGroceries && !showItems)) {
       setShopNames([])
       setItemPriceHistory({})
       return
@@ -138,7 +139,7 @@ export default function AddTransaction() {
     }
     
     loadShopAndPriceHistory()
-  }, [isGroceries, user])
+  }, [isGroceries, showItems, user])
 
   // Filtered autocomplete suggestions
   const getAutocompleteSuggestions = (query: string) => {
@@ -173,7 +174,7 @@ export default function AddTransaction() {
   }, [billItems])
 
   useEffect(() => {
-    if (!isGroceries) return
+    if (!isGroceries && !showItems) return
 
     const sum = billItems.reduce((acc, it) => {
       const lt = it.line_total.trim() ? Number(it.line_total) : null
@@ -205,7 +206,7 @@ export default function AddTransaction() {
     const totalStr = total > 0 ? total.toFixed(2) : ''
     setBillTotal(totalStr)
     if (total > 0) setAmount(totalStr)
-  }, [isGroceries, billItems, billGstPercent, billGst])
+  }, [isGroceries, showItems, billItems, billGstPercent, billGst])
 
   useEffect(() => {
     const load = async () => {
@@ -533,11 +534,13 @@ export default function AddTransaction() {
     setLoading(true)
 
     try {
-      if (isGroceries) {
+      if (showItems) {
         const hasAnyItem = billItems.some(i => i.item_name.trim())
-        if (!hasAnyItem) throw new Error('Please add at least 1 grocery item (manual or extracted)')
-        if (!billShopName.trim()) throw new Error('Please enter shop name')
-        if (!billDate) throw new Error('Please enter bill date')
+        if (!hasAnyItem) throw new Error('Please add at least 1 item (manual or extracted)')
+        if (isGroceries) {
+          if (!billShopName.trim()) throw new Error('Please enter shop name')
+          if (!billDate) throw new Error('Please enter bill date')
+        }
       }
 
       const amt = Number(amount)
@@ -555,6 +558,16 @@ export default function AddTransaction() {
         }
       }
 
+      // prepare cleaned items to attach to payload for non-grocery categories
+      const cleanedItems = billItems
+        .map(i => ({
+          item_name: i.item_name.trim(),
+          qty: i.qty.trim() ? Number(i.qty) : null,
+          unit_price: i.unit_price.trim() ? Number(i.unit_price) : null,
+          line_total: i.line_total.trim() ? Number(i.line_total) : null,
+        }))
+        .filter(i => i.item_name)
+
       const payload: any = {
         profile_id: currentProfile.id,
         type,
@@ -568,6 +581,11 @@ export default function AddTransaction() {
         receipt_url: uploadedReceiptUrl,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      }
+
+      // attach items to transaction payload for non-grocery item entries
+      if (showItems && !isGroceries && cleanedItems.length > 0) {
+        payload.items = cleanedItems
       }
 
       // Add transaction to Firestore
@@ -792,6 +810,18 @@ export default function AddTransaction() {
                 )}
               </div>
             )}
+            {/* Items toggle - allow adding line items for any category */}
+            <div className="mt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showItems}
+                  onChange={(e) => setShowItems(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded"
+                />
+                <span className="text-sm text-gray-700">Add items (quantity, unit price, line total)</span>
+              </label>
+            </div>
           </div>
         ) : (
           <div>
@@ -890,7 +920,7 @@ export default function AddTransaction() {
         {/* Receipt Upload */}
         <div>
           <label className="text-sm text-gray-600">
-            {t('form_receipt_photo')} {isGroceries ? <span className="text-red-500">*</span> : <span className="text-gray-400">({t('form_optional')})</span>}
+            {t('form_receipt_photo')} {showItems ? <span className="text-red-500">*</span> : <span className="text-gray-400">({t('form_optional')})</span>}
           </label>
           <input
             ref={fileInputRef}
@@ -941,12 +971,12 @@ export default function AddTransaction() {
           )}
         </div>
 
-        {isGroceries && (
+        {showItems && (
           <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <div className="text-sm font-semibold text-emerald-900">{t('form_groceries_bill')}</div>
-                <div className="text-xs text-emerald-700">{t('form_receipt_required_auto')}</div>
+                <div className="text-sm font-semibold text-emerald-900">{isGroceries ? t('form_groceries_bill') : 'Items'}</div>
+                <div className="text-xs text-emerald-700">{isGroceries ? t('form_receipt_required_auto') : 'Add item details (qty, unit price, line total) or extract from receipt.'}</div>
               </div>
               <button
                 type="button"
@@ -973,7 +1003,7 @@ export default function AddTransaction() {
                   />
                   <span className="text-sm text-gray-700 flex items-center gap-1">
                     <CreditCard size={14} />
-                    Charge grocery bill to Credit Card
+                    {isGroceries ? 'Charge grocery bill to Credit Card' : 'Charge to Credit Card'}
                   </span>
                 </label>
 

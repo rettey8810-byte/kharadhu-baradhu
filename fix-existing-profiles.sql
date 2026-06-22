@@ -1,7 +1,5 @@
--- FIX: Add default categories to existing profiles that don't have any
--- Run this in Supabase SQL Editor
+-- Run this in a Postgres client (historical Postgres script)
 
--- This will create default categories for all profiles that have 0 categories
 DO $$
 DECLARE
   profile_rec RECORD;
@@ -29,7 +27,6 @@ BEGIN
   END LOOP;
 END $$;
 
--- Verify: Check all profiles and their category count
 SELECT 
   p.id,
   p.name,

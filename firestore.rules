@@ -180,7 +180,17 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
-      
+
+      // User's taxi monthly targets
+      match /taxiMonthlyTargets/{targetId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+          request.resource.data.user_id == request.auth.uid;
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+
       // User's grocery history
       match /groceryHistory/{itemId} {
         allow read: if isOwner(userId);

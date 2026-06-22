@@ -1,5 +1,5 @@
 // Firebase configuration and initialization
-// This file sets up Firebase alongside existing Supabase (for migration)
+// This file sets up Firebase for the application
 
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'

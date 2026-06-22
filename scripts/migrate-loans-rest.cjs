@@ -6,7 +6,7 @@ const API_KEY = 'AIzaSyDZPy7vV3F4L2HlFfD2yPHc_JlDqu-87f8'
 const PROJECT_ID = 'kharadhu-baradhu'
 const FIRESTORE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`
 
-const loansData = JSON.parse(fs.readFileSync(path.join(__dirname, '../supabase-export-data/loans.json'), 'utf8'))
+const loansData = JSON.parse(fs.readFileSync(path.join(__dirname, '../migration-export-data/loans.json'), 'utf8'))
 
 async function makeRequest(url, method = 'GET', data = null) {
   return new Promise((resolve, reject) => {

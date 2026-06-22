@@ -59,7 +59,7 @@ const firebaseConfig = {
 ---
 
 ## Data Export Location
-**Path:** `c:\Users\maushaz.MADIHAA\Desktop\Rettey\Kharadhu\supabase-export-data\exported_csv\`
+**Path:** `c:\Users\maushaz.MADIHAA\Desktop\Rettey\Kharadhu\migration-export-data\`
 
 ### CSV Files
 - `grocery_bills_rows.csv` - 24 bills
@@ -135,7 +135,7 @@ node scripts/migrate-with-admin.cjs a05054eb-23a4-41ea-aaa7-6267f876cac5
 ### To Keep:
 1. ✅ This credentials file
 2. ✅ `firebase-service-account.json` (keep secure!)
-3. ✅ CSV export data (`supabase-export-data/`)
+3. ✅ CSV export data (migration-export-data/)
 4. ✅ GitHub repository
 
 ### Can Delete:

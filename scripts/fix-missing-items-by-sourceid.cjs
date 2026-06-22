@@ -29,8 +29,8 @@ async function fixMissingItems() {
   console.log(`User ID: ${userId}\n`);
 
   // Read CSV
-  const itemsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
-  const billsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bills_rows.csv');
+  const itemsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
+  const billsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bills_rows.csv');
 
   const itemsCsv = fs.readFileSync(itemsCsvPath, 'utf-8');
   const billsCsv = fs.readFileSync(billsCsvPath, 'utf-8');
@@ -41,7 +41,7 @@ async function fixMissingItems() {
   console.log(`CSV bills: ${billsData.length}`);
   console.log(`CSV items: ${itemsData.length}\n`);
 
-  // Build bill map from CSV: supabaseBillId -> {shop_name, bill_date, total}
+  // Build bill map from CSV: legacyBillId -> {shop_name, bill_date, total}
   const csvBillById = new Map();
   for (const b of billsData) {
     csvBillById.set(b.id, b);
@@ -87,7 +87,7 @@ async function fixMissingItems() {
     csvBillsByShopDate.set(key, arr);
   }
 
-  // Build mapping: firestoreBillId -> supabaseBillId
+  // Build mapping: firestoreBillId -> legacyBillId
   const mapping = new Map();
 
   for (const fb of billsWithZeroItems) {
@@ -123,8 +123,8 @@ async function fixMissingItems() {
   let notFound = 0;
   let errors = 0;
 
-  for (const [fsBillId, supaBillId] of mapping.entries()) {
-    const csvItems = itemsData.filter(i => i.grocery_bill_id === supaBillId);
+  for (const [fsBillId, legacyBillId] of mapping.entries()) {
+    const csvItems = itemsData.filter(i => i.grocery_bill_id === legacyBillId);
     if (csvItems.length === 0) {
       notFound++;
       continue;
@@ -151,7 +151,7 @@ async function fixMissingItems() {
           created_at: new Date().toISOString(),
           user_id: userId,
           source_item_id: item.id,
-          source_bill_id: supaBillId,
+          source_bill_id: legacyBillId,
         });
 
         existingItemKeys.add(itemKey);

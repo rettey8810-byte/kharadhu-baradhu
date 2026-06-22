@@ -18,7 +18,7 @@ if (serviceAccount) {
 
 const db = admin.firestore()
 
-const loansData = require('../supabase-export-data/loans.json')
+const loansData = require('../migration-export-data/loans.json')
 
 async function migrateLoans() {
   console.log('=== Loan Migration Tool (Admin) ===\n')
@@ -69,7 +69,7 @@ async function migrateLoans() {
     let skipped = 0
     
     for (const loan of loansData) {
-      // Determine target profile based on original Supabase profile_id
+      // Determine target profile based on original legacy profile_id
       let targetProfile
       if (loan.profile_id === '4c276124-ba30-4bfb-aed2-4db99e9563bd') {
         targetProfile = homeExpenseProfile

@@ -23,8 +23,8 @@ async function diagnoseMissingItems() {
   console.log(`\n=== Diagnosing Missing Grocery Items ===\n`);
 
   // Read CSV data
-  const itemsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
-  const billsCsvPath = path.join(__dirname, '..', 'supabase-export-data', 'exported_csv', 'grocery_bills_rows.csv');
+  const itemsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bill_items_rows.csv');
+  const billsCsvPath = path.join(__dirname, '..', 'migration-export-data', 'exported_csv', 'grocery_bills_rows.csv');
   
   const itemsCsv = fs.readFileSync(itemsCsvPath, 'utf-8');
   const billsCsv = fs.readFileSync(billsCsvPath, 'utf-8');
