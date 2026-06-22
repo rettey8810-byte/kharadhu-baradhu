@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, MonthlyBudget } from '../types'
 import { Download, FileSpreadsheet, FileText, Calendar, TrendingDown, TrendingUp, Wallet, Filter } from 'lucide-react'
+import JSZip from 'jszip'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -25,6 +26,7 @@ export default function ExportReports() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [reportType, setReportType] = useState<'monthly' | 'yearly'>('monthly')
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv')
+  const [loading, setLoading] = useState(false)
 
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
 
@@ -159,18 +161,66 @@ export default function ExportReports() {
     }, null, 2)
   }
 
-  const downloadReport = () => {
-    const content = exportFormat === 'csv' ? generateCSV() : generateJSON()
-    const blob = new Blob([content], { 
-      type: exportFormat === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json' 
-    })
-    const link = document.createElement('a')
-    const period = reportType === 'monthly' 
-      ? `${year}-${month.toString().padStart(2, '0')}` 
-      : `${year}`
-    link.download = `kharadhu-report-${period}.${exportFormat}`
-    link.href = URL.createObjectURL(blob)
-    link.click()
+  const downloadReport = async () => {
+    setLoading(true)
+    try {
+      const content = exportFormat === 'csv' ? generateCSV() : generateJSON()
+      
+      // Collect all receipt URLs from transactions
+      const receiptUrls = transactions
+        .map(t => (t as any).receipt_url)
+        .filter((url): url is string => !!url)
+      
+      let blob: Blob
+      
+      if (receiptUrls.length > 0) {
+        // Create ZIP file with report and images
+        const zip = new JSZip()
+        
+        // Add report file
+        const reportFileName = exportFormat === 'csv' ? 'report.csv' : 'report.json'
+        zip.file(reportFileName, content)
+        
+        // Download and add images to ZIP
+        const imagesFolder = zip.folder('receipts')
+        if (imagesFolder) {
+          const imagePromises = receiptUrls.map(async (url, index) => {
+            try {
+              const response = await fetch(url)
+              const blob = await response.blob()
+              const extension = url.split('.').pop()?.split('?')[0] || 'jpg'
+              const fileName = `receipt_${index + 1}.${extension}`
+              imagesFolder.file(fileName, blob)
+            } catch (error) {
+              console.error(`Failed to download image from ${url}:`, error)
+            }
+          })
+          
+          await Promise.all(imagePromises)
+        }
+        
+        // Generate ZIP blob
+        blob = await zip.generateAsync({ type: 'blob' })
+      } else {
+        // No images, just download the report file
+        blob = new Blob([content], { 
+          type: exportFormat === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json' 
+        })
+      }
+      
+      const link = document.createElement('a')
+      const period = reportType === 'monthly' 
+        ? `${year}-${month.toString().padStart(2, '0')}` 
+        : `${year}`
+      const extension = receiptUrls.length > 0 ? 'zip' : exportFormat
+      link.download = `kharadhu-report-${period}.${extension}`
+      link.href = URL.createObjectURL(blob)
+      link.click()
+    } catch (error) {
+      console.error('Failed to download report:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const monthNames = [
@@ -389,11 +439,11 @@ export default function ExportReports() {
       {/* Download Button */}
       <button
         onClick={downloadReport}
-        disabled={transactions.length === 0}
+        disabled={transactions.length === 0 || loading}
         className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-200"
       >
         <Download size={20} />
-        Download {reportType === 'monthly' ? 'Monthly' : 'Yearly'} Report (.{exportFormat})
+        {loading ? 'Preparing Download...' : `Download ${reportType === 'monthly' ? 'Monthly' : 'Yearly'} Report (.${exportFormat})`}
       </button>
 
       {/* Info */}
@@ -404,6 +454,7 @@ export default function ExportReports() {
           <li>Summary with totals, savings, and budget status</li>
           <li>CSV opens in Excel, Google Sheets, or Numbers</li>
           <li>JSON for data analysis or backup</li>
+          <li>If transactions have receipt images, they'll be included in a ZIP file</li>
         </ul>
       </div>
     </div>

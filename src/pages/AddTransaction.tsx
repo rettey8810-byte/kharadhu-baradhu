@@ -9,6 +9,7 @@ import { Camera, X, FileText, Hash, CreditCard } from 'lucide-react'
 import VoiceInput from '../components/VoiceInput'
 import { recognize } from 'tesseract.js'
 import { useNavigate } from 'react-router-dom'
+import { uploadImage } from '../lib/cloudinary'
 
 export default function AddTransaction() {
   const { currentProfile } = useProfile()
@@ -29,7 +30,7 @@ export default function AddTransaction() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [, setReceipt] = useState<File | null>(null)
+  const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
@@ -542,6 +543,18 @@ export default function AddTransaction() {
       const amt = Number(amount)
       if (!Number.isFinite(amt) || amt <= 0) throw new Error('Enter a valid amount')
 
+      // Upload receipt to Cloudinary if provided
+      let uploadedReceiptUrl: string | null = null
+      if (receipt) {
+        try {
+          const uploadResult = await uploadImage(receipt, 'kharadhu-bills')
+          uploadedReceiptUrl = uploadResult.secureUrl
+        } catch (uploadError) {
+          console.error('Failed to upload receipt to Cloudinary:', uploadError)
+          throw new Error('Failed to upload receipt image')
+        }
+      }
+
       const payload: any = {
         profile_id: currentProfile.id,
         type,
@@ -552,6 +565,7 @@ export default function AddTransaction() {
         tags: tags.length > 0 ? tags : null,
         category_id: type === 'expense' ? categoryId || null : null,
         income_source_id: type === 'income' ? incomeSourceId || null : null,
+        receipt_url: uploadedReceiptUrl,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -611,9 +625,6 @@ export default function AddTransaction() {
         }
       }
 
-      // Note: Receipt upload and grocery bills simplified for migration
-      // These features would need Cloudinary integration for full functionality
-
       if (isGroceries && transaction) {
         const totalNum = billTotal.trim() ? Number(billTotal) : null
         const subtotalNum = billSubtotal.trim() ? Number(billSubtotal) : null
@@ -628,6 +639,7 @@ export default function AddTransaction() {
           gst_amount: Number.isFinite(gstNum as any) ? gstNum : null,
           total: Number.isFinite(totalNum as any) ? totalNum : null,
           raw_text: ocrText || null,
+          receipt_url: uploadedReceiptUrl,
           created_at: new Date().toISOString()
         }
 
