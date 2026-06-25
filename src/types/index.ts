@@ -80,6 +80,7 @@ export interface Transaction {
   income_source?: IncomeSource
   profile?: { name: string }
   receipts?: Receipt[]
+  receipt_url?: string | null
 }
 
 export interface SavingsGoal {
@@ -142,6 +143,7 @@ export interface GroceryBill {
   raw_text: string | null
   created_at: string
   items?: GroceryBillItem[]
+  receipt_url?: string | null
 }
 
 export interface GroceryBillItem {

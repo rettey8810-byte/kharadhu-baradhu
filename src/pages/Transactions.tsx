@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction, ExpenseCategory, IncomeSource } from '../types'
-import { ArrowUpCircle, ArrowDownCircle, Search, Calendar, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Search, Calendar, Pencil, Trash2, X, Image as ImageIcon } from 'lucide-react'
 import { formatDateLocal } from '../utils/date'
 import { useLocation } from 'react-router-dom'
 import { collection, getDocs, limit, orderBy, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore'
@@ -39,6 +39,9 @@ export default function Transactions() {
     income_source_id: ''
   })
   const [editLoading, setEditLoading] = useState(false)
+
+  // Image viewer state
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
 
   const isTaxiOnly = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -142,7 +145,8 @@ export default function Transactions() {
         updated_at: raw.updated_at?.toDate ? raw.updated_at.toDate().toISOString() : (raw.updated_at ?? ''),
         category: raw.category_id ? categoryById.get(raw.category_id) : undefined,
         income_source: raw.income_source_id ? sourceById.get(raw.income_source_id) : undefined,
-        profile: { name: profileById.get(raw.profile_id)?.name ?? 'Profile' }
+        profile: { name: profileById.get(raw.profile_id)?.name ?? 'Profile' },
+        receipt_url: raw.receipt_url ?? null
       }
 
       return tx
@@ -419,6 +423,14 @@ export default function Transactions() {
                     </p>
                     <div className="flex gap-1">
                       <button
+                        onClick={() => tx.receipt_url && setViewingImage(tx.receipt_url)}
+                        disabled={!tx.receipt_url}
+                        className={`p-1.5 rounded-lg ${tx.receipt_url ? 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}`}
+                        title={tx.receipt_url ? "View receipt" : "No receipt attached"}
+                      >
+                        <ImageIcon size={16} />
+                      </button>
+                      <button
                         onClick={() => openEditModal(tx)}
                         className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg"
                         title="Edit"
@@ -529,6 +541,26 @@ export default function Transactions() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {viewingImage && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" onClick={() => setViewingImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setViewingImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300"
+            >
+              <X size={28} />
+            </button>
+            <img
+              src={viewingImage}
+              alt="Receipt"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={e => e.stopPropagation()}
+            />
           </div>
         </div>
       )}

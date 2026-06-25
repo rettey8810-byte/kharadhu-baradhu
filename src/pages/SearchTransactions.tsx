@@ -5,7 +5,7 @@ import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { Transaction } from '../types'
-import { Search, X, Filter, TrendingDown, TrendingUp } from 'lucide-react'
+import { Search, X, Filter, TrendingDown, TrendingUp, Image as ImageIcon } from 'lucide-react'
 
 function formatMVR(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'MVR' }).format(value)
@@ -27,6 +27,9 @@ export default function SearchTransactions() {
     dateTo: ''
   })
   const [showFilters, setShowFilters] = useState(false)
+
+  // Image viewer state
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
 
   useEffect(() => {
     loadTransactions()
@@ -274,14 +277,44 @@ export default function SearchTransactions() {
                     )}
                   </div>
                 </div>
-                <span className={`text-sm font-semibold ${t.type === 'income' ? 'text-blue-600' : 'text-gray-900'}`}>
-                  {t.type === 'income' ? '+' : '-'}{formatMVR(Number(t.amount))}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => t.receipt_url && setViewingImage(t.receipt_url)}
+                    disabled={!t.receipt_url}
+                    className={`p-1.5 rounded-lg ${t.receipt_url ? 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50' : 'text-gray-300 cursor-not-allowed'}`}
+                    title={t.receipt_url ? "View receipt" : "No receipt attached"}
+                  >
+                    <ImageIcon size={16} />
+                  </button>
+                  <span className={`text-sm font-semibold ${t.type === 'income' ? 'text-blue-600' : 'text-gray-900'}`}>
+                    {t.type === 'income' ? '+' : '-'}{formatMVR(Number(t.amount))}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Image Viewer Modal */}
+      {viewingImage && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" onClick={() => setViewingImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setViewingImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300"
+            >
+              <X size={28} />
+            </button>
+            <img
+              src={viewingImage}
+              alt="Receipt"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

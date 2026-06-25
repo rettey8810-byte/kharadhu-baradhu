@@ -4,7 +4,7 @@ import { collection, query, where, getDocs, deleteDoc, doc, orderBy, writeBatch,
 import { useAuth } from '../hooks/useAuth'
 import { useLanguage } from '../hooks/useLanguage'
 import type { GroceryBill, GroceryBillItem } from '../types'
-import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2, Pencil, X } from 'lucide-react'
+import { Store, Calendar, Receipt, ChevronDown, ChevronUp, Search, TrendingDown, Package, ArrowRight, Trash2, Pencil, X, Image as ImageIcon } from 'lucide-react'
 
 interface BillWithItems extends GroceryBill {
   items: GroceryBillItem[]
@@ -53,6 +53,9 @@ export default function GroceryBills() {
     subtotal: '',
     gst_amount: ''
   })
+
+  // Image viewer state
+  const [viewingImage, setViewingImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -575,6 +578,18 @@ export default function GroceryBills() {
                       </div>
                       {/* Edit/Delete buttons for this bill */}
                       <div className="flex items-center gap-2 mt-3 ml-13 pl-12">
+                        {bill.receipt_url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setViewingImage(bill.receipt_url || null)
+                            }}
+                            className="flex items-center gap-1 px-3 py-1 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          >
+                            <ImageIcon size={14} />
+                            View Receipt
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -1049,6 +1064,26 @@ export default function GroceryBills() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Viewer Modal */}
+      {viewingImage && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50" onClick={() => setViewingImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setViewingImage(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300"
+            >
+              <X size={28} />
+            </button>
+            <img
+              src={viewingImage}
+              alt="Receipt"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={e => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
