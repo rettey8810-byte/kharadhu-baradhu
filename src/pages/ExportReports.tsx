@@ -27,14 +27,20 @@ export default function ExportReports() {
   const [reportType, setReportType] = useState<'monthly' | 'yearly'>('monthly')
   const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv')
   const [loading, setLoading] = useState(false)
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('all')
 
-  const profileIds = useMemo(() => profiles.map(p => p.id), [profiles])
+  const profileIds = useMemo(() => {
+    if (selectedProfileId === 'all') {
+      return profiles.map(p => p.id)
+    }
+    return [selectedProfileId]
+  }, [profiles, selectedProfileId])
 
   useEffect(() => {
     if (profiles.length > 0 && user) {
       loadData()
     }
-  }, [profiles, year, month, reportType, user])
+  }, [profiles, year, month, reportType, selectedProfileId, user])
 
   const loadData = async () => {
     if (!user) return
@@ -299,6 +305,21 @@ export default function ExportReports() {
               </select>
             </div>
           )}
+        </div>
+
+        {/* Profile Selection */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">Profile</label>
+          <select
+            value={selectedProfileId}
+            onChange={(e) => setSelectedProfileId(e.target.value)}
+            className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg"
+          >
+            <option value="all">All Profiles</option>
+            {profiles.map(profile => (
+              <option key={profile.id} value={profile.id}>{profile.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Export Format */}
