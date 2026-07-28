@@ -46,7 +46,7 @@ export default function ExportReports() {
     if (!user) return
     let startDate: Date
     let endDate: Date
-    
+
     if (reportType === 'monthly') {
       startDate = new Date(year, month - 1, 1)
       endDate = new Date(year, month, 0)
@@ -58,22 +58,24 @@ export default function ExportReports() {
     const start = startDate.toISOString().slice(0, 10)
     const end = endDate.toISOString().slice(0, 10)
 
-    // Load transactions from all profiles (fetch and filter client-side)
+    console.log('Loading data with filters:', { selectedProfileId, profileIds, start, end, reportType, year, month })
+
+    // Load transactions from selected profile(s) with date filtering
     const txPromises = profileIds.map(pid => {
       const q = query(
         collection(firebaseDb, 'users', user.uid, 'transactions'),
         where('profile_id', '==', pid),
+        where('transaction_date', '>=', start),
+        where('transaction_date', '<=', end),
         orderBy('transaction_date', 'desc'),
         limit(5000)
       )
       return getDocs(q)
     })
     const txSnaps = await Promise.all(txPromises)
-    const txData = txSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction)).filter(t => {
-      const rawDate = (t as any).transaction_date
-      const txDate: string = rawDate?.toDate ? new Date(rawDate.toDate()).toISOString().slice(0, 10) : String(rawDate)
-      return txDate >= start && txDate <= end
-    })
+    const txData = txSnaps.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Transaction))
+
+    console.log('Loaded transactions:', txData.length)
 
     // Load budgets for monthly report
     if (reportType === 'monthly') {
