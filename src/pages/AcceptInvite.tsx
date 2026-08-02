@@ -41,6 +41,8 @@ export default function AcceptInvite() {
         }
 
         // Look up the invitation in Firestore
+        // Need to search all users' invitations since we don't know the inviter yet
+        // This is a limitation - ideally we'd have a root-level collection for invitations
         const q = query(
           collection(firebaseDb, 'profileShareInvitations'),
           where('token', '==', token),

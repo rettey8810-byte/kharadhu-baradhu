@@ -66,7 +66,7 @@ export default function ProfileSharing() {
 
     // Load all profiles shared by this user
     const q = query(
-      collection(firebaseDb, 'users', user.uid, 'profileShares'),
+      collection(firebaseDb, 'profileShares'),
       where('shared_by', '==', user.uid),
       orderBy('created_at', 'desc')
     )
@@ -79,7 +79,7 @@ export default function ProfileSharing() {
     if (!user) return
 
     const q = query(
-      collection(firebaseDb, 'users', user.uid, 'profileShareInvitations'),
+      collection(firebaseDb, 'profileShareInvitations'),
       where('invited_by', '==', user.uid),
       where('accepted', '==', false),
       orderBy('invited_at', 'desc')
@@ -98,16 +98,16 @@ export default function ProfileSharing() {
 
   const sendInvitation = async () => {
     if (!inviteEmail || !user) return
-    
+
     setSending(true)
     setMessage(null)
-    
+
     try {
       const email = inviteEmail.trim()
       const token = crypto.randomUUID()
-      
-      // Create pending invitation with token
-      await addDoc(collection(firebaseDb, 'users', user.uid, 'profileShareInvitations'), {
+
+      // Create pending invitation with token at root level
+      await addDoc(collection(firebaseDb, 'profileShareInvitations'), {
         email,
         profile_id: shareAllProfiles ? null : selectedProfileId,
         share_all_profiles: shareAllProfiles,
@@ -117,16 +117,16 @@ export default function ProfileSharing() {
         accepted: false,
         invited_at: new Date().toISOString()
       })
-      
+
       // Generate and copy invite link
       const baseUrl = window.location.origin
       const inviteLink = `${baseUrl}/accept-invite?token=${token}`
-      
+
       await navigator.clipboard.writeText(inviteLink)
       setCopiedToken(token)
-      
+
       setMessage(`Invite link copied! Send it via WhatsApp/any app`)
-      
+
       // Reload pending invitations
       loadPendingInvitations()
       setInviteEmail('')
@@ -139,20 +139,20 @@ export default function ProfileSharing() {
 
   const revokeShare = async (shareId: string) => {
     if (!user) return
-    await deleteDoc(doc(firebaseDb, 'users', user.uid, 'profileShares', shareId))
+    await deleteDoc(doc(firebaseDb, 'profileShares', shareId))
     loadSharedProfiles()
   }
 
   const revokeAllSharesForUser = async (email: string) => {
     if (!user) return
     const q = query(
-      collection(firebaseDb, 'users', user.uid, 'profileShares'),
+      collection(firebaseDb, 'profileShares'),
       where('shared_by', '==', user.uid),
       where('shared_with_email', '==', email)
     )
     const snap = await getDocs(q)
     for (const d of snap.docs) {
-      await deleteDoc(doc(firebaseDb, 'users', user.uid, 'profileShares', d.id))
+      await deleteDoc(doc(firebaseDb, 'profileShares', d.id))
     }
     loadSharedProfiles()
   }

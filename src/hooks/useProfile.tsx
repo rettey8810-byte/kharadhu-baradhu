@@ -168,21 +168,45 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     const profilesSnap = await getDocs(qProfiles)
     const profilesData = profilesSnap.docs.map((d) => d.data() as ExpenseProfile)
 
-    setProfiles(profilesData)
+    // Load shared profiles from root-level profileShares collection
+    const sharedProfilesCol = collection(firebaseDb, 'profileShares')
+    const qShared = query(
+      sharedProfilesCol,
+      where('shared_with', '==', user.uid)
+    )
+    const sharedSnap = await getDocs(qShared)
+
+    // Fetch the actual profile data for each shared profile
+    const sharedProfilePromises = sharedSnap.docs.map(async (shareDoc) => {
+      const shareData = shareDoc.data() as any
+      const profileRef = doc(firebaseDb, 'users', shareData.shared_by, 'profiles', shareData.profile_id)
+      const profileSnap = await getDoc(profileRef)
+      if (profileSnap.exists()) {
+        return profileSnap.data() as ExpenseProfile
+      }
+      return null
+    })
+
+    const sharedProfiles = (await Promise.all(sharedProfilePromises)).filter((p): p is ExpenseProfile => p !== null)
+
+    // Combine own profiles and shared profiles
+    const allProfiles = [...profilesData, ...sharedProfiles]
+
+    setProfiles(allProfiles)
 
     const settingsRef = doc(firebaseDb, 'users', user.uid, 'settings', 'userSettings')
     const settingsSnap = await getDoc(settingsRef)
     const defaultProfileId = (settingsSnap.exists() ? (settingsSnap.data() as any).default_profile_id : null) as string | null
 
     if (defaultProfileId) {
-      const defaultProfile = profilesData.find((p) => p.id === defaultProfileId)
+      const defaultProfile = allProfiles.find((p) => p.id === defaultProfileId)
       if (defaultProfile) {
         setCurrentProfileState(defaultProfile)
-      } else if (profilesData.length > 0) {
-        setCurrentProfileState(profilesData[0])
+      } else if (allProfiles.length > 0) {
+        setCurrentProfileState(allProfiles[0])
       }
-    } else if (profilesData.length > 0) {
-      setCurrentProfileState(profilesData[0])
+    } else if (allProfiles.length > 0) {
+      setCurrentProfileState(allProfiles[0])
     }
 
     setLoading(false)
