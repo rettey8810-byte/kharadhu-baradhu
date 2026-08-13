@@ -147,7 +147,7 @@ export default function Dashboard() {
         const allCategories: any[] = []
         const allIncomeSources: any[] = []
 
-        for (const [ownerId, ownerProfiles] of profilesByOwner.entries()) {
+        for (const ownerId of profilesByOwner.keys()) {
           console.log(`Loading transactions for owner: ${ownerId}`)
           const txQuery = query(
             collection(firebaseDb, 'users', ownerId, 'transactions'),
