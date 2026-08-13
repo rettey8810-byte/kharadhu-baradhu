@@ -176,18 +176,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     )
     const sharedSnap = await getDocs(qShared)
 
+    console.log('Found shared profile shares:', sharedSnap.docs.length)
+
     // Fetch the actual profile data for each shared profile
     const sharedProfilePromises = sharedSnap.docs.map(async (shareDoc) => {
       const shareData = shareDoc.data() as any
+      console.log('Loading shared profile:', shareData)
       const profileRef = doc(firebaseDb, 'users', shareData.shared_by, 'profiles', shareData.profile_id)
       const profileSnap = await getDoc(profileRef)
       if (profileSnap.exists()) {
-        return profileSnap.data() as ExpenseProfile
+        const profileData = profileSnap.data() as ExpenseProfile
+        console.log('Loaded shared profile data:', profileData)
+        return profileData
       }
+      console.log('Shared profile not found:', shareData.profile_id)
       return null
     })
 
     const sharedProfiles = (await Promise.all(sharedProfilePromises)).filter((p): p is ExpenseProfile => p !== null)
+
+    console.log('Shared profiles loaded:', sharedProfiles.length, sharedProfiles)
 
     // Combine own profiles and shared profiles
     const allProfiles = [...profilesData, ...sharedProfiles]
