@@ -11,6 +11,16 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (nextUser) => {
       setUser(nextUser)
       setLoading(false)
+
+      // Check for pending invitation after login
+      if (nextUser) {
+        const pendingToken = localStorage.getItem('pendingInviteToken')
+        if (pendingToken) {
+          console.log('User logged in, found pending invitation token:', pendingToken)
+          // Redirect to accept invite page with the token
+          window.location.href = `/accept-invite?token=${pendingToken}`
+        }
+      }
     })
 
     return () => unsubscribe()
