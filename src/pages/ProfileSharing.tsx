@@ -208,6 +208,8 @@ export default function ProfileSharing() {
   console.log('Shares by person:', sharesByPerson)
   console.log('Shared profiles:', sharedProfiles)
   console.log('Active tab:', activeTab)
+  console.log('Loading state:', loading)
+  console.log('Should render shares:', Object.keys(sharesByPerson).length > 0 && activeTab === 'all')
 
   return (
     <div className="p-4 pb-24">
