@@ -81,6 +81,19 @@ export default function AcceptInvite() {
           accepted_by: user.uid
         })
 
+        console.log('Invitation details:', {
+          invited_by: invitation.invited_by,
+          current_user: user.uid,
+          are_same: invitation.invited_by === user.uid
+        })
+
+        // Prevent user from accepting their own invitation
+        if (invitation.invited_by === user.uid) {
+          setError('You cannot accept your own invitation. Please share this link with the intended person.')
+          setLoading(false)
+          return
+        }
+
         // If it's a share_all_profiles invitation, create shares for all profiles
         if (invitation.share_all_profiles) {
           console.log('Creating shares for all profiles')
