@@ -142,23 +142,37 @@ export default function ProfileSharing() {
   }
 
   const revokeShare = async (shareId: string) => {
+    console.log('Revoke share called with ID:', shareId)
     if (!user) return
-    await deleteDoc(doc(firebaseDb, 'profileShares', shareId))
-    loadSharedProfiles()
+    try {
+      await deleteDoc(doc(firebaseDb, 'profileShares', shareId))
+      console.log('Share deleted successfully')
+      loadSharedProfiles()
+    } catch (error) {
+      console.error('Failed to delete share:', error)
+    }
   }
 
   const revokeAllSharesForUser = async (email: string) => {
+    console.log('Revoke all shares for user:', email)
     if (!user) return
-    const q = query(
-      collection(firebaseDb, 'profileShares'),
-      where('shared_by', '==', user.uid),
-      where('shared_with_email', '==', email)
-    )
-    const snap = await getDocs(q)
-    for (const d of snap.docs) {
-      await deleteDoc(doc(firebaseDb, 'profileShares', d.id))
+    try {
+      const q = query(
+        collection(firebaseDb, 'profileShares'),
+        where('shared_by', '==', user.uid),
+        where('shared_with_email', '==', email)
+      )
+      const snap = await getDocs(q)
+      console.log('Found shares to delete:', snap.docs.length)
+      for (const d of snap.docs) {
+        console.log('Deleting share:', d.id)
+        await deleteDoc(doc(firebaseDb, 'profileShares', d.id))
+      }
+      console.log('All shares deleted')
+      loadSharedProfiles()
+    } catch (error) {
+      console.error('Failed to delete shares:', error)
     }
-    loadSharedProfiles()
   }
 
   const getRoleIcon = (role: string) => {
