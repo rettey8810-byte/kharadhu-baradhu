@@ -30,6 +30,18 @@ export default function AcceptInvite() {
     }
   }, [])
 
+  // Watch for user login to process pending invitation
+  useEffect(() => {
+    const pendingToken = localStorage.getItem('pendingInviteToken')
+    if (user && pendingToken && needsLogin) {
+      console.log('User logged in, processing pending invitation')
+      localStorage.removeItem('pendingInviteToken')
+      setNeedsLogin(false)
+      setLoading(true)
+      verifyAndAcceptInvitation(pendingToken)
+    }
+  }, [user, needsLogin])
+
   const verifyAndAcceptInvitation = async (token: string) => {
     console.log('verifyAndAcceptInvitation called with token:', token)
     console.log('Current user:', user)
