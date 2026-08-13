@@ -132,7 +132,7 @@ export default function AcceptInvite() {
         if (profilesSnap && profilesSnap.docs.length > 0) {
           const sharePromises = profilesSnap.docs.map(p => {
             const profileData = p.data()
-            const shareData = {
+            const shareData: any = {
               profile_id: p.id,
               shared_with: user.uid,
               shared_by: invitation.invited_by,
@@ -141,11 +141,9 @@ export default function AcceptInvite() {
               shared_with_email: user.email,
               created_at: new Date().toISOString(),
               // Store profile data directly in share to avoid permission issues
-              profile_name: profileData.name,
-              profile_color: profileData.color,
-              profile_icon: profileData.icon,
-              profile_currency: profileData.currency,
-              profile_is_active: profileData.is_active
+              profile_name: profileData.name || 'Shared Profile',
+              profile_currency: profileData.currency || 'USD',
+              profile_is_active: profileData.is_active !== false
             }
             console.log('Creating share:', shareData)
             return addDoc(collection(firebaseDb, 'profileShares'), shareData)
@@ -158,7 +156,7 @@ export default function AcceptInvite() {
         console.log('Creating single profile share for:', invitation.profile_id)
 
         // Use profile data from invitation (stored during invitation creation)
-        const shareData = {
+        const shareData: any = {
           profile_id: invitation.profile_id,
           shared_with: user.uid,
           shared_by: invitation.invited_by,
@@ -168,10 +166,8 @@ export default function AcceptInvite() {
           created_at: new Date().toISOString(),
           // Use profile data from invitation to avoid permission issues
           profile_name: invitation.profile_name || 'Shared Profile',
-          profile_color: invitation.profile_color,
-          profile_icon: invitation.profile_icon,
-          profile_currency: invitation.profile_currency,
-          profile_is_active: invitation.profile_is_active
+          profile_currency: invitation.profile_currency || 'USD',
+          profile_is_active: invitation.profile_is_active !== false
         }
         console.log('Creating share:', shareData)
         await addDoc(collection(firebaseDb, 'profileShares'), shareData)

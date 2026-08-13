@@ -121,7 +121,7 @@ export default function ProfileSharing() {
       }
 
       // Create pending invitation with token at root level
-      await addDoc(collection(firebaseDb, 'profileShareInvitations'), {
+      const invitationData: any = {
         email,
         profile_id: shareAllProfiles ? null : selectedProfileId,
         share_all_profiles: shareAllProfiles,
@@ -129,14 +129,17 @@ export default function ProfileSharing() {
         invited_by: user.uid,
         token,
         accepted: false,
-        invited_at: new Date().toISOString(),
-        // Store profile data to avoid permission issues during acceptance
-        profile_name: profileData?.name,
-        profile_color: profileData?.color,
-        profile_icon: profileData?.icon,
-        profile_currency: profileData?.currency,
-        profile_is_active: profileData?.is_active
-      })
+        invited_at: new Date().toISOString()
+      }
+
+      // Only store profile data fields that exist in the profile document
+      if (profileData) {
+        if (profileData.name !== undefined) invitationData.profile_name = profileData.name
+        if (profileData.currency !== undefined) invitationData.profile_currency = profileData.currency
+        if (profileData.is_active !== undefined) invitationData.profile_is_active = profileData.is_active
+      }
+
+      await addDoc(collection(firebaseDb, 'profileShareInvitations'), invitationData)
 
       // Generate and copy invite link
       const baseUrl = window.location.origin
