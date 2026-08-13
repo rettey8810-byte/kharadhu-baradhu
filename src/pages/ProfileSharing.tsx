@@ -175,6 +175,18 @@ export default function ProfileSharing() {
     }
   }
 
+  const deleteInvitation = async (invitationId: string) => {
+    console.log('Delete invitation called with ID:', invitationId)
+    if (!user) return
+    try {
+      await deleteDoc(doc(firebaseDb, 'profileShareInvitations', invitationId))
+      console.log('Invitation deleted successfully')
+      loadPendingInvitations()
+    } catch (error) {
+      console.error('Failed to delete invitation:', error)
+    }
+  }
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin': return <Shield size={16} className="text-emerald-600" />
@@ -343,25 +355,34 @@ export default function ProfileSharing() {
                       {invite.share_all_profiles ? 'All profiles' : 'One profile'} • {invite.role}
                     </p>
                   </div>
-                  <button
-                    onClick={() => copyInviteLink(invite.token)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-800 hover:bg-amber-100"
-                  >
-                    {copiedToken === invite.token ? (
-                      <>
-                        <Check size={16} className="text-emerald-600" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={16} />
-                        Copy Link
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => copyInviteLink(invite.token)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm text-amber-800 hover:bg-amber-100"
+                    >
+                      {copiedToken === invite.token ? (
+                        <>
+                          <Check size={16} className="text-emerald-600" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          Copy Link
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => deleteInvitation(invite.id)}
+                      className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg"
+                      title="Delete invitation"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-amber-600">
-                  Share this link via WhatsApp/Messenger: 
+                  Share this link via WhatsApp/Messenger:
                   <span className="font-mono bg-white px-1 py-0.5 rounded ml-1">
                     {window.location.origin}/accept-invite?token={invite.token?.slice(0, 8) ?? '...'}...
                   </span>
