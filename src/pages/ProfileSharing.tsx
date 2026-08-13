@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore'
+import { collection, query, where, getDocs, getDoc, addDoc, deleteDoc, doc } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound, Copy, Check } from 'lucide-react'
@@ -110,6 +110,16 @@ export default function ProfileSharing() {
       const email = inviteEmail.trim()
       const token = crypto.randomUUID()
 
+      // If sharing a single profile, fetch the profile data to store in invitation
+      let profileData = null
+      if (!shareAllProfiles && selectedProfileId) {
+        const profileRef = doc(firebaseDb, 'users', user.uid, 'profiles', selectedProfileId)
+        const profileSnap = await getDoc(profileRef)
+        if (profileSnap.exists()) {
+          profileData = profileSnap.data()
+        }
+      }
+
       // Create pending invitation with token at root level
       await addDoc(collection(firebaseDb, 'profileShareInvitations'), {
         email,
@@ -119,7 +129,13 @@ export default function ProfileSharing() {
         invited_by: user.uid,
         token,
         accepted: false,
-        invited_at: new Date().toISOString()
+        invited_at: new Date().toISOString(),
+        // Store profile data to avoid permission issues during acceptance
+        profile_name: profileData?.name,
+        profile_color: profileData?.color,
+        profile_icon: profileData?.icon,
+        profile_currency: profileData?.currency,
+        profile_is_active: profileData?.is_active
       })
 
       // Generate and copy invite link

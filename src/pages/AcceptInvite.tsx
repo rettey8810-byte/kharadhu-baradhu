@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, getDoc, doc, addDoc, updateDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
@@ -157,18 +157,7 @@ export default function AcceptInvite() {
         // Share single profile
         console.log('Creating single profile share for:', invitation.profile_id)
 
-        // Fetch the profile data to store in the share
-        const profileRef = doc(firebaseDb, 'users', invitation.invited_by, 'profiles', invitation.profile_id)
-        const profileSnap = await getDoc(profileRef)
-
-        if (!profileSnap.exists()) {
-          setError('Profile not found')
-          setLoading(false)
-          return
-        }
-
-        const profileData = profileSnap.data()
-
+        // Use profile data from invitation (stored during invitation creation)
         const shareData = {
           profile_id: invitation.profile_id,
           shared_with: user.uid,
@@ -177,12 +166,12 @@ export default function AcceptInvite() {
           share_all_profiles: false,
           shared_with_email: user.email,
           created_at: new Date().toISOString(),
-          // Store profile data directly in share to avoid permission issues
-          profile_name: profileData.name,
-          profile_color: profileData.color,
-          profile_icon: profileData.icon,
-          profile_currency: profileData.currency,
-          profile_is_active: profileData.is_active
+          // Use profile data from invitation to avoid permission issues
+          profile_name: invitation.profile_name || 'Shared Profile',
+          profile_color: invitation.profile_color,
+          profile_icon: invitation.profile_icon,
+          profile_currency: invitation.profile_currency,
+          profile_is_active: invitation.profile_is_active
         }
         console.log('Creating share:', shareData)
         await addDoc(collection(firebaseDb, 'profileShares'), shareData)
