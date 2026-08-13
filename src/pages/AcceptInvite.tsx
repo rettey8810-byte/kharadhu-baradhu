@@ -36,15 +36,14 @@ export default function AcceptInvite() {
 
     try {
       if (!user) {
-        console.log('User not logged in, showing login button')
+        console.log('User not logged in, storing token and showing login button')
+        // Store token in localStorage for after-login processing
+        localStorage.setItem('pendingInviteToken', token)
         // User not logged in - show login button instead of error
         setNeedsLogin(true)
         setLoading(false)
         return
       }
-
-      // Store token in localStorage for after-login processing
-      localStorage.setItem('pendingInviteToken', token)
 
       // Look up the invitation in Firestore
       console.log('Looking up invitation in Firestore')
