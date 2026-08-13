@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { firebaseDb } from '../lib/firebase'
 import { collection, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function AcceptInvite() {
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const token = searchParams.get('token')
+  const [token, setToken] = useState<string | null>(null)
   
   const [loading, setLoading] = useState(true)
   const [needsLogin, setNeedsLogin] = useState(false)
@@ -22,143 +21,156 @@ export default function AcceptInvite() {
   } | null>(null)
 
   useEffect(() => {
-    if (!token) {
-      setError('No invitation token found')
+    const token = new URLSearchParams(window.location.search).get('token')
+    console.log('AcceptInvite page loaded, token from URL:', token)
+    if (token) {
+      setToken(token)
+      verifyAndAcceptInvitation(token)
+    } else {
+      setError('No invitation token found in URL')
       setLoading(false)
-      return
     }
+  }, [])
 
-    // Store token in localStorage for after-login processing
-    localStorage.setItem('pendingInviteToken', token)
+  const verifyAndAcceptInvitation = async (token: string) => {
+    console.log('verifyAndAcceptInvitation called with token:', token)
+    console.log('Current user:', user)
 
-    const processInvitation = async () => {
-      try {
-        if (!user) {
-          // User not logged in - show login button instead of error
-          setNeedsLogin(true)
-          setLoading(false)
-          return
-        }
-
-        // Look up the invitation in Firestore
-        // Need to search all users' invitations since we don't know the inviter yet
-        // This is a limitation - ideally we'd have a root-level collection for invitations
-        const q = query(
-          collection(firebaseDb, 'profileShareInvitations'),
-          where('token', '==', token),
-          where('accepted', '==', false)
-        )
-        const snap = await getDocs(q)
-        
-        if (snap.empty) {
-          setError('Invalid or expired invitation')
-          setLoading(false)
-          return
-        }
-
-        const invitation = { id: snap.docs[0].id, ...snap.docs[0].data() } as any
-
-        setInviteDetails({
-          email: invitation.email,
-          share_all_profiles: invitation.share_all_profiles,
-          role: invitation.role
-        })
-
-        // Check if user's email matches the invitation
-        const userEmail = user.email?.toLowerCase()
-        const inviteEmail = invitation.email.toLowerCase()
-        
-        if (userEmail !== inviteEmail) {
-          setError(`This invitation was sent to ${invitation.email}. You are signed in as ${userEmail}. Please sign in with the correct email.`)
-          setLoading(false)
-          return
-        }
-
-        // Mark invitation as accepted
-        await updateDoc(doc(firebaseDb, 'profileShareInvitations', invitation.id), {
-          accepted: true,
-          accepted_at: new Date().toISOString(),
-          accepted_by: user.uid
-        })
-
-        console.log('Invitation details:', {
-          invited_by: invitation.invited_by,
-          current_user: user.uid,
-          are_same: invitation.invited_by === user.uid
-        })
-
-        // Prevent user from accepting their own invitation
-        if (invitation.invited_by === user.uid) {
-          setError('You cannot accept your own invitation. Please share this link with the intended person.')
-          setLoading(false)
-          return
-        }
-
-        // If it's a share_all_profiles invitation, create shares for all profiles
-        if (invitation.share_all_profiles) {
-          console.log('Creating shares for all profiles')
-          // Get inviter's profiles
-          const profilesQuery = query(
-            collection(firebaseDb, 'users', invitation.invited_by, 'profiles'),
-            where('is_active', '==', true)
-          )
-          const profilesSnap = await getDocs(profilesQuery)
-
-          console.log('Found profiles to share:', profilesSnap.docs.length)
-
-          if (profilesSnap && profilesSnap.docs.length > 0) {
-            const sharePromises = profilesSnap.docs.map(p => {
-              const shareData = {
-                profile_id: p.id,
-                shared_with: user.uid,
-                shared_by: invitation.invited_by,
-                role: invitation.role,
-                share_all_profiles: true,
-                shared_with_email: user.email,
-                created_at: new Date().toISOString()
-              }
-              console.log('Creating share:', shareData)
-              return addDoc(collection(firebaseDb, 'profileShares'), shareData)
-            })
-            await Promise.all(sharePromises)
-            console.log('All shares created successfully')
-          }
-        } else if (invitation.profile_id) {
-          // Share single profile
-          console.log('Creating single profile share for:', invitation.profile_id)
-          const shareData = {
-            profile_id: invitation.profile_id,
-            shared_with: user.uid,
-            shared_by: invitation.invited_by,
-            role: invitation.role,
-            share_all_profiles: false,
-            shared_with_email: user.email,
-            created_at: new Date().toISOString()
-          }
-          console.log('Creating share:', shareData)
-          await addDoc(collection(firebaseDb, 'profileShares'), shareData)
-          console.log('Single share created successfully')
-        }
-
-        // Clear pending token
-        localStorage.removeItem('pendingInviteToken')
-        
-        setSuccess(true)
+    try {
+      if (!user) {
+        console.log('User not logged in, showing login button')
+        // User not logged in - show login button instead of error
+        setNeedsLogin(true)
         setLoading(false)
-
-        // Redirect to dashboard after 3 seconds
-        setTimeout(() => {
-          navigate('/')
-        }, 3000)
-
-      } catch (err: any) {
-        setError(err.message || 'Failed to process invitation')
-        setLoading(false)
+        return
       }
-    }
 
-    processInvitation()
-  }, [token, navigate, user])
+      // Store token in localStorage for after-login processing
+      localStorage.setItem('pendingInviteToken', token)
+
+      // Look up the invitation in Firestore
+      console.log('Looking up invitation in Firestore')
+      const q = query(
+        collection(firebaseDb, 'profileShareInvitations'),
+        where('token', '==', token),
+        where('accepted', '==', false)
+      )
+      const snap = await getDocs(q)
+
+      console.log('Found invitations:', snap.docs.length)
+
+      if (snap.empty) {
+        console.log('No valid invitation found')
+        setError('Invalid or expired invitation')
+        setLoading(false)
+        return
+      }
+
+      const invitation = { id: snap.docs[0].id, ...snap.docs[0].data() } as any
+      console.log('Invitation data:', invitation)
+
+      setInviteDetails({
+        email: invitation.email,
+        share_all_profiles: invitation.share_all_profiles,
+        role: invitation.role
+      })
+
+      // Check if user's email matches the invitation
+      const userEmail = user.email?.toLowerCase()
+      const inviteEmail = invitation.email.toLowerCase()
+
+      console.log('Email check:', { userEmail, inviteEmail, match: userEmail === inviteEmail })
+
+      if (userEmail !== inviteEmail) {
+        setError(`This invitation was sent to ${invitation.email}. You are signed in as ${userEmail}. Please sign in with the correct email.`)
+        setLoading(false)
+        return
+      }
+
+      // Mark invitation as accepted
+      console.log('Marking invitation as accepted')
+      await updateDoc(doc(firebaseDb, 'profileShareInvitations', invitation.id), {
+        accepted: true,
+        accepted_at: new Date().toISOString(),
+        accepted_by: user.uid
+      })
+
+      console.log('Invitation details:', {
+        invited_by: invitation.invited_by,
+        current_user: user.uid,
+        are_same: invitation.invited_by === user.uid
+      })
+
+      // Prevent user from accepting their own invitation
+      if (invitation.invited_by === user.uid) {
+        setError('You cannot accept your own invitation. Please share this link with the intended person.')
+        setLoading(false)
+        return
+      }
+
+      // If it's a share_all_profiles invitation, create shares for all profiles
+      if (invitation.share_all_profiles) {
+        console.log('Creating shares for all profiles')
+        // Get inviter's profiles
+        const profilesQuery = query(
+          collection(firebaseDb, 'users', invitation.invited_by, 'profiles'),
+          where('is_active', '==', true)
+        )
+        const profilesSnap = await getDocs(profilesQuery)
+
+        console.log('Found profiles to share:', profilesSnap.docs.length)
+
+        if (profilesSnap && profilesSnap.docs.length > 0) {
+          const sharePromises = profilesSnap.docs.map(p => {
+            const shareData = {
+              profile_id: p.id,
+              shared_with: user.uid,
+              shared_by: invitation.invited_by,
+              role: invitation.role,
+              share_all_profiles: true,
+              shared_with_email: user.email,
+              created_at: new Date().toISOString()
+            }
+            console.log('Creating share:', shareData)
+            return addDoc(collection(firebaseDb, 'profileShares'), shareData)
+          })
+          await Promise.all(sharePromises)
+          console.log('All shares created successfully')
+        }
+      } else if (invitation.profile_id) {
+        // Share single profile
+        console.log('Creating single profile share for:', invitation.profile_id)
+        const shareData = {
+          profile_id: invitation.profile_id,
+          shared_with: user.uid,
+          shared_by: invitation.invited_by,
+          role: invitation.role,
+          share_all_profiles: false,
+          shared_with_email: user.email,
+          created_at: new Date().toISOString()
+        }
+        console.log('Creating share:', shareData)
+        await addDoc(collection(firebaseDb, 'profileShares'), shareData)
+        console.log('Single share created successfully')
+      }
+
+      // Clear pending token
+      localStorage.removeItem('pendingInviteToken')
+
+      setSuccess(true)
+      setLoading(false)
+
+      // Redirect to dashboard after 3 seconds
+      setTimeout(() => {
+        navigate('/')
+      }, 3000)
+
+    } catch (err: any) {
+      console.error('Error processing invitation:', err)
+      setError(err.message || 'Failed to process invitation')
+      setLoading(false)
+    }
+  }
 
   if (loading) {
     return (
