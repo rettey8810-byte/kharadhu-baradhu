@@ -223,23 +223,27 @@ service cloud.firestore {
     }
 
     // Profile shares - accessible by both owner and shared user
+    // Allow creation by sharer (normal sharing) or invitee (during invitation acceptance)
     match /profileShares/{shareId} {
       allow read: if isAuthenticated() &&
         (resource.data.shared_by == request.auth.uid ||
          resource.data.shared_with == request.auth.uid ||
          isAdmin());
       allow create: if isAuthenticated() &&
-        request.resource.data.shared_by == request.auth.uid;
+        (request.resource.data.shared_by == request.auth.uid ||
+         request.resource.data.shared_with == request.auth.uid);
       allow update, delete: if isAuthenticated() &&
         (resource.data.shared_by == request.auth.uid || isAdmin());
     }
 
     // Profile share invitations - readable by inviter and invitee (by email)
+    // Allow list for token-based queries during invitation acceptance (any authenticated user can query by token)
     match /profileShareInvitations/{inviteId} {
       allow read: if isAuthenticated() &&
         (resource.data.invited_by == request.auth.uid ||
          resource.data.email == request.auth.token.email ||
          isAdmin());
+      allow list: if isAuthenticated(); // Allow querying by token for invitation acceptance
       allow create: if isAuthenticated() &&
         request.resource.data.invited_by == request.auth.uid;
       allow update, delete: if isAuthenticated() &&

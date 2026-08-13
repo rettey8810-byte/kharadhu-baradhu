@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, getDoc, doc, addDoc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
@@ -131,6 +131,7 @@ export default function AcceptInvite() {
 
         if (profilesSnap && profilesSnap.docs.length > 0) {
           const sharePromises = profilesSnap.docs.map(p => {
+            const profileData = p.data()
             const shareData = {
               profile_id: p.id,
               shared_with: user.uid,
@@ -138,7 +139,13 @@ export default function AcceptInvite() {
               role: invitation.role,
               share_all_profiles: true,
               shared_with_email: user.email,
-              created_at: new Date().toISOString()
+              created_at: new Date().toISOString(),
+              // Store profile data directly in share to avoid permission issues
+              profile_name: profileData.name,
+              profile_color: profileData.color,
+              profile_icon: profileData.icon,
+              profile_currency: profileData.currency,
+              profile_is_active: profileData.is_active
             }
             console.log('Creating share:', shareData)
             return addDoc(collection(firebaseDb, 'profileShares'), shareData)
@@ -149,6 +156,19 @@ export default function AcceptInvite() {
       } else if (invitation.profile_id) {
         // Share single profile
         console.log('Creating single profile share for:', invitation.profile_id)
+
+        // Fetch the profile data to store in the share
+        const profileRef = doc(firebaseDb, 'users', invitation.invited_by, 'profiles', invitation.profile_id)
+        const profileSnap = await getDoc(profileRef)
+
+        if (!profileSnap.exists()) {
+          setError('Profile not found')
+          setLoading(false)
+          return
+        }
+
+        const profileData = profileSnap.data()
+
         const shareData = {
           profile_id: invitation.profile_id,
           shared_with: user.uid,
@@ -156,7 +176,13 @@ export default function AcceptInvite() {
           role: invitation.role,
           share_all_profiles: false,
           shared_with_email: user.email,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          // Store profile data directly in share to avoid permission issues
+          profile_name: profileData.name,
+          profile_color: profileData.color,
+          profile_icon: profileData.icon,
+          profile_currency: profileData.currency,
+          profile_is_active: profileData.is_active
         }
         console.log('Creating share:', shareData)
         await addDoc(collection(firebaseDb, 'profileShares'), shareData)
