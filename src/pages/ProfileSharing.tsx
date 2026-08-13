@@ -205,6 +205,10 @@ export default function ProfileSharing() {
     return acc
   }, {} as Record<string, SharedProfile[]>)
 
+  console.log('Shares by person:', sharesByPerson)
+  console.log('Shared profiles:', sharedProfiles)
+  console.log('Active tab:', activeTab)
+
   return (
     <div className="p-4 pb-24">
       {/* Header */}
