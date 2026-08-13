@@ -106,14 +106,26 @@ export default function Dashboard() {
     const load = async () => {
       if (!user || profiles.length === 0) return
       setLoading(true)
-      console.log('Dashboard loading for profiles:', profiles.map(p => ({ id: p.id, name: p.name })))
+      console.log('Dashboard loading for profiles:', profiles.map(p => ({ id: p.id, name: p.name, user_id: p.user_id })))
 
       const profileIds = profiles.map(p => p.id).filter((id): id is string => !!id)
-      
+
+      // Group profiles by owner to load transactions from each owner's collection
+      const profilesByOwner = new Map<string, ExpenseProfile[]>()
+      profiles.forEach(p => {
+        const ownerId = p.user_id || user.uid
+        if (!profilesByOwner.has(ownerId)) {
+          profilesByOwner.set(ownerId, [])
+        }
+        profilesByOwner.get(ownerId)!.push(p)
+      })
+
+      console.log('Profiles grouped by owner:', Object.fromEntries(profilesByOwner))
+
       // Calculate date range based on filter
       let start: Date, end: Date
       const today = new Date()
-      
+
       if (dateFilter === 'today') {
         start = today
         end = today
@@ -125,38 +137,51 @@ export default function Dashboard() {
         start = new Date(year, month - 1, 1)
         end = new Date(year, month, 0)
       }
-      
+
       const rangeStart = formatDateLocal(start)
       const rangeEnd = formatDateLocal(end)
 
       try {
-        console.log('Loading transactions for user:', user.uid)
-        // Load transactions and filter locally because some data is stored as Firestore Timestamp
-        // and some as YYYY-MM-DD strings; Firestore cannot range-query across mixed types.
-        const txQuery = query(
-          collection(firebaseDb, 'users', user.uid, 'transactions'),
-          orderBy('transaction_date', 'desc'),
-          limit(5000)
-        )
-        console.log('Fetching transactions...')
-        const txSnap = await getDocs(txQuery)
-        console.log('Transactions fetched:', txSnap.docs.length)
+        // Load transactions from each owner's collection
+        const allTxDocs: any[] = []
+        const allCategories: any[] = []
+        const allIncomeSources: any[] = []
 
-        console.log('Fetching categories...')
-        // Load categories and income sources for enrichment
-        const catSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'categories'))
-        console.log('Categories fetched:', catSnap.docs.length)
-        
-        console.log('Fetching income sources...')
-        const sourceSnap = await getDocs(collection(firebaseDb, 'users', user.uid, 'incomeSources'))
-        console.log('Income sources fetched:', sourceSnap.docs.length)
+        for (const [ownerId, ownerProfiles] of profilesByOwner.entries()) {
+          console.log(`Loading transactions for owner: ${ownerId}`)
+          const txQuery = query(
+            collection(firebaseDb, 'users', ownerId, 'transactions'),
+            orderBy('transaction_date', 'desc'),
+            limit(5000)
+          )
+          const txSnap = await getDocs(txQuery)
+          console.log(`Transactions fetched from ${ownerId}:`, txSnap.docs.length)
 
-        const categoryById = new Map(catSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
-        const sourceById = new Map(sourceSnap.docs.map(d => [d.id, { id: d.id, ...d.data() } as any]))
+          // Load categories and income sources for this owner
+          const catSnap = await getDocs(collection(firebaseDb, 'users', ownerId, 'categories'))
+          console.log(`Categories fetched from ${ownerId}:`, catSnap.docs.length)
+
+          const sourceSnap = await getDocs(collection(firebaseDb, 'users', ownerId, 'incomeSources'))
+          console.log(`Income sources fetched from ${ownerId}:`, sourceSnap.docs.length)
+
+          // Add owner ID to categories and sources for identification
+          const ownerCategories = catSnap.docs.map(d => ({ ...d.data(), id: d.id, owner_id: ownerId }))
+          const ownerSources = sourceSnap.docs.map(d => ({ ...d.data(), id: d.id, owner_id: ownerId }))
+
+          allTxDocs.push(...txSnap.docs.map(d => ({ ...d.data(), id: d.id, owner_id: ownerId })))
+          allCategories.push(...ownerCategories)
+          allIncomeSources.push(...ownerSources)
+        }
+
+        console.log('Total transactions loaded:', allTxDocs.length)
+        console.log('Total categories loaded:', allCategories.length)
+        console.log('Total income sources loaded:', allIncomeSources.length)
+
+        const categoryById = new Map(allCategories.map(d => [d.id, d]))
+        const sourceById = new Map(allIncomeSources.map(d => [d.id, d]))
         const profileById = new Map(profiles.map(p => [p.id, p]))
 
-        const txDocs = txSnap.docs
-          .map(d => ({ id: d.id, ...d.data() } as any))
+        const txDocs = allTxDocs
           .filter((raw) => profileIds.includes(raw.profile_id))
           .map((raw) => ({
             ...raw,
