@@ -70,7 +70,7 @@ service cloud.firestore {
       
       // User's transactions subcollection
       match /transactions/{transactionId} {
-        allow read: if isOwner(userId) || isAdmin();
+        allow read: if isAuthenticated() || isAdmin();
         allow write: if isOwner(userId);
       }
       
@@ -82,13 +82,13 @@ service cloud.firestore {
       
       // User's categories subcollection
       match /categories/{categoryId} {
-        allow read: if isOwner(userId);
+        allow read: if isAuthenticated() || isAdmin();
         allow write: if isOwner(userId);
       }
-      
+
       // User's income sources subcollection
       match /incomeSources/{sourceId} {
-        allow read: if isOwner(userId);
+        allow read: if isAuthenticated() || isAdmin();
         allow write: if isOwner(userId);
       }
       

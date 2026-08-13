@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, doc, addDoc, updateDoc } from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, updateDoc, setDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 
@@ -146,7 +146,9 @@ export default function AcceptInvite() {
               profile_is_active: profileData.is_active !== false
             }
             console.log('Creating share:', shareData)
-            return addDoc(collection(firebaseDb, 'profileShares'), shareData)
+            // Use predictable ID format: profileId_userId for Firestore rule checks
+            const shareId = `${p.id}_${user.uid}`
+            return setDoc(doc(firebaseDb, 'profileShares', shareId), shareData)
           })
           await Promise.all(sharePromises)
           console.log('All shares created successfully')
@@ -170,7 +172,9 @@ export default function AcceptInvite() {
           profile_is_active: invitation.profile_is_active !== false
         }
         console.log('Creating share:', shareData)
-        await addDoc(collection(firebaseDb, 'profileShares'), shareData)
+        // Use predictable ID format: profileId_userId for Firestore rule checks
+        const shareId = `${invitation.profile_id}_${user.uid}`
+        await setDoc(doc(firebaseDb, 'profileShares', shareId), shareData)
         console.log('Single share created successfully')
       }
 
