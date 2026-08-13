@@ -17,6 +17,8 @@ export function useAuth() {
         const pendingToken = localStorage.getItem('pendingInviteToken')
         if (pendingToken && !window.location.pathname.includes('/accept-invite')) {
           console.log('User logged in, found pending invitation token:', pendingToken)
+          // Clear the token to prevent redirect loop
+          localStorage.removeItem('pendingInviteToken')
           // Redirect to accept invite page with the token
           window.location.href = `/accept-invite?token=${pendingToken}`
         }
