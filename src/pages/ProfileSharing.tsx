@@ -157,11 +157,22 @@ export default function ProfileSharing() {
     console.log('Revoke all shares for user:', email)
     if (!user) return
     try {
-      const q = query(
-        collection(firebaseDb, 'profileShares'),
-        where('shared_by', '==', user.uid),
-        where('shared_with_email', '==', email)
-      )
+      let q
+      if (email === 'Unknown') {
+        // For Unknown (null email), delete all shares where shared_with equals current user (self-shares)
+        q = query(
+          collection(firebaseDb, 'profileShares'),
+          where('shared_by', '==', user.uid),
+          where('shared_with', '==', user.uid)
+        )
+      } else {
+        // For normal email, delete by email
+        q = query(
+          collection(firebaseDb, 'profileShares'),
+          where('shared_by', '==', user.uid),
+          where('shared_with_email', '==', email)
+        )
+      }
       const snap = await getDocs(q)
       console.log('Found shares to delete:', snap.docs.length)
       for (const d of snap.docs) {
