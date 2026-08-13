@@ -83,6 +83,7 @@ export default function AcceptInvite() {
 
         // If it's a share_all_profiles invitation, create shares for all profiles
         if (invitation.share_all_profiles) {
+          console.log('Creating shares for all profiles')
           // Get inviter's profiles
           const profilesQuery = query(
             collection(firebaseDb, 'users', invitation.invited_by, 'profiles'),
@@ -90,9 +91,11 @@ export default function AcceptInvite() {
           )
           const profilesSnap = await getDocs(profilesQuery)
 
+          console.log('Found profiles to share:', profilesSnap.docs.length)
+
           if (profilesSnap && profilesSnap.docs.length > 0) {
-            const sharePromises = profilesSnap.docs.map(p => 
-              addDoc(collection(firebaseDb, 'profileShares'), {
+            const sharePromises = profilesSnap.docs.map(p => {
+              const shareData = {
                 profile_id: p.id,
                 shared_with: user.uid,
                 shared_by: invitation.invited_by,
@@ -100,13 +103,17 @@ export default function AcceptInvite() {
                 share_all_profiles: true,
                 shared_with_email: user.email,
                 created_at: new Date().toISOString()
-              })
-            )
+              }
+              console.log('Creating share:', shareData)
+              return addDoc(collection(firebaseDb, 'profileShares'), shareData)
+            })
             await Promise.all(sharePromises)
+            console.log('All shares created successfully')
           }
         } else if (invitation.profile_id) {
           // Share single profile
-          await addDoc(collection(firebaseDb, 'profileShares'), {
+          console.log('Creating single profile share for:', invitation.profile_id)
+          const shareData = {
             profile_id: invitation.profile_id,
             shared_with: user.uid,
             shared_by: invitation.invited_by,
@@ -114,7 +121,10 @@ export default function AcceptInvite() {
             share_all_profiles: false,
             shared_with_email: user.email,
             created_at: new Date().toISOString()
-          })
+          }
+          console.log('Creating share:', shareData)
+          await addDoc(collection(firebaseDb, 'profileShares'), shareData)
+          console.log('Single share created successfully')
         }
 
         // Clear pending token
