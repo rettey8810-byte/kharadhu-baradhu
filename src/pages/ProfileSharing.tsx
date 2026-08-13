@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { firebaseDb } from '../lib/firebase'
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore'
 import { useProfile } from '../hooks/useProfile'
 import { useAuth } from '../hooks/useAuth'
 import { Users, UserPlus, Mail, Trash2, Shield, User, CheckCircle, Home, UsersRound, Copy, Check } from 'lucide-react'
@@ -67,11 +67,13 @@ export default function ProfileSharing() {
     // Load all profiles shared by this user
     const q = query(
       collection(firebaseDb, 'profileShares'),
-      where('shared_by', '==', user.uid),
-      orderBy('created_at', 'desc')
+      where('shared_by', '==', user.uid)
     )
     const snap = await getDocs(q)
-    setSharedProfiles(snap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedProfile))
+    const profiles = snap.docs.map(d => ({ id: d.id, ...d.data() }) as SharedProfile)
+    // Sort by created_at descending client-side
+    profiles.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    setSharedProfiles(profiles)
     setLoading(false)
   }
 
@@ -81,11 +83,13 @@ export default function ProfileSharing() {
     const q = query(
       collection(firebaseDb, 'profileShareInvitations'),
       where('invited_by', '==', user.uid),
-      where('accepted', '==', false),
-      orderBy('invited_at', 'desc')
+      where('accepted', '==', false)
     )
     const snap = await getDocs(q)
-    setPendingInvitations(snap.docs.map(d => ({ id: d.id, ...d.data() }) as PendingInvitation))
+    const invitations = snap.docs.map(d => ({ id: d.id, ...d.data() }) as PendingInvitation)
+    // Sort by invited_at descending client-side
+    invitations.sort((a, b) => new Date(b.invited_at).getTime() - new Date(a.invited_at).getTime())
+    setPendingInvitations(invitations)
   }
 
   const copyInviteLink = async (token: string) => {
