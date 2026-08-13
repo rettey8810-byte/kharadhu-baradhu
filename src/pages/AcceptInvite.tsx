@@ -8,8 +8,7 @@ import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 export default function AcceptInvite() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [token, setToken] = useState<string | null>(null)
-  
+
   const [loading, setLoading] = useState(true)
   const [needsLogin, setNeedsLogin] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +23,6 @@ export default function AcceptInvite() {
     const token = new URLSearchParams(window.location.search).get('token')
     console.log('AcceptInvite page loaded, token from URL:', token)
     if (token) {
-      setToken(token)
       verifyAndAcceptInvitation(token)
     } else {
       setError('No invitation token found in URL')
